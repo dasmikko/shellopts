@@ -1,0 +1,97 @@
+
+TODO
+  o Add a option flag for solitary options (--help) 
+  o Make a #to_yaml
+  o Make an official dump method for debug
+  o Make a note that all options are processed at once and not as-you-go
+  o Test that arguments with spaces work
+  o Long version usage strings
+  o Doc: Example of processing of sub-commands and sub-sub-commands
+
+  + More tests
+  + More doc
+  + Implement value-name-before-flags rule
+  + Kill option array values
+  + Kill key forms
+  + Rename Option#opt to Option#name
+  + Have all Ast objects to be on [key, name, value] form
+  + Change #=>i, $=>f and introduce b (boolean)
+  + Unshift program name to usage definition string before compiling
+  + Rename to UsageCompiler and ArgvParser
+  + Make usage-string handle commands
+  + Change !cmd to cmd!
+  + Clean-up terminology: Option-name is used for names with and without the prefixed dashes
+  + Rename Option#has_argument? and #optional? to something else
+  + Fix location reporting of compiler errors
+  + Allow '--' in usage so that everything after can be used as USAGE in error messages
+  + Handle pretty-printing of usage string in handling of ParserError
+  + Compiler.new.compile(usage), Parser.new(compiled_program).parse(argv)
+  + Check for duplicate option in the parser
+  + Handle CompilerError
+  + Use nil value as the name of the top 'command'
+  + Refactor compilation to avoid having the Command objects throw CompilerErrors
+  + Change to 'parser.parse' / 'parser.parse3'
+  + Use first long option as symbolic key
+  + Use full option names everywhere (eg. '--all' instead of 'all')
+
+  - Revert change from '#' -> 'i'
+  - Guard against reserved 'object_id' name in OpenStruct
+  - Default value ('=' -> ':')
+      Default values are better handled in the calling program
+
+  ? More specialized exceptions: "MissingArgumentError" etc.
+
+LATER
+  o Allow '-a' and '--aa' in usage
+  o Allow single-line comments
+  o Allow multi-line comments
+  o Regex as option value spec
+  o "FILE", "DIR", "NEWFILE", "NEWDIR" as keyword in option value spec
+      RFILE, RDIR
+      WFILE, WDIR
+      EFILE, EDIR
+  o Octal and hexadecimal integers
+  o Escape of separator in lists
+  o Handle output of subcommand usage like "cmd1 cmd1.cmd2 cmd2"
+  o Command-specific arguments: clone! o,opt ++ ARG1 ARG2...
+
+ON TO_H BRANCH
+  ShellOpts.process(usage, argv) { |opt,val| ... } => args
+  ShellOpts.process(usage, argv) { |key,opt,val| ... } => args
+
+  opts = ShellOpts.new(usage, argv, defaults = {})
+  opts = ShellOpts.new(usage, argv, defaults = OpenStruct.new)
+
+  opts.args
+  opts.to_a
+  opts.to_h
+  opts.to_openstruct
+
+  opts.each { |opt,val| ... }
+  opts.each { |key,opt,val| ... }
+
+LONG FORMAT
+
+  PROGRAM = File.basename(ARGV.first)
+  USAGE = "-a -f FILE -lvh FILE..."
+  DESCR = %(
+    Short description
+
+    Longer description
+  )
+  OPTIONS = %(
+    -a,--all
+      Process all files
+
+    -f, --file=FILE
+      Process file
+
+    !command
+      This is a command
+
+      --this-is-a-command-option
+        Options for commands are nested
+
+    ...
+  )
+

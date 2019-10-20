@@ -1,0 +1,28 @@
+/.bundle/
+/.yardoc
+/_yardoc/
+/doc/
+/pkg/
+/spec/reports/
+/tmp/
+
+# rspec failure tracking
+.rspec_status
+
+# simplecov
+/coverage/
+
+# Ignore Gemfile.lock. See https://stackoverflow.com/questions/4151495/should-gemfile-lock-be-included-in-gitignore
+/Gemfile.lock
+
+# Ignore vim files
+.*.swp
+
+# Ignore t.* files
+t
+t.*
+tt
+tt.*
+s
+s.*
+

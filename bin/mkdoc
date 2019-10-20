@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+
+LINK='<link rel="stylesheet" type="text/css" href="stylesheet.css">'
+
+{
+        echo $LINK
+        pandoc README.md
+} >index.html
+
+rdoc lib
