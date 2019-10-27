@@ -1,5 +1,6 @@
 
 TODO
+  o Consolidate some of the 3 variations of #error and #fail
   o Add a option flag for solitary options (--help) 
   o Make a #to_yaml
   o Make an official dump method for debug

@@ -1,8 +1,6 @@
 require 'simplecov'
 SimpleCov.start
 
-
-
 require "bundler/setup"
 require "shellopts"
 require "indented_io"

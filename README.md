@@ -257,8 +257,8 @@ system (eg. disk full) and omits the usage summary
 ```
 
 The methods are defined as instance methods on `ShellOpts::ShellOpts` and as
-class methods on `ShellOpts`. The class methods stores program name and usage
-string in global variables that are reset by `ShellOpts.reset`
+class methods on `ShellOpts`. They can also be included in the global scope by
+`include ShellOpts::Utils`
 
 ## Example
 
