@@ -7,6 +7,9 @@ require 'shellopts/parser.rb'
 # library API consists of the methods {ShellOpts.process}, {ShellOpts.error},
 # and {ShellOpts.fail} and the result class {ShellOpts::ShellOpts}
 #
+# ShellOpts inject the constant PROGRAM into the global scope. It contains the 
+# name of the program
+#
 module ShellOpts
   # Process command line options and arguments.  #process takes a usage string
   # defining the options and the array of command line arguments to be parsed
@@ -76,7 +79,7 @@ module ShellOpts
   #   shellopts.args.each { |arg| ... }
   #   shellopts.error("Something went wrong")
   #
-  def self.process(usage, argv, program_name: File.basename($0), &block)
+  def self.process(usage, argv, program_name: PROGRAM, &block)
     if !block_given?
       ShellOpts.new(usage, argv, program_name: program_name)
     else
@@ -193,3 +196,4 @@ private
   @shellopts = nil
 end
 
+PROGRAM = File.basename($PROGRAM_NAME)

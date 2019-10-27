@@ -1,6 +1,12 @@
 require 'spec_helper.rb'
 require 'shellopts.rb'
 
+describe "Requiring shellopts" do
+  it "defines a global PROGRAM constant" do
+    expect(PROGRAM).to eq "rspec"
+  end
+end
+
 include ShellOpts
 
 # For access to ShellOpts.@shellopts
