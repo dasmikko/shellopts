@@ -96,15 +96,21 @@ module ShellOpts
     @shellopts = nil
   end
 
-  # Print error message and usage string and exit with status 1. Can only be
-  # called after #process. Forwards to {::ShellOpts#error}
+  # Print error message and usage string and exit with status 1. It use the
+  # current ShellOpts object if defined. This method should be called in
+  # response to user-errors (eg. specifying an illegal option)
   def self.error(*msgs)
-    @shellopts&.error(*msgs) or raise InternalError, "ShellOpts class variable not initialized"
+    program = @shellopts&.program_name || PROGRAM
+    usage = @shellopts&.usage || (defined?(USAGE) && USAGE ? Grammar.compile(PROGRAM, USAGE).usage : nil)
+    emit_and_exit(program, usage, *msgs)
   end
 
-  # Print error message and exit with status 1. Forwards to {::ShellOpts#fail}
+  # Print error message and exit with status 1. It use the current ShellOpts
+  # object if defined. This method should not be called in response to
+  # user-errors but system errors (like disk full)
   def self.fail(*msgs)
-    @shellopts&.fail(*msgs) or raise InternalError, "ShellOpts class variable not initialized"
+    program = @shellopts&.program_name || PROGRAM
+    emit_and_exit(program, nil, *msgs)
   end
 
   # The compilation object
@@ -165,16 +171,13 @@ module ShellOpts
     # should be called in response to user-errors (eg. specifying an illegal
     # option)
     def error(*msgs)
-      $stderr.puts "#{program_name}: #{msgs.join}"
-      $stderr.puts "Usage: #{program_name} #{usage}"
-      exit 1
+      ::ShellOpts.emit_and_exit(program_name, usage, msgs)
     end
 
     # Print error message and exit with status 1. This method should not be
     # called in response to user-errors but system errors (like disk full)
     def fail(*msgs)
-      $stderr.puts "#{program_name}: #{msgs.join}"
-      exit 1
+      ::ShellOpts.emit_and_exit(program_name, nil, msgs)
     end
   end
 
@@ -194,6 +197,12 @@ module ShellOpts
 
 private
   @shellopts = nil
+
+  def self.emit_and_exit(program, usage, *msgs)
+    $stderr.puts "#{program}: #{msgs.join}"
+    $stderr.puts "Usage: #{program} #{usage}" if usage
+    exit 1
+  end
 end
 
 PROGRAM = File.basename($PROGRAM_NAME)

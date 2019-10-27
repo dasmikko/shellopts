@@ -14,7 +14,7 @@ module ShellOpts
   def self.get_state() @shellopts end
 end
 
-shared_examples_for "the error method" do
+shared_examples_for "the error method" do |test_global|
   it "writes the error message and a usage string to stderr" do
     expected = "cmd: Error message\nUsage: cmd -a\n"
     expect {
@@ -136,8 +136,43 @@ describe ShellOpts do
     }
     it_should_behave_like("the error method")
 
-    it "raise an InternalError if not initialized" do
-      expect { ShellOpts.error("Message") }.to raise_error ShellOpts::InternalError
+    context "when ShellOpts hasn't been initialized" do
+      it "use the global USAGE string if defined" do
+        ::ShellOpts.reset
+        stub_const("USAGE", "a")
+        expected = "rspec: Error message\nUsage: rspec -a\n"
+        expect {
+          begin
+            ::ShellOpts.error("Error message")
+          rescue SystemExit
+          end
+        }.to output(expected).to_stderr
+      end
+
+      it "omits the usage if the USAGE is undefined" do
+        ::ShellOpts.reset
+        hide_const("USAGE")
+        expected = "rspec: Error message\n"
+        expect {
+          begin
+            ::ShellOpts.error("Error message")
+          rescue SystemExit
+          end
+        }.to output(expected).to_stderr
+      end
+
+      it "use the global PROGRAM string as name" do
+        ::ShellOpts.reset
+        hide_const("USAGE")
+        stub_const("PROGRAM", "program")
+        expected = "program: Error message\n"
+        expect {
+          begin
+            ::ShellOpts.error("Error message")
+          rescue SystemExit
+          end
+        }.to output(expected).to_stderr
+      end
     end
   end
 
@@ -149,10 +184,6 @@ describe ShellOpts do
     }
     it_should_behave_like("the fail method")
 
-    it "raise an InternalError if not initialized" do
-      ShellOpts.reset
-      expect { ShellOpts.error("Message") }.to raise_error ShellOpts::InternalError
-    end
   end
 
   describe "ShellOpts" do

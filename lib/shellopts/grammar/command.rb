@@ -19,7 +19,6 @@ module ShellOpts
       attr_reader :commands 
 
       # List of options in declaration order
-      # order
       attr_reader :option_list
 
       # List of commands in declaration order
