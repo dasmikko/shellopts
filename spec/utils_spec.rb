@@ -1,7 +1,6 @@
 require 'spec_helper.rb'
 
 require 'shellopts'
-require 'shellopts/utils'
 
 include ShellOpts::Utils
 

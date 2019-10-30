@@ -2,6 +2,7 @@ require "shellopts/version"
 
 require 'shellopts/compiler.rb'
 require 'shellopts/parser.rb'
+require 'shellopts/utils.rb'
 
 # ShellOpts is a library for parsing command line options and sub-commands. The
 # library API consists of the methods {ShellOpts.process}, {ShellOpts.error},
