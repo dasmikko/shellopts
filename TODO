@@ -1,5 +1,10 @@
 
 TODO
+  o Check on return value from #process block to see if all options was handled:
+      case opt
+        when '-v'; verbose = true # Return value 'true' is ok
+        # Unhandled option means return value is nil
+      end
   o Consolidate some of the 3 variations of #error and #fail
   o Add a option flag for solitary options (--help) 
   o Make a #to_yaml
@@ -55,6 +60,7 @@ LATER
   o Escape of separator in lists
   o Handle output of subcommand usage like "cmd1 cmd1.cmd2 cmd2"
   o Command-specific arguments: clone! o,opt ++ ARG1 ARG2...
+  o Hostname and email as basic types
 
 ON TO_H BRANCH
   ShellOpts.process(usage, argv) { |opt,val| ... } => args
