@@ -27,7 +27,7 @@ module ShellOpts
 
       # Initialize a Compiler object. source is the option definition string
       def initialize(program_name, source)
-        @program_name, @tokens = program_name, source.split(/\s+/)
+        @program_name, @tokens = program_name, source.split(/\s+/).reject(&:empty?)
 
         # @commands_by_path is an hash from command-path to Command or Program
         # object. The top level Program object has nil as its path.

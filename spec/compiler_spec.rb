@@ -47,6 +47,13 @@ module ShellOpts::Grammar
         expect(grammar.option_list + grammar.command_list).to eq []
       end
 
+      it "accept multiple lines" do
+        expect { compile("a\nb") }.not_to raise_error
+        expect { compile("\na\nb") }.not_to raise_error
+        expect { compile("\na\nb\n") }.not_to raise_error
+        expect { compile("a\nb\n") }.not_to raise_error
+      end
+
       it "accepts \"--\" as input" do
         grammar = compile("--")
         expect(grammar.option_list + grammar.command_list).to eq []
