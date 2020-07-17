@@ -17,6 +17,13 @@ module ShellOpts
     @shellopts
   end
 
+  # Prettified usage string used by #error and #fail. Default is +usage+ of
+  # the current +ShellOpts::ShellOpts+ object
+  def self.usage() @usage ||= @shellopts&.usage end
+
+  # Set the usage string
+  def self.usage=(usage) @usage = usage end
+  
   # Process command line options and arguments.  #process takes a usage string
   # defining the options and the array of command line arguments to be parsed
   # as arguments
@@ -77,8 +84,8 @@ module ShellOpts
   # #process saves a hidden {ShellOpts::ShellOpts} class variable used by the
   # class methods #error and #fail. Call #reset to clear the global object if
   # you really need to parse more than one command line. Alternatively you can
-  # create +ShellOpts::ShellOpts+ objects yourself and use the object methods
-  # #error and #fail instead:
+  # create +ShellOpts::ShellOpts+ objects yourself and also use the object methods
+  # #error and #fail:
   #
   #   shellopts = ShellOpts::ShellOpts.new(USAGE, ARGS)
   #   shellopts.each { |name, value| ... }
@@ -102,15 +109,20 @@ module ShellOpts
   # another command line
   def self.reset()
     @shellopts = nil
+    @usage = nil
   end
 
   # Print error message and usage string and exit with status 1. It use the
   # current ShellOpts object if defined. This method should be called in
   # response to user-errors (eg. specifying an illegal option)
+  #
+  # If there is no current ShellOpts object +error+ will look for USAGE to make
+  # it possible to use +error+ before the command line is processed and also as
+  # a stand-alone error reporting method
   def self.error(*msgs)
     program = @shellopts&.program_name || PROGRAM
-    usage = @shellopts&.usage || (defined?(USAGE) && USAGE ? Grammar.compile(PROGRAM, USAGE).usage : nil)
-    emit_and_exit(program, usage, *msgs)
+    usage_string = usage || (defined?(USAGE) && USAGE ? Grammar.compile(PROGRAM, USAGE).usage : nil)
+    emit_and_exit(program, usage_string, *msgs)
   end
 
   # Print error message and exit with status 1. It use the current ShellOpts
@@ -126,7 +138,7 @@ module ShellOpts
     # Name of program
     attr_reader :program_name
 
-    # Usage string. Shorthand for +grammar.usage+
+    # Prettified usage string used by #error and #fail. Shorthand for +grammar.usage+
     def usage() @grammar.usage end
 
     # The grammar compiled from the usage string. If #ast is defined, it's

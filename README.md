@@ -260,6 +260,23 @@ The methods are defined as instance methods on `ShellOpts::ShellOpts` and as
 class methods on `ShellOpts`. They can also be included in the global scope by
 `include ShellOpts::Utils`
 
+#### Usage string
+
+The error handling methods prints a prettified version of the usage string
+given to `ShellOpts.parse`. It can be overridden by assigning to
+`ShellOpts.usage`. You'll often assign to the usage string when it needs to be
+split over several lines:
+
+```ruby
+
+USAGE="long-and-complex-usage-string"
+ShellOpts.usage = %(
+  usage explanation
+  split over
+  multiple lines
+)
+```
+
 ## Example
 
 The rm(1) command could be implemented like this

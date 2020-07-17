@@ -70,6 +70,21 @@ describe ShellOpts do
     end
   end
 
+  describe ".usage" do
+    let(:shellopts) { process("a", %w()) {}; ShellOpts.shellopts }
+
+    it "defaults to ShellOpts::ShellOpts#usage" do
+      expect(shellopts.usage).to eq ShellOpts.usage
+    end
+    it "can be overridden" do
+      shellopts # Force creation
+      expect(ShellOpts.usage).to eq "-a"
+      ShellOpts.usage = "override"
+      expect(ShellOpts.usage).to eq "override"
+      ShellOpts.reset
+    end
+  end
+
   describe ".process" do
     let(:usage) { "a b= c" }
     let(:argv) { %w(-a -bhello -c ARG) }
