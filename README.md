@@ -1,20 +1,20 @@
 # Shellopts
 
-`ShellOpts` is a simple command line parsing libray that covers most modern use
+`ShellOpts` is a simple Linux command line parsing libray that covers most modern use
 cases incl. sub-commands. Options and commands are specified using a
 getopt(1)-like string that is interpreted by the library to process the command
 line
 
 ## Usage
 
-The following program accepts `-a` and `--all` that are aliases
-for the same option, `--count` that may be given an integer argument but
-defaults to 42, `--file` that has a mandatory argument, and `-v` and
-`--verbose` that can be repeated to increase the verbosity level
+Program that accepts the options -a or --all, --count, --file, and -v or
+--verbose.  The usage definition expects `--count` to have an optional integer
+argument, `--file` to have a mandatory argument, and allows `-v` and
+`--verbose` to be repeated:
+
 
 ```ruby
-require 'shellopts'
-
+ 
 # Define options
 USAGE = "a,all count=#? file= +v,verbose -- FILE..."
 
@@ -36,7 +36,7 @@ args = ShellOpts.process(USAGE, ARGV) do |opt, arg|
   end
 end
 
-# Process remaining arguments
+# Process remaining command line arguments
 args.each { |arg| ... }
 ```
 
@@ -50,10 +50,10 @@ error
 
 ## Processing
 
-`ShellOpts.process` compiles a usage definition string into a grammar and use that to
-parse the command line. If given a block, the block is called with a name/value
-pair for each option or command and return a list of the remaining non-option
-arguments
+`ShellOpts.process` compiles a usage definition string into a grammar and use
+that to parse the command line. If given a block, the block is called with a
+name/value pair for each option or command and return a list of the remaining
+non-option arguments
 
 ```ruby
 args = ShellOpts.process(USAGE, ARGV) do |opt, arg|
@@ -100,6 +100,18 @@ An option is defined by a list of comma-separated names optionally prefixed by a
 ```EBNF
 [ "+" ] name-list [ "=" [ "#" | "$" ] [ label ] [ "?" ] ]
 ```
+
+#### Flags
+
+There are the following flags:
+
+|Flag|Effect|
+|---|---|
+|+|Repeated option (prefix)|
+|=|Argument. Mandatory unless `?` is also used|
+|#|Integer argument|
+|$|Floating point argument|
+|?|Optional argument|
 
 #### Repeated options
 
