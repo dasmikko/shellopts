@@ -12,6 +12,11 @@ require 'shellopts/utils.rb'
 # name of the program
 #
 module ShellOpts
+  # Return the hidden +ShellOpts::ShellOpts+ object (see .process)
+  def self.shellopts()
+    @shellopts
+  end
+
   # Process command line options and arguments.  #process takes a usage string
   # defining the options and the array of command line arguments to be parsed
   # as arguments
@@ -79,6 +84,8 @@ module ShellOpts
   #   shellopts.each { |name, value| ... }
   #   shellopts.args.each { |arg| ... }
   #   shellopts.error("Something went wrong")
+  #
+  # Use #shellopts to get the hidden +ShellOpts::ShellOpts+ object
   #
   def self.process(usage, argv, program_name: PROGRAM, &block)
     if !block_given?

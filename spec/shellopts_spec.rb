@@ -62,6 +62,14 @@ describe ShellOpts do
     expect(Shellopts::VERSION).to match(/\d+\.\d+\.\d+/)
   end
 
+  describe ".shellopts" do
+    it "returns the hidden ShellOpts::ShellOpts object" do
+      args = process("a", %w(-a)) {}
+      hidden = ShellOpts.shellopts
+      expect(args).to be hidden.args
+    end
+  end
+
   describe ".process" do
     let(:usage) { "a b= c" }
     let(:argv) { %w(-a -bhello -c ARG) }
