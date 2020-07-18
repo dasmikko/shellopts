@@ -73,7 +73,7 @@ line at a time and to inspect the grammar and AST
 
 ```ruby
 shellopts = ShellOpts.process(USAGE, ARGV)  # Returns a ShellOpts::ShellOpts object
-shellopts.each { |opt, val| ... }           # Access options
+shellopts.each { |opt, arg| ... }           # Access options
 args = shellopts.args                       # Access remaining arguments
 shellopts.error "Something went wrong"      # Emit an error message and exit
 ```
@@ -195,11 +195,11 @@ sub-commands) to the command:
 ```ruby
 USAGE = "a cmd! b c"
 
-args = ShellOpts.process(USAGE, ARGV) { |opt,val|
+args = ShellOpts.process(USAGE, ARGV) { |opt, arg|
   case opt
     when '-a'; # Handle -a
     when 'cmd'
-      opt.each { |opt, val|
+      arg.each { |opt, arg|
         case opt
           when '-b'; # Handle -b
           when '-c'; # Handle -c
@@ -319,12 +319,12 @@ preserve_root = true
 verbose = false
 
 # Process command line
-args = ShellOpts.process(USAGE, ARGV) { |opt, val|
+args = ShellOpts.process(USAGE, ARGV) { |opt, arg|
   case opt
     when '-f', '--force';           force = true
     when '-i';                      prompt = true
     when '-I';                      prompt_once = true
-    when '--interactive';           interactive = true; interactive_when = val
+    when '--interactive';           interactive = true; interactive_when = arg
     when '-r', '-R', '--recursive'; recursive = true
     when '-d', '--dir';             remove_empty_dirs = true
     when '--one-file-system';       one_file_system = true
