@@ -275,19 +275,23 @@ class methods on `ShellOpts`. They can also be included in the global scope by
 #### Usage string
 
 The error handling methods prints a prettified version of the usage string
-given to `ShellOpts.parse`. It can be overridden by assigning to
-`ShellOpts.usage`. You'll often assign to the usage string when it needs to be
-split over several lines:
+given to `ShellOpts.parse`. The usage string can be overridden by assigning to
+`ShellOpts.usage`. A typical use case is when you want to split the usage
+description over multiple lines:
 
 ```ruby
 
 USAGE="long-and-complex-usage-string"
-ShellOpts.usage = %(
+ShellOpts.usage = <<~EOD
   usage explanation
   split over
   multiple lines
-)
+EOD
 ```
+
+Note that this only affects the module-level `ShellOpts.error` method and not
+object-level `ShellOpts::ShellOpts#error` method. This is considered a bug and
+will fixed at some point
 
 ## Example
 

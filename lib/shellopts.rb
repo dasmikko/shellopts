@@ -19,7 +19,7 @@ module ShellOpts
 
   # Prettified usage string used by #error and #fail. Default is +usage+ of
   # the current +ShellOpts::ShellOpts+ object
-  def self.usage() @usage ||= @shellopts&.usage end
+  def self.usage() @usage || @shellopts&.usage end
 
   # Set the usage string
   def self.usage=(usage) @usage = usage end
@@ -122,7 +122,7 @@ module ShellOpts
   def self.error(*msgs)
     program = @shellopts&.program_name || PROGRAM
     usage_string = usage || (defined?(USAGE) && USAGE ? Grammar.compile(PROGRAM, USAGE).usage : nil)
-    emit_and_exit(program, usage_string, *msgs)
+    emit_and_exit(program, @usage.nil?, usage_string, *msgs)
   end
 
   # Print error message and exit with status 1. It use the current ShellOpts
@@ -130,7 +130,7 @@ module ShellOpts
   # user-errors but system errors (like disk full)
   def self.fail(*msgs)
     program = @shellopts&.program_name || PROGRAM
-    emit_and_exit(program, nil, *msgs)
+    emit_and_exit(program, false, nil, *msgs)
   end
 
   # The compilation object
@@ -191,13 +191,13 @@ module ShellOpts
     # should be called in response to user-errors (eg. specifying an illegal
     # option)
     def error(*msgs)
-      ::ShellOpts.emit_and_exit(program_name, usage, msgs)
+      ::ShellOpts.emit_and_exit(program_name, true, usage, msgs)
     end
 
     # Print error message and exit with status 1. This method should not be
     # called in response to user-errors but system errors (like disk full)
     def fail(*msgs)
-      ::ShellOpts.emit_and_exit(program_name, nil, msgs)
+      ::ShellOpts.emit_and_exit(program_name, false, nil, msgs)
     end
   end
 
@@ -218,9 +218,13 @@ module ShellOpts
 private
   @shellopts = nil
 
-  def self.emit_and_exit(program, usage, *msgs)
+  def self.emit_and_exit(program, use_usage, usage, *msgs)
     $stderr.puts "#{program}: #{msgs.join}"
-    $stderr.puts "Usage: #{program} #{usage}" if usage
+    if use_usage
+      $stderr.puts "Usage: #{program} #{usage}" if usage
+    else
+      $stderr.puts usage if usage
+    end
     exit 1
   end
 end

@@ -289,6 +289,32 @@ describe ShellOpts do
         ShellOpts::ShellOpts.new("a", %w(-a), program_name: "cmd")
       }
       it_should_behave_like("the error method")
+
+      context "the usage message" do
+        it "is prefixed 'Usage: ' if .usage has not been assigned to" do
+          expected = "cmd: Error message\nUsage: cmd -a\n"
+          expect {
+            begin
+              subject.error("Error message")
+            rescue SystemExit
+            end
+          }.to output(expected).to_stderr
+        end
+        it "is not prefixed 'Usage: ' if .usage has been assigned to" do
+          ShellOpts.usage = <<~EOD
+            multiline
+            description
+          EOD
+          expected = "cmd: Error message\nmultiline\ndescription\n"
+          expect {
+            begin
+              ShellOpts.error("Error message")
+            rescue SystemExit
+            end
+          }.to output(expected).to_stderr
+        end
+      end
+
     end
 
     describe "#fail" do
