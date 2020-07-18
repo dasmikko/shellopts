@@ -129,7 +129,9 @@ describe ShellOpts do
     end
 
     context "when errors in the user-supplied arguments" do
-      it 'terminates the program with an error message'
+      it 'terminates the program with an error message' do
+        expect { process("a", "-b") }.to raise SystemExit
+      end
     end
 
     context "when errors in the usage of the library" do
