@@ -1,5 +1,12 @@
 
 TODO
+  o Also allow assignment to usage string for ShellOpts::ShellOpts objects
+  o Create a ShellOpts.args method? It would be useful when processing commands:
+      case opt
+        when "command"
+          call_command_method(ShellOpts.args[1], ShellOpts.args[2])
+      end
+      ShellOpts.args would be a shorthand for ShellOpts.shellopts.args
   o Check on return value from #process block to see if all options was handled:
       case opt
         when '-v'; verbose = true # Return value 'true' is ok
@@ -11,7 +18,7 @@ TODO
   o Make an official dump method for debug
   o Make a note that all options are processed at once and not as-you-go
   o Test that arguments with spaces work
-  o Long version usage strings
+  o Long version usage strings (major release)
   o Doc: Example of processing of sub-commands and sub-sub-commands
 
   + More tests
