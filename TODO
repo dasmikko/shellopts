@@ -9,7 +9,10 @@ TODO
     ShellOpts.args would be a shorthand for ShellOpts.shellopts.args
     Another option would be to create an argument-processing method:
       shellopts.argv(2) -> call error if not exactly two arguments else return elements
-      
+  o Add a ShellOpts.option method:
+      file = ShellOpts.option("--file")
+    This will only work for options on the outermost level... maybe:
+      file = ShellOpts.option("load! --file")
   o Check on return value from #process block to see if all options was handled:
       case opt
         when '-v'; verbose = true # Return value 'true' is ok
