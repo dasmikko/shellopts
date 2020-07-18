@@ -2,6 +2,7 @@
 /.yardoc
 /_yardoc/
 /doc/
+/rdoc/
 /pkg/
 /spec/reports/
 /tmp/

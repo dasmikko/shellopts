@@ -1,10 +1,15 @@
 #!/usr/bin/bash
 
-LINK='<link rel="stylesheet" type="text/css" href="stylesheet.css">'
+set -e
 
-{
-        echo $LINK
-        pandoc README.md
-} >index.html
+# Generate github-like page
+(
+    cd doc
+    {
+        echo '<link rel="stylesheet" type="text/css" href="stylesheet.css">'
+        pandoc ../README.md
+    } >index.html
+)
 
-rdoc lib
+# Generate rdoc
+rdoc --output=rdoc --force-output lib
