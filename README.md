@@ -7,11 +7,10 @@ line
 
 ## Usage
 
-Program that accepts the options -a or --all, --count, --file, and -v or
---verbose.  The usage definition expects `--count` to have an optional integer
-argument, `--file` to have a mandatory argument, and allows `-v` and
-`--verbose` to be repeated:
-
+The following program accepts the options -a or --all, --count, --file, and -v
+or --verbose. It expects `--count` to have an optional integer argument,
+`--file` to have a mandatory argument, and allows `-v` and `--verbose` to be
+repeated:
 
 ```ruby
  

@@ -6,7 +6,10 @@ TODO
         when "command"
           call_command_method(ShellOpts.args[1], ShellOpts.args[2])
       end
-      ShellOpts.args would be a shorthand for ShellOpts.shellopts.args
+    ShellOpts.args would be a shorthand for ShellOpts.shellopts.args
+    Another option would be to create an argument-processing method:
+      shellopts.argv(2) -> call error if not exactly two arguments else return elements
+      
   o Check on return value from #process block to see if all options was handled:
       case opt
         when '-v'; verbose = true # Return value 'true' is ok
