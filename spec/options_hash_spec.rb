@@ -21,8 +21,8 @@ describe ShellOpts::OptionsHash do
     end
     it "returns true iff the command is present" do
       hash = process2("A! B!", %w(A))
-      expect(hash["A"]).to eq true
-      expect(hash["B"]).to eq false
+      expect(hash.key?("A")).to eq true
+      expect(hash.key?("B")).to eq false
     end
   end
 

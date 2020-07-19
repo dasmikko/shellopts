@@ -27,12 +27,17 @@ module ShellOpts
       end
     end
 
-    def user(key) end
-    def count(key) Array(self[key]).size end
     def key?(key) @hash.key?(key) end
     def [](key) @hash[key] end
+    def keys() @hash.keys end
+    def values() end
+
+
     def default(key, default_value) key?(key) ? self[key] : default_value end
+
     def node(key, index = 0) end
+    def user(key) end
+    def count(key) Array(self[key]).size end
   end
 end
 
