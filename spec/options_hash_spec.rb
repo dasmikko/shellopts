@@ -13,6 +13,14 @@ describe ShellOpts::OptionsHash do
     expect(hash).to be_a ::ShellOpts::OptionsHash
   end
 
+  describe "#key" do
+    it "returns true iff the option is present" do
+      hash = process2("a b", %w(-a))
+      expect(hash.key?("-a")).to eq true
+      expect(hash.key?("-b")).to eq false
+    end
+  end
+
   describe "#[]" do
     it "returns true if option is present" do
       hash = process2("a", %w(-a))
@@ -49,8 +57,12 @@ describe ShellOpts::OptionsHash do
     end
     it "accepts commands" do
       hash = process2("A! B!", %w(A))
-      expect(hash["A"]).to be_a Hash # Oops
+      expect(hash["A"]).not_to eq nil
       expect(hash["B"]).to eq nil
+    end
+    it "returns a ShellOpts::OptionHash value for commands" do
+      hash = process2("A! B!", %w(A))
+      expect(hash["A"]).to be_a ShellOpts::OptionsHash
     end
     it "nests command options under the command hash" do
       hash = process2("A! a", %w(A -a))

@@ -108,7 +108,7 @@ module ShellOpts
 
   def self.process2(usage, argv)
     @shellopts = ShellOpts.new(usage, argv)
-    ::ShellOpts::OptionsHash.new(@shellopts)
+    ::ShellOpts::OptionsHash.new(@shellopts.ast)
 
   end
 
