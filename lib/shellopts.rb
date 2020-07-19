@@ -3,6 +3,7 @@ require "shellopts/version"
 require 'shellopts/compiler.rb'
 require 'shellopts/parser.rb'
 require 'shellopts/utils.rb'
+require 'shellopts/options_hash.rb'
 
 # ShellOpts is a library for parsing command line options and sub-commands. The
 # library API consists of the methods {ShellOpts.process}, {ShellOpts.error},
@@ -103,6 +104,12 @@ module ShellOpts
       @shellopts.each(&block)
       @shellopts.args
     end
+  end
+
+  def self.process2(usage, argv)
+    @shellopts = ShellOpts.new(usage, argv)
+    ::ShellOpts::OptionsHash.new(@shellopts)
+
   end
 
   # Reset the hidden +ShellOpts::ShellOpts+ class variable so that you can process
