@@ -2,74 +2,45 @@ require "shellopts"
 
 module ShellOpts
   class OptionsHash
-    attr_reader :ast
-
-    # @hash
-    #   grammar.keys => [ast, value]
-    #                => [[ast, value], ...]
-    #                => [ast, OptionsHash]
-
     def initialize(ast)
       @ast = ast
-      @hash = {} # Hash from Ast keys to [ast_node, option_value(s)] TODO: Should be [grammar_node, ...]
+
+      @value_by_name = {} # Map from name and synonymons to value or list of values
+      @value_by_key = {}  # Map from key to value or list of values
+      @nodes_by_name = {} # Map from name and synonymons to list of nodes
+
       for option in ast.options
-        value = [option, option.grammar.argument? ? option.value : true]
-        if !@hash.key?(option.name) # Only true first this option is processed
+        value = option.grammar.argument? ? option.value : true
+        if !@value_by_name.key?(option.name) # Only true first this option is processed
           value = [value] if option.grammar.repeated?
-#         hash_value = [option, value] # Ensure only one instance for multiple keys
-          option.grammar.names.each { |name| @hash[name] = value }
-        else # Only happens if repeated?
-          @hash[option.name] << value
+          nodes = [option] # 'nodes' is needed to avoid duplicate instances because of [...]
+          for name in option.grammar.names + [option.grammar.key]
+            @value_by_name[name] = value
+            @nodes_by_name[name] = nodes
+          end
+          @value_by_key[option.key] = value
+        else # Only happens if repeated option
+          @value_by_name[option.key] << value
+          @nodes_by_name[option.key] << option
         end
       end
-      if command = ast.command
-        @hash[command.name] = [command, OptionsHash.new(command)]
+      if ast = ast.command
+        @value_by_name[ast.name] = @value_by_key[ast.key] = OptionsHash.new(ast)
+        @nodes_by_name[ast.name] = [ast]
       end
     end
 
-    def key?(key) @hash.key?(key) end
+    def key?(name) @value_by_name.key?(name) end
+    def [](name) @value_by_name[name] end
 
-    def [](key) 
-      entry = @hash[key] or return nil
-      entry.first.is_a?(Array) ? entry.map(&:last) : entry.last
-    end
+    def size() @value_by_key.size end
+    def keys() @value_by_key.keys end
+    def values() @value_by_key.values end
 
-    def size() keys.size end
-    def keys() @ast.options.map(&:name) + [@ast.command&.name].compact end
-    def values() 
-      p keys
-      keys.map { |key| self[key] } end
+    def name(name, index = 0) node(name, index)&.name end
+    def node(name, index = 0) @nodes_by_name[name]&.[](index) end
 
-    def name(key, index = nil)
-      p @hash.keys
-      p keys
-      p "------------------------------------------------------------"
-      if index.nil?
-        @hash[key].first.name
-      else
-        p @hash[key]
-        p @hash[key].last[index]
-        @hash[key].last[index].name
-      end
-    end
-
-#   def name(key, index = 0) node(key, index)&.name end
-#   def node(key, index = 0) @hash[key]&.first end
-
-
-#   def default(key, default_value) key?(key) ? self[key] : default_value end
-
-  private
-    def value_of(key)
-      entry = @hash[key] or return nil
-      case entry.first
-        when Ast::Node; entry.last
-        when Array; entry.last
-      else
-        raise "Oops"
-      end
-    end
-
+    def default(key, default_value) key?(key) ? self[key] || default_value : nil end
   end
 end
 

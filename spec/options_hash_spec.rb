@@ -31,7 +31,28 @@ describe ShellOpts::OptionsHash do
   end
 
   describe "#[]" do
-    it "returns true if option is present" do
+    it "accepts option names" do
+      hash = process2("a", %w(-a))
+      expect(hash["-a"]).to eq true
+    end
+    it "accepts option aliases" do
+      hash = process2("a,all", %w(-a))
+      expect(hash["--all"]).to eq true
+    end
+    it "accepts symbolic keys" do
+      hash = process2("a,all", %w(-a))
+      expect(hash[:all]).to eq true
+    end
+    it "accepts commands" do
+      hash = process2("A! B!", %w(A))
+      expect(hash["A"]).not_to eq nil
+      expect(hash["B"]).to eq nil
+    end
+    it "returns nil if not found" do
+      hash = process2("a", %w(-a))
+      expect(hash["-b"]).to eq nil
+    end
+    it "returns true if a non-argument option is present" do
       hash = process2("a", %w(-a))
       expect(hash["-a"]).to eq true
     end
@@ -56,19 +77,6 @@ describe ShellOpts::OptionsHash do
       hash = process2("+a=?", %w(-aARG -a))
       expect(hash["-a"]).to eq ["ARG", nil]
     end
-    it "returns nil if the option isn't present" do
-      hash = process2("a", %w(-a))
-      expect(hash["-b"]).to eq nil
-    end
-    it "accepts option aliases" do
-      hash = process2("a,all", %w(-a))
-      expect(hash["--all"]).to eq true
-    end
-    it "accepts commands" do
-      hash = process2("A! B!", %w(A))
-      expect(hash["A"]).not_to eq nil
-      expect(hash["B"]).to eq nil
-    end
     it "returns a ShellOpts::OptionHash value for commands" do
       hash = process2("A! B!", %w(A))
       expect(hash["A"]).to be_a ::ShellOpts::OptionsHash
@@ -83,19 +91,23 @@ describe ShellOpts::OptionsHash do
     it "returns the number of options and commands" do
       hash = process2("a,all b", %w(-a -b))
       expect(hash.size).to eq 2
+      hash = process2("a,all b A!", %w(-a -b A))
+      expect(hash.size).to eq 3
     end
   end
 
   describe "#keys" do
+    # TODO Define order of keys
     it "returns an array of the used keys" do
       hash = process2("a,all b", %w(-a -b))
-      expect(hash.keys).to eq %w(-a -b)
+      expect(hash.keys).to eq [:all, :b]
     end
   end
 
   describe "#values" do
+    # TODO Define order of values
     it "returns an array of values" do
-      hash = process2("+a= b= c=?", %w(-a ARG1 -a ARG2 -b ARG3 -c))
+      hash = process2("+a,all= b= c=?", %w(-a ARG1 -a ARG2 -b ARG3 -c))
       expect(hash.values).to eq [["ARG1", "ARG2"], "ARG3", nil]
     end
   end
@@ -103,31 +115,47 @@ describe ShellOpts::OptionsHash do
   describe "#name" do
     it "returns the used option alias" do
       hash = process2("a,all b,bee +c,C", %w(-a --bee -c -C))
-#     expect(hash.name("-a")).to eq "-a"
-#     expect(hash.name("--all")).to eq "-a"
-#     expect(hash.name("-b")).to eq "--bee"
-#     expect(hash.name("--bee")).to eq "--bee"
+      expect(hash.name("-a")).to eq "-a"
+      expect(hash.name("--all")).to eq "-a"
+      expect(hash.name("-b")).to eq "--bee"
+      expect(hash.name("--bee")).to eq "--bee"
+    end
 
-#     p hash.keys
-#     p hash.values
-      puts "BEFORE"
-      expect(hash.name("-c", 1)).to eq "-C"
+    it "returns nil if not found" do
+      hash = process2("a,all b,bee +c,C", %w(-a --bee -c -C))
+      expect(hash.name("-d")).to eq nil
+    end
 
+    context "with an index argument" do
+      it "returns the name used in that occurence" do
+        hash = process2("a,all b,bee +c,C", %w(-a --bee -c -C))
+        expect(hash.name("-c", 0)).to eq "-c"
+        expect(hash.name("-c", 1)).to eq "-C"
+      end
     end
   end
 
   describe "#node" do
     it "returns the Ast::Node object" do
-#     hash = process2("a,all +b,bee=", %w(-a -b B --bee=BEE))
-#     ast = hash.ast
-#     expect(hash.node("-a").grammar).to be ast.grammar.options["-a"]
-#     expect(hash.node("-b", 0).
+      hash = process2("a,all +b,bee=", %w(-a -b B --bee=BEE))
+      ast = hash.instance_variable_get("@ast")
+      expect(hash.node("-a").grammar).to be ast.grammar.options["-a"]
+    end
 
+    it "returns nil if not found" do
+      hash = process2("a,all +b,bee=", %w(-a -b B --bee=BEE))
+      expect(hash.node("-c")).to eq nil
+    end
 
-#     expect(hash.name("-a")).to eq "-a"
-#     expect(hash.name("--all")).to eq "-a"
-#     expect(hash.name("-b")).to eq "--bee"
-#     expect(hash.name("--bee")).to eq "--bee"
+    context "with an index argument" do
+      it "returns the node at that index" do
+        hash = process2("+b,bee=", %w(-b B --bee=BEE))
+        ast = hash.instance_variable_get("@ast")
+        node1 = ast.options[0]
+        node2 = ast.options[1]
+        expect(hash.node("-b", 0)).to be node1
+        expect(hash.node("-b", 1)).to be node2
+      end
     end
   end
 end
