@@ -39,6 +39,7 @@ module ShellOpts
 
     def name(name, index = 0) node(name, index)&.name end
     def node(name, index = 0) @nodes_by_name[name]&.[](index) end
+    def count(name) Array(@value_by_name[name] || []).size end
 
     def default(key, default_value) key?(key) ? self[key] || default_value : nil end
   end

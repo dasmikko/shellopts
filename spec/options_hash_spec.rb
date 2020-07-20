@@ -5,12 +5,7 @@ require "shellopts/options_hash.rb"
 describe ShellOpts::OptionsHash do
   def process2(usage, argv)
     ::ShellOpts.reset
-    ::ShellOpts.process2(usage, argv)
-  end
-
-  it "is returned from ShellOpts.process2" do
-    hash = ShellOpts.process2("a b= c=?", %w(-a -b ARG -c OPT))
-    expect(hash).to be_a ::ShellOpts::OptionsHash
+    ::ShellOpts.process(usage, argv).first
   end
 
   describe "#ast" do
@@ -156,6 +151,14 @@ describe ShellOpts::OptionsHash do
         expect(hash.node("-b", 0)).to be node1
         expect(hash.node("-b", 1)).to be node2
       end
+    end
+  end
+
+  describe "#count" do
+    it "returns the number of times an option is repeated" do
+      hash = process2("+a +b", %w(-a -a))
+      expect(hash.count("-a")).to eq 2
+      expect(hash.count("-b")).to eq 0
     end
   end
 end

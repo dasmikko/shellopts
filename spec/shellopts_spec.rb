@@ -107,8 +107,10 @@ describe ShellOpts do
     end
 
     context "without a block" do
-      it "returns a ShellOpts::ShellOpts object" do
-        expect(process(usage, argv)).to be_a ShellOpts
+      it "returns a [options_hash, args] tuple" do
+        option_hash, args = process(usage, argv)
+        expect(option_hash).to be_a ShellOpts::OptionsHash
+        expect(args).to eq %w(ARG)
       end
     end
 

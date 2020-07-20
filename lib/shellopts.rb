@@ -75,6 +75,70 @@ module ShellOpts
   #   # Process remaining arguments
   #   argv.each { |arg| ... }
   #
+  # Example
+  #   # Define options
+  #   USAGE = 'a,all g,global +v,verbose h,help save! snapshot f,file=FILE h,help'
+  #
+  #   # Process options
+  #   opts, argv = ShellOpts.process(USAGE, ARGV)
+  #
+  #
+  #   # Get option values # TODO Lookup rails multiassign
+  #   all = opts[:all] # true or nil
+  #   global = opts[:global]
+  #   verbose = opts.count(:verbose)
+  #   if save = opts[:save]
+  #     save.key?(:help) and save_help
+  #     snapshot = save[:snapshot]
+  #     file = save[:file]
+  #   end
+  #
+  #   all, global = opts[:all, :global]
+  #   verbose = opts.count(:verbose)
+  #
+  # ########################################
+  #
+  #   # Require shellopts. Also defines PROGRAM
+  #   require 'shellopts'
+  #
+  #   # Define options
+  #   USAGE = 'a,all g,global +v,verbose h,help save! snapshot f,file=FILE? h,help'
+  #
+  #   # Process options. args is a ShellOpts::Args object derived from Array
+  #   shellopts = ShellOpts.create(USAGE, ARGV) # Returns ShellOpts::ShellOpts object
+  #   args = ShellOpts.each(USAGE, ARGV) { ... }
+  #   array, args = ShellOpts.each(USAGE, ARGV)
+  #   hash, args = ShellOpts.hash(USAGE, ARGV)
+  #   opts, args = ShellOpts.struct(USAGE, ARGV)
+  #
+  #   opts.all => true or nil
+  #   opts.global => true or nil
+  #   opts.help? => true or false
+  #   opts.file? => true or false
+  #   opts.verbose? => true or false
+  #   opts.verbose! => count
+  #   opts.verbose => [] or a list of nil
+  #   opts.verbose.size
+  #   opts.file => string or nil (because argument is optional)
+  #
+  #   # Getting command line arguments
+  #   arg1, arg2 = args.expect(:>=, 2)
+  #   arg1, arg2 = args.expect { |a| a.size >= 2 }
+  #
+  #   # Error handling
+  #   ShellOpts.error("Illegal number of arguments")
+  #   ShellOpts.fail("Filesystem full")
+  #
+  #   USAGE = 'a,all g,global +v,verbose h,help save! snapshot f,file=FILE? h,help'
+  #   OPTS, ARGS = ShellOpts.opts(USAGE, ARGV)
+  #
+  #   OPTS.all => ...
+  #
+  #
+  #
+  #
+  #
+  #
   # If an error is encountered while compiling the usage string, a
   # +ShellOpts::Compiler+ exception is raised. If the error happens while
   # parsing the command line arguments, the program prints an error message and
@@ -96,20 +160,14 @@ module ShellOpts
   # Use #shellopts to get the hidden +ShellOpts::ShellOpts+ object
   #
   def self.process(usage, argv, program_name: PROGRAM, &block)
-    if !block_given?
-      ShellOpts.new(usage, argv, program_name: program_name)
-    else
-      @shellopts.nil? or raise InternalError, "ShellOpts class variable already initialized"
-      @shellopts = ShellOpts.new(usage, argv, program_name: program_name)
+    @shellopts.nil? or raise InternalError, "ShellOpts class variable already initialized"
+    @shellopts = ShellOpts.new(usage, argv, program_name: program_name)
+    if block_given?
       @shellopts.each(&block)
       @shellopts.args
+    else
+      [::ShellOpts::OptionsHash.new(@shellopts.ast), @shellopts.args]
     end
-  end
-
-  def self.process2(usage, argv)
-    @shellopts = ShellOpts.new(usage, argv)
-    ::ShellOpts::OptionsHash.new(@shellopts.ast)
-
   end
 
   # Reset the hidden +ShellOpts::ShellOpts+ class variable so that you can process
