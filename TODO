@@ -1,5 +1,6 @@
 
 TODO
+  o Use hash_tree
   o Also allow assignment to usage string for ShellOpts::ShellOpts objects
   o Create a ShellOpts.args method? It would be useful when processing commands:
       case opt
