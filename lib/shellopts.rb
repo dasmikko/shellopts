@@ -4,6 +4,7 @@ require 'shellopts/compiler.rb'
 require 'shellopts/parser.rb'
 require 'shellopts/utils.rb'
 require 'shellopts/options_hash.rb'
+require 'shellopts/messenger.rb'
 
 # ShellOpts is a library for parsing command line options and sub-commands. The
 # library API consists of the methods {ShellOpts.process}, {ShellOpts.error},
@@ -13,6 +14,20 @@ require 'shellopts/options_hash.rb'
 # name of the program
 #
 module ShellOpts
+  # Base class for ShellOpts exceptions
+  class Error < RuntimeError; end
+
+  # Raised when a syntax error is detected in the usage string
+  class CompilerError < Error
+    def initialize(start, message)
+      super(message)
+      set_backtrace(caller(start))
+    end
+  end
+
+  # Raised when an internal error is detected
+  class InternalError < Error; end
+
   # Return the hidden +ShellOpts::ShellOpts+ object (see .process)
   def self.shellopts()
     @shellopts
@@ -22,9 +37,117 @@ module ShellOpts
   # the current +ShellOpts::ShellOpts+ object
   def self.usage() @usage || @shellopts&.usage end
 
-  # Set the usage string
+  # Set the usage string. You will often use a custom-made usage string to
+  # split up a complex usage description over multiple lines when the command
+  # line contains several sub-commands each with their own set of options
   def self.usage=(usage) @usage = usage end
-  
+
+  # Process command line. If a block is given, options are feed to the block in
+  # name-value option pairs and a list of remaning command-line arguments is
+  # returned. If not given a block, #each returns a ShellOpts::ShellOpts object
+  # those name-value pairs can be iterated using ShellOpts::ShellOpts#each so
+  # the following is equivalent:
+  #
+  #   args = ShellOpts.each(USAGE, ARGS) { |name, value| ... }
+  #
+  #   opts, args = ShellOpts.each(USAGE, ARGS)
+  #   opts.each { |name, value| ... }
+  # 
+  # The value of an option is its argument, the value of a command is an array
+  # of name/value pairs of options and subcommands
+  #
+  def self.each(usage, args, program_name: PROGRAM, &block)
+    @shellopts.nil? or raise InternalError, "ShellOpts class variable already initialized"
+    @shellopts = ShellOpts.new(usage, argv, program_name: program_name)
+    if block_given?
+      @shellopts.each(&block)
+      @shellopts.args
+    else
+      [@shellopts, @shellopts.args]
+    end
+  end
+
+  def self.process(usage, args, program_name: PROGRAM, &block)
+    self.each(usage, args, program_name, &block)
+  end 
+
+  # Process command line and return a hash-like ShellOpts::Hash object and a list of the
+  # remaining command line arguments:
+  #
+  #   opts, args = ShellOpts.hash(usage, ARGV)
+  #
+# def self.hash(usage, args, program_name: PROGRAM)
+#   @shellopts.nil? or raise InternalError, "ShellOpts class variable already initialized"
+#   @shellopts = ShellOpts.new(usage, argv, program_name: PROGRAM)
+#   [::ShellOpts::OptionsHash.new(@shellopts.ast), @shellopts.args]
+# end
+
+  # Process command line and return a ShellOpts::Struct object and a list of the remaining 
+  # command line arguments:
+  #
+  #   opts, args = ShellOpts.struct(usage, ARGV)
+  #
+  def self.struct(usage, args, program_name: PROGRAM)
+    @shellopts.nil? or raise InternalError, "ShellOpts class variable already initialized"
+    @shellopts = ShellOpts.new(usage, argv, program_name: PROGRAM)
+    [::ShellOpts::OptionsStruct.new(@shellopts.ast), @shellopts.args]
+  end
+
+  # Reset the hidden +ShellOpts::ShellOpts+ class variable so that you can process
+  # another command line
+  def self.reset()
+    @shellopts = nil
+    @usage = nil
+  end
+
+  # Print error message and usage string and exit with status 1. It use the
+  # current ShellOpts object if defined. This method should be called in
+  # response to user-errors (eg. specifying an illegal option)
+  #
+  # If there is no current ShellOpts object +error+ will look for USAGE to make
+  # it possible to use +error+ before the command line is processed and also as
+  # a stand-alone error reporting method
+  def self.error(*msgs)
+    program = @shellopts&.program_name || PROGRAM
+    usage_string = usage || (defined?(USAGE) && USAGE ? Grammar.compile(PROGRAM, USAGE).usage : nil)
+    emit_and_exit(program, @usage.nil?, usage_string, *msgs)
+  end
+
+  # Print error message and exit with status 1. It use the current ShellOpts
+  # object if defined. This method should not be called in response to
+  # user-errors but system errors (like disk full)
+  def self.fail(*msgs)
+    program = @shellopts&.program_name || PROGRAM
+    emit_and_exit(program, false, nil, *msgs)
+  end
+
+private
+  @shellopts = nil
+
+  def self.emit_and_exit(program, use_usage, usage, *msgs)
+    $stderr.puts "#{program}: #{msgs.join}"
+    if use_usage
+      $stderr.puts "Usage: #{program} #{usage}" if usage
+    else
+      $stderr.puts usage if usage
+    end
+    exit 1
+  end
+end
+
+PROGRAM = File.basename($PROGRAM_NAME)
+
+
+
+
+
+
+
+
+
+
+__END__
+
   # Process command line options and arguments.  #process takes a usage string
   # defining the options and the array of command line arguments to be parsed
   # as arguments
@@ -33,10 +156,6 @@ module ShellOpts
   # option or command and #process returns a list of remaining command line
   # arguments. If called without a block a ShellOpts::ShellOpts object is
   # returned
-  # 
-  # The value of an option is its argument, the value of a command is an array
-  # of name/value pairs of options and subcommands. Option values are converted
-  # to the target type (String, Integer, Float) if specified
   #
   # Example
   #
@@ -159,139 +278,4 @@ module ShellOpts
   #
   # Use #shellopts to get the hidden +ShellOpts::ShellOpts+ object
   #
-  def self.process(usage, argv, program_name: PROGRAM, &block)
-    @shellopts.nil? or raise InternalError, "ShellOpts class variable already initialized"
-    @shellopts = ShellOpts.new(usage, argv, program_name: program_name)
-    if block_given?
-      @shellopts.each(&block)
-      @shellopts.args
-    else
-      [::ShellOpts::OptionsHash.new(@shellopts.ast), @shellopts.args]
-    end
-  end
 
-  # Reset the hidden +ShellOpts::ShellOpts+ class variable so that you can process
-  # another command line
-  def self.reset()
-    @shellopts = nil
-    @usage = nil
-  end
-
-  # Print error message and usage string and exit with status 1. It use the
-  # current ShellOpts object if defined. This method should be called in
-  # response to user-errors (eg. specifying an illegal option)
-  #
-  # If there is no current ShellOpts object +error+ will look for USAGE to make
-  # it possible to use +error+ before the command line is processed and also as
-  # a stand-alone error reporting method
-  def self.error(*msgs)
-    program = @shellopts&.program_name || PROGRAM
-    usage_string = usage || (defined?(USAGE) && USAGE ? Grammar.compile(PROGRAM, USAGE).usage : nil)
-    emit_and_exit(program, @usage.nil?, usage_string, *msgs)
-  end
-
-  # Print error message and exit with status 1. It use the current ShellOpts
-  # object if defined. This method should not be called in response to
-  # user-errors but system errors (like disk full)
-  def self.fail(*msgs)
-    program = @shellopts&.program_name || PROGRAM
-    emit_and_exit(program, false, nil, *msgs)
-  end
-
-  # The compilation object
-  class ShellOpts
-    # Name of program
-    attr_reader :program_name
-
-    # Prettified usage string used by #error and #fail. Shorthand for +grammar.usage+
-    def usage() @grammar.usage end
-
-    # The grammar compiled from the usage string. If #ast is defined, it's
-    # equal to ast.grammar
-    attr_reader :grammar
-
-    # The AST resulting from parsing the command line arguments
-    attr_reader :ast
-
-    # List of remaining non-option command line arguments. Shorthand for ast.arguments
-    def args() @ast.arguments end
-
-    # Compile a usage string into a grammar and use that to parse command line
-    # arguments
-    #
-    # +usage+ is the usage string, and +argv+ the command line (typically the
-    # global ARGV array). +program_name+ is the name of the program and is
-    # used in error messages. It defaults to the basename of the program
-    #
-    # Errors in the usage string raise a CompilerError exception. Errors in the
-    # argv arguments terminates the program with an error message
-    def initialize(usage, argv, program_name: File.basename($0))
-      @program_name = program_name
-      begin
-        @grammar = Grammar.compile(program_name, usage)
-        @ast = Ast.parse(@grammar, argv)
-      rescue Grammar::Compiler::Error => ex
-        raise CompilerError.new(5, ex.message)
-      rescue Ast::Parser::Error => ex
-        error(ex.message)
-      end
-    end
-
-    # Unroll the AST into a nested array
-    def to_a
-      @ast.values
-    end
-
-    # Iterate the result as name/value pairs. See {ShellOpts.process} for a
-    # detailed description
-    def each(&block)
-      if block_given?
-        to_a.each { |*args| yield(*args) }
-      else
-        to_a # FIXME: Iterator
-      end
-    end
-
-    # Print error message and usage string and exit with status 1. This method
-    # should be called in response to user-errors (eg. specifying an illegal
-    # option)
-    def error(*msgs)
-      ::ShellOpts.emit_and_exit(program_name, true, usage, msgs)
-    end
-
-    # Print error message and exit with status 1. This method should not be
-    # called in response to user-errors but system errors (like disk full)
-    def fail(*msgs)
-      ::ShellOpts.emit_and_exit(program_name, false, nil, msgs)
-    end
-  end
-
-  # Base class for ShellOpts exceptions
-  class Error < RuntimeError; end
-
-  # Raised when an error is detected in the usage string
-  class CompilerError < Error
-    def initialize(start, message)
-      super(message)
-      set_backtrace(caller(start))
-    end
-  end
-
-  # Raised when an internal error is detected
-  class InternalError < Error; end
-
-private
-  @shellopts = nil
-
-  def self.emit_and_exit(program, use_usage, usage, *msgs)
-    $stderr.puts "#{program}: #{msgs.join}"
-    if use_usage
-      $stderr.puts "Usage: #{program} #{usage}" if usage
-    else
-      $stderr.puts usage if usage
-    end
-    exit 1
-  end
-end
-
-PROGRAM = File.basename($PROGRAM_NAME)

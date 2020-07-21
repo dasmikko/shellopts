@@ -1,18 +1,25 @@
 
 module ShellOpts
-  class Message
+  class Messenger
+    # Name of the program
     attr_accessor :program
+
+    # Usage string. If defined it is printed with a 'Usage: #@program ' prefix
     attr_accessor :usage
 
-    def initialize(program, usage)
+    # Multiline description. If defined it will be printed instead of @usage
+    attr_accessor :description
+
+    def initialize(program, usage, description = nil)
       @program = program
-      @usage = usage && "Usage: #{program} #{usage}"
+      @usage = usage
+      @description = description
     end
 
     # Print error message and usage string and exit with status 1
     def error(*msgs)
       $stderr.puts "#{program}: #{msgs.join}"
-      $stderr.puts usage if usage
+      $stderr.puts description || usage if description || usage
       exit 1
     end
 
