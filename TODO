@@ -1,5 +1,6 @@
 
 TODO
+  o Allow command_alias == nil to suppress the method
   o Raise on non-existing names/keys. Only return nil for declared names/keys that are not present
   o Use hash_tree
   o Also allow assignment to usage string for ShellOpts::ShellOpts objects
