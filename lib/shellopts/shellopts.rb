@@ -1,6 +1,8 @@
 
 require "shellopts"
 
+require "shellopts/args.rb"
+
 # TODO
 #
 # PROCESSING
@@ -78,8 +80,8 @@ module ShellOpts
     # Return a struct representation of the options. See {ShellOpts::OptionStruct}
     def to_struct(use: :key, aliases: {}) @idr.to_struct(use: use, aliases: aliases) end
 
-    # List of remaining non-option command line arguments. Shorthand for +ast&.arguments+
-    def args() @ast&.arguments end
+    # List of remaining non-option command line arguments. Returns a Argv object
+    def args() Args.new(self, ast&.arguments) end
 
     # Iterate options and commands as name/value pairs. Same as +to_a.each+
     def each(&block) to_a.each(&block) end

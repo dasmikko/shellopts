@@ -40,6 +40,9 @@ PROGRAM = File.basename($PROGRAM_NAME)
 #   hash, args = ShellOpts.as_hash(USAGE, ARGV)
 #   struct, args = ShellOpts.as_struct(USAGE, ARGV)
 #
+# +args+ is a ShellOpts::Argv object containing the the remaning command line
+# arguments. Argv is derived from Array
+#
 # ShellOpts can raise the exception CompilerError is there is an error in the
 # USAGE string. If there is an error in the user supplied command line, #error
 # is called instead and the program terminates with exit code 1. ShellOpts

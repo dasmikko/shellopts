@@ -2,7 +2,6 @@
 require 'spec_helper.rb'
 
 require 'shellopts/shellopts.rb'
-require 'shellopts/options_hash.rb'
 require 'shellopts/option_struct.rb'
 
 describe "ShellOpts::ShellOpts" do
@@ -63,7 +62,6 @@ describe "ShellOpts::ShellOpts" do
 #     end
 #   end
 
-
   describe "#to_a" do
     it "serializes the AST to a recursive array" do
       shellopts = ShellOpts::ShellOpts.new("a cmd! b", %w(-a cmd -b))
@@ -84,6 +82,14 @@ describe "ShellOpts::ShellOpts" do
     it "returns an OptionStruct representation of the AST" do
       shellopts = ShellOpts::ShellOpts.new("a", %w(-a))
       expect(ShellOpts::OptionStruct.class_of(shellopts.to_struct)).to be ShellOpts::OptionStruct
+    end
+  end
+
+  describe "#args" do
+    it "returns a Args object" do
+      shellopts = ShellOpts::ShellOpts.new("a", %w(-a ARG1 ARG2))
+      expect(shellopts.args).to be_a ShellOpts::Args
+      expect(shellopts.args).to eq ["ARG1", "ARG2"]
     end
   end
 

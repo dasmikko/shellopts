@@ -1,5 +1,8 @@
 
 TODO
+  o Remove ! from OptionStruct#subcommand return value. We know we're
+    processing commands so there is no need to have a distinct name and it
+    feels a lot more intuitive without it
   o Add validation block to ShellOpts class methods
   o Get rid of key_name. Define #name on Grammar::Node instead
   o Define #name to the string name of the option/command without prefixed '--'
