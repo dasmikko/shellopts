@@ -11,18 +11,31 @@ module ShellOpts
       # Name of command (String). Name doesn't include the exclamation point ('!')
       attr_reader :name
 
-      # Hash from option names (both short and long names) to option. This
-      # means an option can occur more than once as the hash value
-      attr_reader :options 
-
-      # Sub-commands of this command. Is a hash from sub-command name to command object
-      attr_reader :commands 
+      # Same as #name. TODO Define in Grammar::Node instead
+      alias :key_name :name
 
       # List of options in declaration order
       attr_reader :option_list
 
       # List of commands in declaration order
       attr_reader :command_list
+
+      # Multihash from option key or names (both short and long names) to option. This
+      # means an option can occur more than once as the hash value
+      def options() 
+        @option_multihash ||= @option_list.flat_map { |option| 
+          option.identifiers.map { |ident| [ident, option] }
+        }.to_h
+      end
+
+      # Sub-commands of this command. Is a multihash from sub-command key or
+      # name to command object. Lazily constructed because subcommands are added
+      # after initialization
+      def commands()
+        @command_multihash ||= @command_list.flat_map { |command| 
+          command.identifiers.map { |name| [name, command] }
+        }.to_h
+      end
 
       # Initialize a Command object. parent is the parent Command object or nil
       # if this is the root object. name is the name of the command (without
@@ -32,10 +45,16 @@ module ShellOpts
         @name = name
         parent.attach(self) if parent
         @option_list = option_list
-        @options = @option_list.flat_map { |opt| opt.names.map { |name| [name, opt] } }.to_h
-        @commands = {}
         @command_list = []
       end
+
+      # Return key for the identifier
+      def identifier2key(ident)
+        options[ident]&.key || commands[ident]&.key
+      end
+
+      # Return list of identifiers for the command
+      def identifiers() [key, name] end
 
       # :nocov:
       def dump(&block)
@@ -55,7 +74,6 @@ module ShellOpts
     protected
       def attach(command)
         command.instance_variable_set(:@parent, self)
-        @commands[command.name] = command
         @command_list << command
       end
     end

@@ -149,15 +149,15 @@ module ShellOpts::Grammar
         it "recognizes 'cmd!' as a command" do
           program = compile("cmd!")
           command = program.commands["cmd"]
-          expect(program.commands.size).to eq 1
-          expect(command.commands.size).to eq 0
+          expect(program.command_list.size).to eq 1
+          expect(command.command_list.size).to eq 0
         end
         it "recognizes 'cmd1.cmd2!' as a sub-command" do
           program = compile("cmd1! cmd1.cmd2!")
           command = program.commands["cmd1"]
           subcommand = command.commands["cmd2"]
-          expect(program.commands.size).to eq 1
-          expect(command.commands.size).to eq 1
+          expect(program.command_list.size).to eq 1
+          expect(command.command_list.size).to eq 1
           expect(subcommand.commands.size).to eq 0
         end
         it "allows arbitrary number of sub-commands" do
@@ -165,8 +165,8 @@ module ShellOpts::Grammar
           command = program.commands["cmd1"]
           subcommand1 = command.commands["cmd1"]
           subcommand2 = command.commands["cmd2"]
-          expect(program.commands.size).to eq 1
-          expect(command.commands.size).to eq 2
+          expect(program.command_list.size).to eq 1
+          expect(command.command_list.size).to eq 2
           expect(subcommand1.commands.size).to eq 0
           expect(subcommand2.commands.size).to eq 0
         end
@@ -175,10 +175,10 @@ module ShellOpts::Grammar
           command1 = program.commands["cmd1"]
           command2 = command1.commands["cmd2"]
           command3 = command2.commands["cmd3"]
-          expect(program.commands.size).to eq 1
-          expect(command1.commands.size).to eq 1
-          expect(command2.commands.size).to eq 1
-          expect(command3.commands.size).to eq 0
+          expect(program.command_list.size).to eq 1
+          expect(command1.command_list.size).to eq 1
+          expect(command2.command_list.size).to eq 1
+          expect(command3.command_list.size).to eq 0
         end
         it "disallows duplicate commands" do
           expect { compile("cmd cmd.cmd1 cmd") }.to raise_error(Compiler::Error)

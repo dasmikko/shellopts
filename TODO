@@ -1,5 +1,15 @@
 
 TODO
+  o Add validation block to ShellOpts class methods
+  o Get rid of key_name. Define #name on Grammar::Node instead
+  o Define #name to the string name of the option/command without prefixed '--'
+    for options. This can cause collisions but they can be avoided using aliases
+  o Clean-up
+    o Grammar::options -> Grammar::option_multihash
+    o Clean-up identifiers etc.
+    o Un-multi-izing Grammar::option_multihash and turn it into a regular hash from key to option
+    o subcommand vs. command consistency
+  o Implement ObjectStruct#key! and ObjectStruct#value! (?)
   o Allow command_alias == nil to suppress the method
   o Raise on non-existing names/keys. Only return nil for declared names/keys that are not present
   o Use hash_tree

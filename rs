@@ -30,8 +30,10 @@ fi
 SPEC_FILE=spec/${SOURCE_NAME%.rb}_spec.rb
 [ -f $SPEC_FILE ] || error "Can't find spec file '$SPEC_FILE'"
 
-rspec $SPEC_FILE
-echo
+rspec --fail-fast $SPEC_FILE || { 
+    # rcov forgets a newline when rspec fails
+    status=$?; echo; exit $status;
+}
 
 
 

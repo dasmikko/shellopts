@@ -378,6 +378,16 @@ release a new version, update the version number in `version.rb`, and then run
 git commits and tags, and push the `.gem` file to
 [rubygems.org](https://rubygems.org).
 
+## Implementation
+
+FIXME
+# ShellOpts is a library for parsing command line options and commands. It
+# consists of the interface module {ShellOpts}, the implementation class
+# {ShellOpts::ShellOpts} and the representation classes
+# {ShellOpts::OptionsHash} and {ShellOpts::OptionsStruct}.
+# {ShellOpts::Messenger} is used for error messages
+
+
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at

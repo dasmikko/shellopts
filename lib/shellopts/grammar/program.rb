@@ -17,7 +17,7 @@ module ShellOpts
       def usage
         (
           render_options(option_list) + 
-          commands.values.map { |cmd| render_command(cmd) } + 
+          command_list.map { |cmd| render_command(cmd) } + 
           args
         ).flatten.join(" ")
       end
@@ -34,7 +34,7 @@ module ShellOpts
     private
       def render_command(command)
         [command.name] + render_options(command.option_list) + 
-            command.commands.values.map { |cmd| render_command(cmd) }.flatten
+            command.command_list.map { |cmd| render_command(cmd) }.flatten
       end
 
       def render_options(options)

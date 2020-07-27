@@ -10,6 +10,9 @@ module ShellOpts
       # List of long names (incl. '--')
       attr_reader :long_names
 
+      # Name of the key attribute (eg. if key is :all then key_name is '--all'
+      attr_reader :key_name
+
       # List of flags (Symbol)
       def flags() @flags.keys end
 
@@ -23,7 +26,8 @@ module ShellOpts
       # there's no :string flag, it's status is inferred. label is the optional
       # informal name of the option argument (eg. 'FILE') or nil if not present
       def initialize(short_names, long_names, flags, label = nil)
-        super((long_names.first || short_names.first).sub(/^-+/, "").to_sym)
+        @key_name = long_names.first || short_names.first
+        super(@key_name.sub(/^-+/, "").to_sym)
         @short_names, @long_names = short_names, long_names
         @flags = flags.map { |flag| [flag, true] }.to_h
         @label = label
@@ -31,6 +35,12 @@ module ShellOpts
 
       # Array of option names with short names first and then the long names
       def names() @short_names + @long_names end
+
+      # Array of names and the key
+      def identifiers() names + [key] end
+
+      # Return true if +ident+ is equal to any name or to key
+      def match?(ident) names.include?(ident) || ident == key end
 
       # Flag query methods. Returns true if the flag is present and otherwise nil
       def repeated?() @flags[:repeated] || false end

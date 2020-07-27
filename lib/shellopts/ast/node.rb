@@ -23,7 +23,7 @@ module ShellOpts
       end
 
       # Return either a value (option value), an array of values (command), or
-      # nil (option without a value). Should be defined in sub-classes
+      # nil (option without a value). It must be defined in sub-classes of Ast::Node
       def values() raise end
 
       # :nocov:

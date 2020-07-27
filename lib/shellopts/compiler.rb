@@ -8,12 +8,12 @@ require 'shellopts/grammar/program.rb'
 module ShellOpts
   module Grammar
     # Compiles an option definition string and returns a Grammar::Program
-    # object. program_name is the name of the program and source is the 
+    # object. name is the name of the program and source is the 
     # option definition string
-    def self.compile(program_name, source)
-      program_name.is_a?(String) or raise Compiler::Error, "Expected String argument, got #{program_name.class}"
+    def self.compile(name, source)
+      name.is_a?(String) or raise Compiler::Error, "Expected String argument, got #{name.class}"
       source.is_a?(String) or raise Compiler::Error, "Expected String argument, got #{source.class}"
-      Compiler.new(program_name, source).call
+      Compiler.new(name, source).call
     end
 
     # Service object for compiling an option definition string. Returns a 
@@ -26,8 +26,8 @@ module ShellOpts
       class Error < RuntimeError; end
 
       # Initialize a Compiler object. source is the option definition string
-      def initialize(program_name, source)
-        @program_name, @tokens = program_name, source.split(/\s+/).reject(&:empty?)
+      def initialize(name, source)
+        @name, @tokens = name, source.split(/\s+/).reject(&:empty?)
 
         # @commands_by_path is an hash from command-path to Command or Program
         # object. The top level Program object has nil as its path.
@@ -54,7 +54,7 @@ module ShellOpts
       end
 
       def compile_program
-        program = @commands_by_path[nil] = Grammar::Program.new(@program_name, compile_options)
+        program = @commands_by_path[nil] = Grammar::Program.new(@name, compile_options)
         while curr_token && curr_token != "--"
           compile_command
         end
