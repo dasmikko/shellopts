@@ -77,7 +77,7 @@ module ShellOpts
   def self.shellopts() @shellopts end
 
   # Process command line and set and return the shellopts compile object
-  def self.process(usage, argv, name: self.name, message: nil)
+  def self.process(usage, argv, name: PROGRAM, message: nil)
     @shellopts.nil? or reset
     messenger = message && Messenger.new(name, message, format: :custom)
     @shellopts = ShellOpts.new(usage, argv, name: name, messenger: messenger)
@@ -86,7 +86,7 @@ module ShellOpts
   # Return the internal data representation of the command line (Idr::Program).
   # Note that #as_program that the remaning arguments are accessible through
   # the returned object
-  def self.as_program(usage, argv, name: self.name, message: nil) 
+  def self.as_program(usage, argv, name: PROGRAM, message: nil) 
     process(usage, argv, name: name, message: message)
     [shellopts.idr, shellopts.args]
   end
@@ -94,7 +94,7 @@ module ShellOpts
   # Process command line, set current shellopts object, and return a [array, argv]
   # tuple. Returns the representation of the current object if not given any
   # arguments
-  def self.as_array(usage, argv, name: self.name, message: nil)
+  def self.as_array(usage, argv, name: PROGRAM, message: nil)
     process(usage, argv, name: name, message: message)
     [shellopts.to_a, shellopts.args]
   end
@@ -102,7 +102,7 @@ module ShellOpts
   # Process command line, set current shellopts object, and return a [hash, argv]
   # tuple. Returns the representation of the current object if not given any
   # arguments
-  def self.as_hash(usage, argv, name: self.name, message: nil, use: ShellOpts::DEFAULT_USE, aliases: {})
+  def self.as_hash(usage, argv, name: PROGRAM, message: nil, use: ShellOpts::DEFAULT_USE, aliases: {})
     process(usage, argv, name: name, message: message)
     [shellopts.to_hash(use: use, aliases: aliases), shellopts.args]
   end
@@ -110,7 +110,7 @@ module ShellOpts
   # Process command line, set current shellopts object, and return a [struct, argv]
   # tuple. Returns the representation of the current object if not given any
   # arguments
-  def self.as_struct(usage, argv, name: self.name, message: nil, use: ShellOpts::DEFAULT_USE, aliases: {})
+  def self.as_struct(usage, argv, name: PROGRAM, message: nil, use: ShellOpts::DEFAULT_USE, aliases: {})
     process(usage, argv, name: name, message: message)
     [shellopts.to_struct(use: use, aliases: aliases), shellopts.args]
   end
@@ -119,7 +119,7 @@ module ShellOpts
   # options and commands as an array. Returns an enumerator to the array
   # representation of the current shellopts object if not given a block
   # argument
-  def self.each(usage = nil, argv = nil, name: self.name, message: nil, &block)
+  def self.each(usage = nil, argv = nil, name: PROGRAM, message: nil, &block)
     process(usage, argv, name: name, message: message)
     shellopts.each(&block)
   end
