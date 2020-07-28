@@ -33,23 +33,12 @@ module ShellOpts
       end
     end
 
-    # Remove and returns elements from the array. If +count_or_range+ is a
-    # number, that number of elements will be returned. If the count is one, a
-    # simple value is returned instead of an array. If +count_or_range+ is a
-    # range, the number of elements returned will be in that range. The range
-    # can't contain negative numbers.  #expect calls #error() if the array has
-    # remaning elemens after removal satisfy the request
+    # As extract except it doesn't allow negative counts and that the array is
+    # expect to be emptied by the operation
     def expect(count_or_range, message = nil)
-      if count_or_range.is_a?(Range)
-        range = count_or_range
-        range.cover?(self.size) or inoa(message)
-        self.shift(self.size)
-      else
-        count = count_or_range
-        count == self.size or inoa(message)
-        r = self.shift(count)
-        r.size == 0 ? nil : (r.size == 1 ? r.first : r)
-      end
+      r = extract(count_or_range, message)
+      self.empty? or inoa
+      r
     end
 
   private
