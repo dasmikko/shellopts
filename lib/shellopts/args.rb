@@ -1,31 +1,44 @@
 
 module ShellOpts
+  # Specialization of Array for arguments lists. Args extends Array with a
+  # #extract and an #expect method to extract elements from the array. The
+  # methods call #error() in response to errors
   class Args < Array
     def initialize(shellopts, *args)
       @shellopts = shellopts
       super(*args)
     end
 
-    # Remove and return +count+ elements from the beginning of the array.
-    # Elements are removed from the end of the array if +count+ is less than 0.
-    # Expects at least +count.abs+ elements in the array
+    # Remove and return elements from beginning of the array. If
+    # +count_or_range+ is a number, that number of elements will be returned.
+    # If the count is negative, the elements will be removed from the end of
+    # the array. If +count_or_range+ is a range, the number of elements
+    # returned will be in that range. The range can't contain negative numbers.
+    # #expect calls #error() if there's is not enough elements in the array to
+    # satisfy the request
     def extract(count, message = nil) 
       self.size >= count.abs or inoa(message)
       start = count >= 0 ? 0 : size + count
-      slice!(start, count.abs)
+      r = slice!(start, count.abs)
+      r.size == 0 ? nil : (r.size == 1 ? r.first : r)
     end
 
-    # Shifts +count+ elements from the array. Expects exactly +count+ elements
-    # in the array
-    def expect(count, message = nil) 
-      self.size == count or inoa(message)
-      self
-    end
-
-    # Eats rest of the elements. Expects at least +min+ elements
-    def consume(count, message = nil) 
-      self.size >= count or inoa(message)
-      self
+    # Remove and returns elements from the array. If +count_or_range+ is a
+    # number, that number of elements will be returned. If the count is
+    # negative, the elements will be removed from the end of the array. If
+    # +count_or_range+ is a range, the number of elements returned will be in
+    # that range. The range can't contain negative numbers.  #expect calls
+    # #error() if the array has remaning elemens after removal satisfy the
+    # request
+    def expect(count_or_range, message = nil)
+      if count_or_range.is_a?(Range)
+        count_or_range.cover?(self.size) or inoa(message)
+        self.shift(self.size)
+      else
+        count_or_range == self.size or inoa(message)
+        r = self.shift(count)
+        r.size == 0 ? nil : (r.size == 1 ? r.first : r)
+      end
     end
 
   private
