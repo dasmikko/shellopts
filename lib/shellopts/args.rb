@@ -11,31 +11,42 @@ module ShellOpts
 
     # Remove and return elements from beginning of the array. If
     # +count_or_range+ is a number, that number of elements will be returned.
-    # If the count is negative, the elements will be removed from the end of
-    # the array. If +count_or_range+ is a range, the number of elements
-    # returned will be in that range. The range can't contain negative numbers.
-    # #expect calls #error() if there's is not enough elements in the array to
-    # satisfy the request
-    def extract(count, message = nil) 
-      self.size >= count.abs or inoa(message)
-      start = count >= 0 ? 0 : size + count
-      r = slice!(start, count.abs)
-      r.size == 0 ? nil : (r.size == 1 ? r.first : r)
+    # If the count is one, a simple value is returned instead of an array.  If
+    # the count is negative, the elements will be removed from the end of the
+    # array. If +count_or_range+ is a range, the number of elements returned
+    # will be in that range. The range can't contain negative numbers #expect
+    # calls #error() if there's is not enough elements in the array to satisfy
+    # the request
+    def extract(count_or_range, message = nil) 
+      if count_or_range.is_a?(Range)
+        range = count_or_range
+        range.min <= self.size or inoa(message)
+        n_extract = [self.size, range.max].min
+        n_extend = range.max > self.size ? range.max - self.size : 0
+        r = self.shift(n_extract) + Array.new(n_extend)
+      else
+        count = count_or_range
+        self.size >= count.abs or inoa(message)
+        start = count >= 0 ? 0 : size + count
+        r = slice!(start, count.abs)
+        r.size == 0 ? nil : (r.size == 1 ? r.first : r)
+      end
     end
 
     # Remove and returns elements from the array. If +count_or_range+ is a
-    # number, that number of elements will be returned. If the count is
-    # negative, the elements will be removed from the end of the array. If
-    # +count_or_range+ is a range, the number of elements returned will be in
-    # that range. The range can't contain negative numbers.  #expect calls
-    # #error() if the array has remaning elemens after removal satisfy the
-    # request
+    # number, that number of elements will be returned. If the count is one, a
+    # simple value is returned instead of an array. If +count_or_range+ is a
+    # range, the number of elements returned will be in that range. The range
+    # can't contain negative numbers.  #expect calls #error() if the array has
+    # remaning elemens after removal satisfy the request
     def expect(count_or_range, message = nil)
       if count_or_range.is_a?(Range)
-        count_or_range.cover?(self.size) or inoa(message)
+        range = count_or_range
+        range.cover?(self.size) or inoa(message)
         self.shift(self.size)
       else
-        count_or_range == self.size or inoa(message)
+        count = count_or_range
+        count == self.size or inoa(message)
         r = self.shift(count)
         r.size == 0 ? nil : (r.size == 1 ? r.first : r)
       end
