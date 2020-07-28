@@ -1,5 +1,6 @@
 
 TODO
+  o Add a 'mandatory' argument to #subcommand
   o Remove ! from OptionStruct#subcommand return value. We know we're
     processing commands so there is no need to have a distinct name and it
     feels a lot more intuitive without it

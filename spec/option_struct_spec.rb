@@ -6,8 +6,7 @@ include ShellOpts
 
 describe ShellOpts::OptionStruct do
   def make_struct(usage, argv, aliases = {})
-    idr = make_idr(usage, argv)
-    OptionStruct.new(idr, {})
+    make_idr(usage, argv).to_struct
   end
 
   describe ".new" do

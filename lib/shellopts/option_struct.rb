@@ -11,22 +11,28 @@ module ShellOpts
       grammar = ast.grammar
       instance = allocate
 
-      # Generate option accessor methods
+      # Generate general option accessor methods
       grammar.option_list.each { |option|
         key = alias_key(option.key, aliases)
         instance.instance_eval("def #{key}() @#{key} end")
-        present = set_variable(instance, "@#{key}", idr[option.key])
-        instance.instance_eval("def #{key}?() #{present} end")
+        instance.instance_eval("def #{key}?() false end")
       }
 
-      # Generate #subcommand default methods
+      # Generate accessor method for present options
+      idr.option_list.each { |option|
+        key = alias_key(option.key, aliases)
+        set_variable(instance, "@#{key}", idr[option.key])
+        instance.instance_eval("def #{key}?() true end")
+      }
+
+      # Generate general #subcommand methods
       if !idr.subcommand
         instance.instance_eval("def subcommand() nil end")
         instance.instance_eval("def subcommand?() false end")
         instance.instance_eval("def subcommand!() nil end")
       end
 
-      # Generate subcommand methods
+      # Generate individual subcommand methods
       grammar.command_list.each { |command|
         key = alias_key(command.key, aliases)
         if command.key == idr.subcommand&.key
@@ -64,6 +70,11 @@ module ShellOpts
     def self.set_variable(this, var, value)
       # https://stackoverflow.com/a/18621313/2130986
       ::Kernel.instance_method(:instance_variable_set).bind(this).call(var, value)
+    end
+
+    def self.get_variable(this, var)
+      # https://stackoverflow.com/a/18621313/2130986
+      ::Kernel.instance_method(:instance_variable_get).bind(this).call(var)
     end
 
     BASIC_OBJECT_RESERVED_WORDS = %w(
