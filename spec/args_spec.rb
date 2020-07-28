@@ -2,13 +2,13 @@ require 'spec_helper.rb'
 
 require 'shellopts/args.rb'
 
-class Messenger
+class RSpecMessenger
   attr_reader :message
   def error(*msgs) @message = msgs.join end
   def fail(*msgs) @message = msgs.join end
 end
 
-class ShellOpts::ShellOpts
+class RSpecShellOpts
   attr_reader :messenger
   def initialize(messenger)
     @messenger = messenger
@@ -18,8 +18,8 @@ end
 include ShellOpts
 
 describe ShellOpts::Args do
-  let(:messenger) { Messenger.new }
-  let(:shellopts) { ShellOpts::ShellOpts.new(messenger) }
+  let(:messenger) { RSpecMessenger.new }
+  let(:shellopts) { RSpecShellOpts.new(messenger) }
   let(:args) { Args.new(shellopts, [1, 2, 3, 4, 5]) }
   let(:args1) { Args.new(shellopts, [1]) }
   let(:args2) { Args.new(shellopts, [1, 2]) }
