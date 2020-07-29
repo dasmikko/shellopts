@@ -61,17 +61,20 @@ module ShellOpts
     # Replace key with alias and check against the list of reserved words
     def self.alias_key(internal_key, aliases)
       key = aliases[internal_key] || internal_key
-      !RESERVED_WORDS.include?(key.to_s) or
+      !RESERVED_WORDS.include?(key) or
         raise ::ShellOpts::ConversionError, "Can't create struct: '#{key}' is a reserved word"
       key
     end
 
-    # Shorthand helper method. Substitutes the undefined ObjectStruct#instance_variable_set
+    # Class method implementation of ObjectStruct#instance_variable_set that is
+    # not defined in a BasicObject
     def self.set_variable(this, var, value)
       # https://stackoverflow.com/a/18621313/2130986
       ::Kernel.instance_method(:instance_variable_set).bind(this).call(var, value)
     end
 
+    # Class method implementation of ObjectStruct#instance_variable_get that is
+    # not defined in a BasicObject
     def self.get_variable(this, var)
       # https://stackoverflow.com/a/18621313/2130986
       ::Kernel.instance_method(:instance_variable_get).bind(this).call(var)
@@ -80,8 +83,8 @@ module ShellOpts
     BASIC_OBJECT_RESERVED_WORDS = %w(
          __id__ __send__ instance_eval instance_exec method_missing
          singleton_method_added singleton_method_removed
-         singleton_method_undefined)
-    OPTIONS_STRUCT_RESERVED_WORDS = %w(subcommand)
+         singleton_method_undefined).map(&:to_sym)
+    OPTIONS_STRUCT_RESERVED_WORDS = %w(__idr__ subcommand).map(&:to_sym)
     RESERVED_WORDS = BASIC_OBJECT_RESERVED_WORDS + OPTIONS_STRUCT_RESERVED_WORDS
   end
 end
