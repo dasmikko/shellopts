@@ -9,10 +9,10 @@ describe ShellOpts::OptionStruct do
     make_idr(usage, argv).to_struct
   end
 
-  describe ".new" do
-    let(:struct) { make_struct("a b A! aa bb B!", "-a A --aa") }
-    let(:struct_no_command) { make_struct("a b A! aa bb B!", "-a") }
+  let(:struct) { make_struct("a b A! aa bb B!", "-a A --aa") }
+  let(:struct_no_command) { make_struct("a b A! aa bb B!", "-a") }
 
+  describe ".new" do
     it "creates an OptionStruct object" do
       expect(OptionStruct.class_of(struct)).to be OptionStruct
     end
@@ -45,19 +45,16 @@ describe ShellOpts::OptionStruct do
     it "defines a #subcommand method on the object" do
       expect { struct.subcommand }.not_to raise_error
       expect(struct.subcommand).to eq :A!
-      expect(struct_no_command.subcommand).to eq nil
     end
 
     it "defines a #subcommand? method on the object" do
       expect { struct.subcommand? }.not_to raise_error
       expect(struct.subcommand?).to eq true
-      expect(struct_no_command.subcommand?).to eq false
     end
 
     it "defines a #subcommand! method on the object" do
       expect { struct.subcommand! }.not_to raise_error
       expect(struct.subcommand!).to be struct.A!
-      expect(struct_no_command.subcommand!).to eq nil
     end
 
     it "raises if option is a reserved word" do
@@ -68,6 +65,24 @@ describe ShellOpts::OptionStruct do
     it "raises on name collisions on aliased keys"
     it "raises on name collisions between 'subcommand' and options"
     it "raises on name collisions between 'subcommand' and commands"
+  end
+
+  describe "#subcommand!" do
+    it "returns the subcommand" do
+      expect(struct.subcommand).to eq :A!
+    end
+
+    it "calls #error if no subcommand" do
+      messenger = OptionStruct.get_variable(struct_no_command, "@__idr__").program.messenger
+      expect(messenger).to receive(:error)
+      struct_no_command.subcommand!
+    end
+
+    it "forwards the messages if specified" do
+      messenger = OptionStruct.get_variable(struct_no_command, "@__idr__").program.messenger
+      expect(messenger).to receive(:error).with(["Error message"])
+      struct_no_command.subcommand!("Error message")
+    end
   end
 end
 

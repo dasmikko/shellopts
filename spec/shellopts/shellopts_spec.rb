@@ -121,6 +121,7 @@ describe "ShellOpts::ShellOpts" do
       rescue SystemExit
       end
     end
+    
   end
 
   describe "#fail" do

@@ -1,5 +1,7 @@
 
 TODO
+  o Rethink #error and #fail <- The use-case is one-file ruby scripts. Idea: Only use in main exe file?
+  o Create exceptions: UserError SystemFail and allow them to be used instead of #error and #fail
   o Add a 'mandatory' argument to #subcommand
   o Remove ! from OptionStruct#subcommand return value. We know we're
     processing commands so there is no need to have a distinct name and it

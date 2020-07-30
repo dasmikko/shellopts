@@ -7,9 +7,16 @@ module ShellOpts
     # +key=:name+ cause command methods to be named without the exclamation
     # mark. It doesn't change how options are named
     def self.new(idr, key = :key, aliases = {})
+      # Shorthands
       ast = idr.instance_variable_get("@ast")
       grammar = ast.grammar
+
+      # Allocate OptionStruct instance
       instance = allocate
+
+      # Set reference to Idr object. Is used by #subcommand to emit errors
+      # through the messenger object
+      set_variable(instance, "@__idr__", idr)
 
       # Generate general option accessor methods
       grammar.option_list.each { |option|
@@ -29,7 +36,11 @@ module ShellOpts
       if !idr.subcommand
         instance.instance_eval("def subcommand() nil end")
         instance.instance_eval("def subcommand?() false end")
-        instance.instance_eval("def subcommand!() nil end")
+        instance.instance_eval %(
+            def subcommand!(*msgs) 
+              @__idr__.program.messenger.error(msgs.empty? ? 'No command' : msgs) 
+            end
+        )
       end
 
       # Generate individual subcommand methods
