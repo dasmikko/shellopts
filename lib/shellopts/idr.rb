@@ -13,6 +13,9 @@ module ShellOpts
     # and a value. Options have their (optional) argument as value while
     # commands use +self+ as value
     class Node
+      # Parent node. nil for the top-level Program object
+      attr_reader :parent
+
       # Unique key (within context) for the option or command. nil for the
       # top-level Program object
       #
@@ -33,10 +36,13 @@ module ShellOpts
       # arguments or if an optional argument is missing. 
       attr_reader :value
 
+      # The top-level Program object
+      def program() @program ||= (parent&.program || self) end
+
     protected
       # Copy arguments into instance variables
-      def initialize(ast, key, name, value)
-        @ast, @key, @name, @value = ast, key, name, value
+      def initialize(parent, ast, key, name, value)
+        @parent, @ast, @key, @name, @value = parent, ast, key, name, value
       end
 
       # The AST node for this Idr object
@@ -54,9 +60,9 @@ module ShellOpts
     protected
       # Initialize with defauls from the Ast. +value+ is set to true if option
       # doesn't take an argument
-      def initialize(ast)
+      def initialize(parent, ast)
         value = ast.grammar.argument? ? ast.value : true
-        super(ast, ast.key, ast.name, value)
+        super(parent, ast, ast.key, ast.name, value)
       end
     end
 
@@ -71,9 +77,9 @@ module ShellOpts
       alias :values :value
 
       # Name is set to the key name and value to an array of option values
-      def initialize(key, name, options)
+      def initialize(parent, key, name, options)
         @names = options.map(&:name)
-        super(nil, key, name, options.map(&:value))
+        super(parent, nil, key, name, options.map(&:value))
       end
     end
 
@@ -97,7 +103,7 @@ module ShellOpts
       def option?(ident) grammar.options.key?(ident) end
 
       # True if ident is declared as a command
-      def command?(ident) grammar.commands.key?(ident) end 
+      def command?(ident) grammar.commands.key?(ident) end # FIXME rename to subcommand
       
       # True if ident is present
       def key?(ident)
@@ -164,14 +170,14 @@ module ShellOpts
 
     protected
       # Initialize an Idr::Command object and all dependent objects
-      def initialize(ast)
-        super(ast, ast.key, ast.name, self)
-        @option_list = ast.options.map { |node| SimpleOption.new(node) }
-        @subcommand = Command.new(ast.command) if ast.command
+      def initialize(parent, ast)
+        super(parent, ast, ast.key, ast.name, self)
+        @option_list = ast.options.map { |node| SimpleOption.new(self, node) }
+        @subcommand = Command.new(self, ast.command) if ast.command
         @options = @option_list.group_by { |option| option.key }.map { |key, option_list|
           option = 
               if ast.grammar.options[key].repeated?
-                OptionGroup.new(key, ast.grammar.options[key].key_name, option_list)
+                OptionGroup.new(self, key, ast.grammar.options[key].key_name, option_list)
               else
                 option_list.first
               end
@@ -195,7 +201,7 @@ module ShellOpts
       # Initialize the top-level Idr::Program object
       def initialize(ast, messenger)
         @messenger = messenger
-        super(ast)
+        super(nil, ast)
       end
 
       # Emit error message and a usage description before exiting with status 1

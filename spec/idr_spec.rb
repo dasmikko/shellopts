@@ -6,6 +6,26 @@ include ShellOpts
 
 describe Idr do
   describe Idr::Node do
+    describe "#parent" do
+      it "references the parent node" do
+        idr = make_idr("A! A.B!", "A B")
+        expect(idr.parent).to be nil
+        expect(idr.subcommand.parent).to be idr
+        expect(idr.subcommand.subcommand.parent).to be idr.subcommand
+      end
+      it "is null for the top-level Program object" do
+        idr = make_idr("A!", "A")
+        expect(idr.parent).to eq nil
+      end
+    end
+    describe "#program" do
+      it "references the top-level Program object" do
+        idr = make_idr("A! A.B!", "A B")
+        expect(idr.program).to be idr
+        expect(idr.subcommand.program).to be idr
+        expect(idr.subcommand.subcommand.program).to be idr
+      end
+    end
   end
 
   describe Idr::SimpleOption do
