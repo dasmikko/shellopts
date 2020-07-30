@@ -16,7 +16,7 @@ module ShellOpts
     end
 
   private
-    # Parse a command line
+    # Parse a subcommand line
     class Parser
       class Error < RuntimeError; end
 
@@ -27,24 +27,24 @@ module ShellOpts
 
       def call
         program = Ast::Program.new(@grammar)
-        parse_command(program)
+        parse_subcommand(program)
         program.arguments = @argv
         program
       end
 
     private
-      def parse_command(command)
-        @seen_options = {} # Every new command resets the seen options
+      def parse_subcommand(subcommand)
+        @seen_options = {} # Every new subcommand resets the seen options
         while arg = @argv.first
           if arg == "--"
             @argv.shift
             break
           elsif arg.start_with?("-")
-            parse_option(command)
-          elsif cmd = command.grammar.commands[arg]
+            parse_option(subcommand)
+          elsif cmd = subcommand.grammar.subcommands[arg]
             @argv.shift
-            command.command = Ast::Command.new(cmd, arg)
-            parse_command(command.command)
+            subcommand.subcommand = Ast::Command.new(cmd, arg)
+            parse_subcommand(subcommand.subcommand)
             break
           else
             break
@@ -52,7 +52,7 @@ module ShellOpts
         end
       end
 
-      def parse_option(command)
+      def parse_option(subcommand)
         # Split into name and argument
         case @argv.first
           when /^(--.+?)(?:=(.*))?$/
@@ -62,7 +62,7 @@ module ShellOpts
         end
         @argv.shift
 
-        option = command.grammar.options[name] or raise Error, "Unknown option '#{name}'"
+        option = subcommand.grammar.options[name] or raise Error, "Unknown option '#{name}'"
         !@seen_options.key?(option.key) || option.repeated? or raise Error, "Duplicate option '#{name}'"
         @seen_options[option.key] = true
 
@@ -83,7 +83,7 @@ module ShellOpts
           raise Error, "No argument allowed for option '#{name}'"
         end
 
-        command.options << Ast::Option.new(option, name, arg)
+        subcommand.options << Ast::Option.new(option, name, arg)
       end
 
       def parse_arg(option, name, arg)

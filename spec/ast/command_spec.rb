@@ -6,7 +6,7 @@ module ShellOpts::Ast
   describe Command do
     def parsecmd(usage, argv)
       grammar = ShellOpts::Grammar.compile("program", usage)
-      ShellOpts::Ast.parse(grammar, argv).command
+      ShellOpts::Ast.parse(grammar, argv).subcommand
     end
 
     let(:cmd) { parsecmd("cmd!", %w(cmd)) }
@@ -18,7 +18,7 @@ module ShellOpts::Ast
       it "returns the associated Grammar::Node object" do
         grammar = ShellOpts::Grammar.compile("program", "cmd!")
         ast = ShellOpts::Ast.parse(grammar, %w(cmd))
-        expect(ast.command.grammar).to eq grammar.commands["cmd"]
+        expect(ast.subcommand.grammar).to eq grammar.subcommands["cmd"]
       end
     end
 
@@ -56,8 +56,8 @@ module ShellOpts::Ast
 
     describe "#command" do
       it "is an optional sub-command" do
-        expect(cmdopt.command).to eq nil
-        expect(cmdoptcmd.command.name).to eq "cmd2"
+        expect(cmdopt.subcommand).to eq nil
+        expect(cmdoptcmd.subcommand.name).to eq "cmd2"
       end
     end
   end

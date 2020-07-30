@@ -124,9 +124,9 @@ describe Idr do
     describe "command?" do
       it "returns true if ident is declared as a command" do
         idr = make_idr("a C!", "")
-        expect(idr.command?(:a)).to eq false
-        expect(idr.command?(:C!)).to eq true
-        expect(idr.command?(:D!)).to eq false
+        expect(idr.subcommand?(:a)).to eq false
+        expect(idr.subcommand?(:C!)).to eq true
+        expect(idr.subcommand?(:D!)).to eq false
       end
     end
     describe "#key?" do

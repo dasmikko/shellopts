@@ -97,13 +97,13 @@ module ShellOpts
       attr_reader :subcommand
 
       # True if ident is declared
-      def declared?(ident) option?(ident) || command?(ident) end
+      def declared?(ident) option?(ident) || subcommand?(ident) end
 
       # True if ident is declared as an option
       def option?(ident) grammar.options.key?(ident) end
 
       # True if ident is declared as a command
-      def command?(ident) grammar.commands.key?(ident) end # FIXME rename to subcommand
+      def subcommand?(ident) grammar.subcommands.key?(ident) end
       
       # True if ident is present
       def key?(ident)
@@ -173,7 +173,7 @@ module ShellOpts
       def initialize(parent, ast)
         super(parent, ast, ast.key, ast.name, self)
         @option_list = ast.options.map { |node| SimpleOption.new(self, node) }
-        @subcommand = Command.new(self, ast.command) if ast.command
+        @subcommand = Command.new(self, ast.subcommand) if ast.subcommand
         @options = @option_list.group_by { |option| option.key }.map { |key, option_list|
           option = 
               if ast.grammar.options[key].repeated?

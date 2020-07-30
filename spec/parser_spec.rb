@@ -136,18 +136,18 @@ module ShellOpts::Ast
           end
 
         end
-        context "when processing commands" do
+        context "when processing subcommands" do
           let(:usage) { "cmd1! cmd1.cmd11! cmd2!" }
 
-          it "consider non-nested commands arguments" do
+          it "consider non-nested subcommands arguments" do
             argv = %w(cmd1 cmd11 cmd2)
             res = parse(argv)
-            expect(res.command.to_tuple).to eq [ "cmd1", [ ["cmd11", []] ] ]
+            expect(res.subcommand.to_tuple).to eq [ "cmd1", [ ["cmd11", []] ] ]
             expect(res.arguments).to eq %w(cmd2)
 
             argv = %w(cmd2 cmd1)
             res = parse(argv)
-            expect(res.command.to_tuple).to eq [ "cmd2", [] ]
+            expect(res.subcommand.to_tuple).to eq [ "cmd2", [] ]
             expect(res.arguments).to eq %w(cmd1)
           end
         end

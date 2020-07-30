@@ -44,9 +44,9 @@ module ShellOpts
       end
 
       # Generate individual subcommand methods
-      grammar.command_list.each { |command|
-        key = alias_key(command.key, aliases)
-        if command.key == idr.subcommand&.key
+      grammar.subcommand_list.each { |subcommand|
+        key = alias_key(subcommand.key, aliases)
+        if subcommand.key == idr.subcommand&.key
           struct = OptionStruct.new(idr.subcommand, aliases[idr.subcommand.key] || {})
           set_variable(instance, "@subcommand", struct)
           instance.instance_eval("def #{key}() @subcommand end")

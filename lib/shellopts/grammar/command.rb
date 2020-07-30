@@ -18,7 +18,7 @@ module ShellOpts
       attr_reader :option_list
 
       # List of commands in declaration order
-      attr_reader :command_list
+      attr_reader :subcommand_list
 
       # Multihash from option key or names (both short and long names) to option. This
       # means an option can occur more than once as the hash value
@@ -31,9 +31,9 @@ module ShellOpts
       # Sub-commands of this command. Is a multihash from sub-command key or
       # name to command object. Lazily constructed because subcommands are added
       # after initialization
-      def commands()
-        @command_multihash ||= @command_list.flat_map { |command| 
-          command.identifiers.map { |name| [name, command] }
+      def subcommands()
+        @subcommand_multihash ||= @subcommand_list.flat_map { |subcommand| 
+          subcommand.identifiers.map { |name| [name, subcommand] }
         }.to_h
       end
 
@@ -45,12 +45,12 @@ module ShellOpts
         @name = name
         parent.attach(self) if parent
         @option_list = option_list
-        @command_list = []
+        @subcommand_list = []
       end
 
       # Return key for the identifier
       def identifier2key(ident)
-        options[ident]&.key || commands[ident]&.key
+        options[ident]&.key || subcommands[ident]&.key
       end
 
       # Return list of identifiers for the command
@@ -65,16 +65,16 @@ module ShellOpts
           yield if block_given?
           puts "options:"
           indent { option_list.each { |opt| opt.dump } }
-          puts "commands: "
-          indent { command_list.each { |cmd| cmd.dump } }
+          puts "subcommands: "
+          indent { subcommand_list.each { |cmd| cmd.dump } }
         }
       end
       # :nocov:
 
     protected
-      def attach(command)
-        command.instance_variable_set(:@parent, self)
-        @command_list << command
+      def attach(subcommand)
+        subcommand.instance_variable_set(:@parent, self)
+        @subcommand_list << subcommand
       end
     end
   end

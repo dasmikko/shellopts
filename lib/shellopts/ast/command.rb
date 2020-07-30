@@ -7,17 +7,17 @@ module ShellOpts
 
       # Optional sub-command (Ast::Command). Initially nil but assigned by the
       # parser
-      attr_accessor :command 
+      attr_accessor :subcommand 
 
       def initialize(grammar, name)
         super(grammar, name)
         @options = []
-        @command = nil
+        @subcommand = nil
       end
 
       # Array of option or command tuples
       def values
-        (options + (Array(command || []))).map { |node| node.to_tuple }
+        (options + (Array(subcommand || []))).map { |node| node.to_tuple }
       end
 
       # :nocov:
@@ -26,10 +26,10 @@ module ShellOpts
           yield if block_given?
           puts "options:"
           indent { options.each { |opt| opt.dump } }
-          print "command:"
-          if command
+          print "subcommand:"
+          if subcommand
             puts
-            indent { command.dump }
+            indent { subcommand.dump }
           else
             puts "nil"
           end

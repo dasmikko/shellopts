@@ -44,7 +44,7 @@ module ShellOpts::Grammar
 
       it "accepts empty input" do
         grammar = compile("")
-        expect(grammar.option_list + grammar.command_list).to eq []
+        expect(grammar.option_list + grammar.subcommand_list).to eq []
       end
 
       it "accept multiple lines" do
@@ -56,7 +56,7 @@ module ShellOpts::Grammar
 
       it "accepts \"--\" as input" do
         grammar = compile("--")
-        expect(grammar.option_list + grammar.command_list).to eq []
+        expect(grammar.option_list + grammar.subcommand_list).to eq []
       end
 
       it "stops compiling when '--' is detected" do
@@ -145,59 +145,59 @@ module ShellOpts::Grammar
         end
       end
 
-      context "when compiling commands" do
-        it "recognizes 'cmd!' as a command" do
+      context "when compiling subcommands" do
+        it "recognizes 'cmd!' as a subcommand" do
           program = compile("cmd!")
-          command = program.commands["cmd"]
-          expect(program.command_list.size).to eq 1
-          expect(command.command_list.size).to eq 0
+          subcommand = program.subcommands["cmd"]
+          expect(program.subcommand_list.size).to eq 1
+          expect(subcommand.subcommand_list.size).to eq 0
         end
-        it "recognizes 'cmd1.cmd2!' as a sub-command" do
+        it "recognizes 'cmd1.cmd2!' as a sub-subcommand" do
           program = compile("cmd1! cmd1.cmd2!")
-          command = program.commands["cmd1"]
-          subcommand = command.commands["cmd2"]
-          expect(program.command_list.size).to eq 1
-          expect(command.command_list.size).to eq 1
-          expect(subcommand.commands.size).to eq 0
+          subcommand = program.subcommands["cmd1"]
+          subsubcommand = subcommand.subcommands["cmd2"]
+          expect(program.subcommand_list.size).to eq 1
+          expect(subcommand.subcommand_list.size).to eq 1
+          expect(subsubcommand.subcommands.size).to eq 0
         end
-        it "allows arbitrary number of sub-commands" do
+        it "allows arbitrary number of sub-subcommands" do
           program = compile("cmd1! cmd1.cmd1! cmd1.cmd2!")
-          command = program.commands["cmd1"]
-          subcommand1 = command.commands["cmd1"]
-          subcommand2 = command.commands["cmd2"]
-          expect(program.command_list.size).to eq 1
-          expect(command.command_list.size).to eq 2
-          expect(subcommand1.commands.size).to eq 0
-          expect(subcommand2.commands.size).to eq 0
+          subcommand = program.subcommands["cmd1"]
+          subsubcommand1 = subcommand.subcommands["cmd1"]
+          subsubcommand2 = subcommand.subcommands["cmd2"]
+          expect(program.subcommand_list.size).to eq 1
+          expect(subcommand.subcommand_list.size).to eq 2
+          expect(subsubcommand1.subcommands.size).to eq 0
+          expect(subsubcommand2.subcommands.size).to eq 0
         end
-        it "allows arbitrary nesting of commands" do
+        it "allows arbitrary nesting of subcommands" do
           program = compile("cmd1! cmd1.cmd2! cmd1.cmd2.cmd3!")
-          command1 = program.commands["cmd1"]
-          command2 = command1.commands["cmd2"]
-          command3 = command2.commands["cmd3"]
-          expect(program.command_list.size).to eq 1
-          expect(command1.command_list.size).to eq 1
-          expect(command2.command_list.size).to eq 1
-          expect(command3.command_list.size).to eq 0
+          subcommand1 = program.subcommands["cmd1"]
+          subcommand2 = subcommand1.subcommands["cmd2"]
+          subcommand3 = subcommand2.subcommands["cmd3"]
+          expect(program.subcommand_list.size).to eq 1
+          expect(subcommand1.subcommand_list.size).to eq 1
+          expect(subcommand2.subcommand_list.size).to eq 1
+          expect(subcommand3.subcommand_list.size).to eq 0
         end
-        it "disallows duplicate commands" do
+        it "disallows duplicate subcommands" do
           expect { compile("cmd cmd.cmd1 cmd") }.to raise_error(Compiler::Error)
           expect { compile("cmd cmd.cmd1 cmd.cmd2") }.to raise_error(Compiler::Error)
         end
-        it "disallows non-existing parent commands" do
+        it "disallows non-existing parent subcommands" do
           expect { compile("cmd.cmd1") }.to raise_error(Compiler::Error)
         end
-        it "associates options with the preceding command" do
+        it "associates options with the preceding subcommand" do
           program = compile("a cmd1! b cmd1.cmd1! c cmd1.cmd2! d cmd2! e")
-          command1 = program.commands["cmd1"]
-          subcommand1 = command1.commands["cmd1"]
-          subcommand2 = command1.commands["cmd2"]
-          command2 = program.commands["cmd2"]
+          subcommand1 = program.subcommands["cmd1"]
+          subsubcommand1 = subcommand1.subcommands["cmd1"]
+          subsubcommand2 = subcommand1.subcommands["cmd2"]
+          subcommand2 = program.subcommands["cmd2"]
           expect(program.option_list.map(&:names).flatten).to eq %w(-a)
-          expect(command1.option_list.map(&:names).flatten).to eq %w(-b)
-          expect(subcommand1.option_list.map(&:names).flatten).to eq %w(-c)
-          expect(subcommand2.option_list.map(&:names).flatten).to eq %w(-d)
-          expect(command2.option_list.map(&:names).flatten).to eq %w(-e)
+          expect(subcommand1.option_list.map(&:names).flatten).to eq %w(-b)
+          expect(subsubcommand1.option_list.map(&:names).flatten).to eq %w(-c)
+          expect(subsubcommand2.option_list.map(&:names).flatten).to eq %w(-d)
+          expect(subcommand2.option_list.map(&:names).flatten).to eq %w(-e)
         end
       end
     end

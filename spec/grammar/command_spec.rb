@@ -21,7 +21,7 @@ module ShellOpts::Grammar
     describe "#key" do
       it "includes the suffixed exclmation point" do
         grammar = ShellOpts::Grammar.compile("program", "cmd!")
-        expect(grammar.commands["cmd"].key).to eq :cmd!
+        expect(grammar.subcommands["cmd"].key).to eq :cmd!
       end
     end
 
@@ -34,13 +34,13 @@ module ShellOpts::Grammar
       end
     end
 
-    describe "#commands" do
-      it "is a hash from command name to Command object" do
+    describe "#subcommands" do
+      it "is a hash from subcommand name to Command object" do
         cmd = Command.new(nil, "cmd", [])
         sub1 = Command.new(cmd, "sub1", [])
         sub2 = Command.new(cmd, "sub2", [])
-        expect(cmd.commands["sub1"]).to be sub1
-        expect(cmd.commands["sub2"]).to be sub2
+        expect(cmd.subcommands["sub1"]).to be sub1
+        expect(cmd.subcommands["sub2"]).to be sub2
       end
     end
 
@@ -51,12 +51,12 @@ module ShellOpts::Grammar
       end
     end
 
-    describe "#command_list" do
-      it "is a list of commands in declaration order" do
+    describe "#subcommand_list" do
+      it "is a list of subcommands in declaration order" do
         cmd = Command.new(nil, "cmd", [])
         sub1 = Command.new(cmd, "sub1", [])
         sub2 = Command.new(cmd, "sub2", [])
-        expect(cmd.command_list).to eq [sub1, sub2]
+        expect(cmd.subcommand_list).to eq [sub1, sub2]
       end
     end
   end

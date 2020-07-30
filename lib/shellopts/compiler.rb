@@ -29,11 +29,11 @@ module ShellOpts
       def initialize(name, source)
         @name, @tokens = name, source.split(/\s+/).reject(&:empty?)
 
-        # @commands_by_path is an hash from command-path to Command or Program
+        # @subcommands_by_path is an hash from subcommand-path to Command or Program
         # object. The top level Program object has nil as its path.
-        # @commands_by_path is used to check for uniqueness of commands and to
-        # link sub-commands to their parents
-        @commands_by_path = {}
+        # @subcommands_by_path is used to check for uniqueness of subcommands and to
+        # link sub-subcommands to their parents
+        @subcommands_by_path = {}
       end
 
       def call
@@ -54,25 +54,25 @@ module ShellOpts
       end
 
       def compile_program
-        program = @commands_by_path[nil] = Grammar::Program.new(@name, compile_options)
+        program = @subcommands_by_path[nil] = Grammar::Program.new(@name, compile_options)
         while curr_token && curr_token != "--"
-          compile_command
+          compile_subcommand
         end
         program.args.concat(@tokens[1..-1]) if curr_token
         program
       end
 
-      def compile_command
+      def compile_subcommand
         path = curr_token[0..-2]
         ident_list = compile_ident_list(path, ".")
         parent_path = ident_list.size > 1 ? ident_list[0..-2].join(".") : nil
         name = ident_list[-1]
 
-        parent = @commands_by_path[parent_path] or
-            error "No such command: #{parent_path.inspect}"
-        !@commands_by_path.key?(path) or error "Duplicate command: #{path.inspect}"
+        parent = @subcommands_by_path[parent_path] or
+            error "No such subcommand: #{parent_path.inspect}"
+        !@subcommands_by_path.key?(path) or error "Duplicate subcommand: #{path.inspect}"
         next_token
-        @commands_by_path[path] = Grammar::Command.new(parent, name, compile_options)
+        @subcommands_by_path[path] = Grammar::Command.new(parent, name, compile_options)
       end
 
       def compile_options
@@ -115,7 +115,7 @@ module ShellOpts
         Grammar::Option.new(short_names, long_names, flags, label)
       end
 
-      # Compile list of option names or a command path
+      # Compile list of option names or a subcommand path
       def compile_ident_list(ident_list_str, sep)
         ident_list_str.split(sep, -1).map { |str| 
           !str.empty? or error "Empty identifier in #{curr_token.inspect}"
