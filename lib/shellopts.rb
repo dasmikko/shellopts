@@ -146,8 +146,10 @@ module ShellOpts
   # Process command line, set current shellopts object, and then iterate
   # options and commands as an array. Returns an enumerator to the array
   # representation of the current shellopts object if not given a block
-  # argument
+  # argument. Automatically includes the ShellOpts module if called from the
+  # main Ruby object (ie. your executable)
   def self.each(usage = nil, argv = nil, name: PROGRAM, message: nil, &block)
+    Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(usage, argv, name: name, message: message)
     shellopts.each(&block)
   end

@@ -10,15 +10,25 @@ shared_examples 'as_* methods' do |method, forward_method, result_class|
     expect(ShellOpts.shellopts).not_to be nil
   end
 
-  it "returns a [#{result_class}, args] tuple" do
-    program, args = cmd
+  it "forwards to ShellOpts::ShellOpts##{forward_method}" do
+    ShellOpts.process("a", [])
+    shellopts = ShellOpts.shellopts
+    expect(ShellOpts).to receive(:process) {}
+    expect(shellopts).to receive(forward_method)
+    ShellOpts.send(method, "a", [])
+  end
 
-    # 'expect(program).to be_a result_class' doesn't work for OptionStruct
-    # objects
-    klass = ::Kernel.instance_method(:class).bind(program).call 
-    expect(klass <= result_class).to be true
+  if result_class
+    it "returns a [#{result_class}, args] tuple" do
+      program, args = cmd
 
-    expect(args).to eq ["ARG"]
+      # 'expect(program).to be_a result_class' doesn't work for OptionStruct
+      # objects
+      klass = ::Kernel.instance_method(:class).bind(program).call 
+      expect(klass <= result_class).to be true
+
+      expect(args).to eq ["ARG"]
+    end
   end
 
   it "includes the ShellOpts module if called from main" do
@@ -74,6 +84,10 @@ describe ShellOpts do
 
   describe ".as_struct" do
     include_examples 'as_* methods', :as_struct, :to_struct, ShellOpts::OptionStruct
+  end
+
+  describe ".each" do
+    include_examples 'as_* methods', :as_struct, :to_struct, nil
   end
 
   context "when syntax errors in the usage string" do

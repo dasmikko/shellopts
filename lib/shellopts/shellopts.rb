@@ -93,7 +93,7 @@ module ShellOpts
 
     # Print error message and exit with status 1. This method should called in
     # response to system errors (like disk full)
-    def fail(*msgs) @messenger.fail(*msgs) end
+    def fail(*msgs, exit: true) @messenger.fail(*msgs, exit: exit) end
   end
 end
 

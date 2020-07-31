@@ -62,9 +62,9 @@ module ShellOpts
     #
     #   <name name>: <message>
     #
-    def fail(*msgs)
+    def fail(*msgs, exit: true)
       $stderr.puts "#{name}: #{msgs.join}"
-      exit 1
+      Kernel.exit(1) if exit
     end
   end
 end
