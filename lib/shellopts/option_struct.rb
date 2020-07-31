@@ -35,7 +35,6 @@ module ShellOpts
       if !idr.subcommand
         instance.instance_eval("def subcommand() nil end")
         instance.instance_eval("def subcommand?() false end")
-        puts "ping: #{idr.key.inspect}, #{idr.name.inspect}"
         instance.instance_eval %(
             def subcommand!(*msgs)
               ::Kernel.raise ShellOpts::UserError, msgs.empty? ? 'No command' : msgs.join

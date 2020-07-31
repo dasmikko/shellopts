@@ -5,7 +5,7 @@ require 'shellopts/parser.rb'
 require 'shellopts/generator.rb'
 require 'shellopts/option_struct.rb'
 require 'shellopts/messenger.rb'
-require 'shellopts/utils.rb'
+require 'shellopts/main.rb'
 
 # Name of program. Defined as the basename of the program file
 PROGRAM = File.basename($PROGRAM_NAME)
@@ -54,6 +54,14 @@ PROGRAM = File.basename($PROGRAM_NAME)
 # ShellOpts injects the constant PROGRAM into the global scope. It contains the 
 # name of the program
 #
+# INCLUDING SHELLOPTS
+# 
+# ShellOpts can optionally be included in your shell application main file but
+# it is not supposed to be included anywhere else
+#
+# Some behind the scenes magic happen if you include the ShellOpts module in your
+# main exe file
+#
 module ShellOpts
   # Base class for ShellOpts exceptions
   class Error < RuntimeError; end
@@ -90,41 +98,47 @@ module ShellOpts
   # The current compilation object. It is set by #process
   def self.shellopts() @shellopts end
 
-  # Process command line and set and return the shellopts compile object
+  # Process command line, set current shellopts object, and return it.
+  # Remaining arguments from the command line can be accessed through
+  # +shellopts.args+
   def self.process(usage, argv, name: PROGRAM, message: nil)
     @shellopts.nil? or reset
     messenger = message && Messenger.new(name, message, format: :custom)
     @shellopts = ShellOpts.new(usage, argv, name: name, messenger: messenger)
   end
 
-  # Return the internal data representation of the command line (Idr::Program).
-  # Note that #as_program that the remaning arguments are accessible through
-  # the returned object
+  # Process command line, set current shellopts object, and return a
+  # [Idr::Program, argv] tuple. Automatically includes the ShellOpts module
+  # if called from the main Ruby object (ie. your executable)
   def self.as_program(usage, argv, name: PROGRAM, message: nil) 
+    Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(usage, argv, name: name, message: message)
     [shellopts.idr, shellopts.args]
   end
 
-  # Process command line, set current shellopts object, and return a [array, argv]
-  # tuple. Returns the representation of the current object if not given any
-  # arguments
+  # Process command line, set current shellopts object, and return a [array,
+  # argv] tuple. Automatically includes the ShellOpts module if called from the
+  # main Ruby object (ie. your executable)
   def self.as_array(usage, argv, name: PROGRAM, message: nil)
+    Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(usage, argv, name: name, message: message)
     [shellopts.to_a, shellopts.args]
   end
 
-  # Process command line, set current shellopts object, and return a [hash, argv]
-  # tuple. Returns the representation of the current object if not given any
-  # arguments
+  # Process command line, set current shellopts object, and return a [hash,
+  # argv] tuple. Automatically includes the ShellOpts module if called from the
+  # main Ruby object (ie. your executable)
   def self.as_hash(usage, argv, name: PROGRAM, message: nil, use: ShellOpts::DEFAULT_USE, aliases: {})
+    Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(usage, argv, name: name, message: message)
-    [shellopts.to_hash(use: use, aliases: aliases), shellopts.args]
+    [shellopts.to_h(use: use, aliases: aliases), shellopts.args]
   end
 
-  # Process command line, set current shellopts object, and return a [struct, argv]
-  # tuple. Returns the representation of the current object if not given any
-  # arguments
+  # Process command line, set current shellopts object, and return a [struct,
+  # argv] tuple. Automatically includes the ShellOpts module if called from the
+  # main Ruby object (ie. your executable)
   def self.as_struct(usage, argv, name: PROGRAM, message: nil, use: ShellOpts::DEFAULT_USE, aliases: {})
+    Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(usage, argv, name: name, message: message)
     [shellopts.to_struct(use: use, aliases: aliases), shellopts.args]
   end
@@ -155,15 +169,16 @@ module ShellOpts
 
   # Instance method version of ShellOpts.error. It is accessible when the
   # ShellOpts module is included
-  def error(*msgs, exit: true) ShellOpts.error(*msgs, exit: exit) end
+# def error(*msgs, exit: true) ShellOpts.error(*msgs, exit: exit) end
 
   # Instance method version of ShellOpts.fail. It is accessible when the
   # ShellOpts module is included
-  def fail(*msgs) ShellOpts.fail(*msgs) end
+# def fail(*msgs) ShellOpts.fail(*msgs) end
 
   def self.included(base)
-    if !@is_included
-      @is_included = true
+    # base.equal?(Object) is only true when included in main (we hope)
+    if !@is_included_in_main && base.equal?(Object) 
+      @is_included_in_main = true
       at_exit do
         case $!
           when ShellOpts::UserError
@@ -175,6 +190,7 @@ module ShellOpts
         end
       end
     end
+    super
   end
 
 
@@ -185,6 +201,6 @@ private
   end
 
   @shellopts = nil
-  @is_included = false
+  @is_included_in_main = false
 end
 
