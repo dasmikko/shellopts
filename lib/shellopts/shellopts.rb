@@ -63,7 +63,7 @@ module ShellOpts
       rescue Grammar::Compiler::Error => ex
         raise CompilerError.new(5, ex.message)
       rescue Ast::Parser::Error => ex
-        error(ex.message)
+        raise UserError.new(ex.message)
       end
     end
 
@@ -89,7 +89,7 @@ module ShellOpts
     # Print error messages and usage string and exit with status 1. This method
     # should be called in response to user-errors (eg. specifying an illegal
     # option)
-    def error(*msgs) @messenger.error(*msgs) end
+    def error(*msgs, exit: true) @messenger.error(msgs, exit: exit) end
 
     # Print error message and exit with status 1. This method should called in
     # response to system errors (like disk full)

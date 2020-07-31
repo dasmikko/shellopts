@@ -46,13 +46,13 @@ module ShellOpts
     #   <name name>: <message>
     #   Usage: <name name> <options and arguments>
     #
-    def error(*msgs)
+    def error(*msgs, exit: true)
       $stderr.print "#{name}: #{msgs.join}\n"
       if usage
         $stderr.print "Usage: #{name} " if format == :default
         $stderr.print "#{usage}\n"
       end
-      exit 1
+      Kernel.exit(1) if exit
     end
 
     # Print error message and exit with status 1. It use the current ShellOpts

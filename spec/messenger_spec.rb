@@ -46,6 +46,11 @@ describe ShellOpts::Messenger do
       expect_error(message).to output(expected).to_stderr
     end
 
+    it "doesn't exit if exit: is false" do
+      allow(STDERR).to receive(:print) # Silence #error
+      expect { message.error("Error message", exit: false) }.not_to raise_error
+    end
+
     context "when usage is nil" do
       it "doesn't print the usage" do
         expected = "cmd: Error message\n"

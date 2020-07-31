@@ -72,16 +72,19 @@ describe ShellOpts::OptionStruct do
       expect(struct.subcommand).to eq :A!
     end
 
-    it "calls #error if no subcommand" do
-      messenger = OptionStruct.get_variable(struct_no_command, "@__idr__").program.messenger
-      expect(messenger).to receive(:error)
-      struct_no_command.subcommand!
+    it "raises a UserError if no subcommand" do
+      expect { struct_no_command.subcommand! }.to raise_error ::ShellOpts::UserError
     end
 
     it "forwards the messages if specified" do
-      messenger = OptionStruct.get_variable(struct_no_command, "@__idr__").program.messenger
-      expect(messenger).to receive(:error).with(["Error message"])
-      struct_no_command.subcommand!("Error message")
+      raised = false
+      begin
+        struct_no_command.subcommand!("Error message")
+      rescue UserError => ex
+        raised = true
+        expect(ex.message).to eq "Error message"
+      end
+      expect(raised).to be true
     end
   end
 end

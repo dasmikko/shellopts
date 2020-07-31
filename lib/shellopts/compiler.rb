@@ -49,10 +49,6 @@ module ShellOpts
       # Returns the current token and advance to the next token
       def next_token() @tokens.shift end
 
-      def error(msg) # Just a shorthand. Unrelated to ShellOpts.error
-        raise Compiler::Error.new(msg)
-      end
-
       def compile_program
         program = @subcommands_by_path[nil] = Grammar::Program.new(@name, compile_options)
         while curr_token && curr_token != "--"
@@ -69,8 +65,8 @@ module ShellOpts
         name = ident_list[-1]
 
         parent = @subcommands_by_path[parent_path] or
-            error "No such subcommand: #{parent_path.inspect}"
-        !@subcommands_by_path.key?(path) or error "Duplicate subcommand: #{path.inspect}"
+            raise Compiler::Error, "No such subcommand: #{parent_path.inspect}"
+        !@subcommands_by_path.key?(path) or raise Compiler::Error, "Duplicate subcommand: #{path.inspect}"
         next_token
         @subcommands_by_path[path] = Grammar::Command.new(parent, name, compile_options)
       end
@@ -81,7 +77,7 @@ module ShellOpts
           option_list << compile_option
         end
         dup = option_list.map(&:names).flatten.find_dup and 
-            error "Duplicate option name: #{dup.inspect}"
+            raise Compiler::Error, "Duplicate option name: #{dup.inspect}"
         option_list
       end
 
@@ -102,7 +98,7 @@ module ShellOpts
         long_names = []
         ident_list = compile_ident_list(names, ",")
         (dup = ident_list.find_dup).nil? or 
-            error "Duplicate identifier #{dup.inspect} in #{curr_token.inspect}"
+            raise Compiler::Error, "Duplicate identifier #{dup.inspect} in #{curr_token.inspect}"
         ident_list.each { |ident|
           if ident.size == 1
             short_names << "-#{ident}"
@@ -118,10 +114,12 @@ module ShellOpts
       # Compile list of option names or a subcommand path
       def compile_ident_list(ident_list_str, sep)
         ident_list_str.split(sep, -1).map { |str| 
-          !str.empty? or error "Empty identifier in #{curr_token.inspect}"
-          !str.start_with?("-") or error "Identifier can't start with '-' in #{curr_token.inspect}"
+          !str.empty? or 
+              raise Compiler::Error, "Empty identifier in #{curr_token.inspect}"
+          !str.start_with?("-") or 
+              raise Compiler::Error, "Identifier can't start with '-' in #{curr_token.inspect}"
           str !~ /([^\w\d#{sep}-])/ or 
-              error "Illegal character #{$1.inspect} in #{curr_token.inspect}"
+              raise Compiler::Error, "Illegal character #{$1.inspect} in #{curr_token.inspect}"
           str
         }
       end

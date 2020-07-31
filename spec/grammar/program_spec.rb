@@ -37,8 +37,6 @@ module ShellOpts::Grammar
       it "handles commands" do
         expect(usage("a cmd! b c")).to eq "-a cmd -b -c"
         expect(usage("a cmd1! b c cmd1.cmd2! d")).to eq "-a cmd1 -b -c cmd2 -d"
-
-        # FIXME: Oops - not so readable usage for nested commands in this case
         expect(usage("a cmd1! b c cmd1.cmd2! d cmd2! e")).to eq "-a cmd1 -b -c cmd2 -d cmd2 -e"
       end
       it "copies everthing after '--'" do

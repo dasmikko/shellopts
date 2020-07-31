@@ -14,8 +14,7 @@ module ShellOpts
       # Allocate OptionStruct instance
       instance = allocate
 
-      # Set reference to Idr object. Is used by #subcommand to emit errors
-      # through the messenger object
+      # Set reference to Idr object. Is currently unused
       set_variable(instance, "@__idr__", idr)
 
       # Generate general option accessor methods
@@ -36,9 +35,10 @@ module ShellOpts
       if !idr.subcommand
         instance.instance_eval("def subcommand() nil end")
         instance.instance_eval("def subcommand?() false end")
+        puts "ping: #{idr.key.inspect}, #{idr.name.inspect}"
         instance.instance_eval %(
-            def subcommand!(*msgs) 
-              @__idr__.program.messenger.error(msgs.empty? ? 'No command' : msgs) 
+            def subcommand!(*msgs)
+              ::Kernel.raise ShellOpts::UserError, msgs.empty? ? 'No command' : msgs.join
             end
         )
       end

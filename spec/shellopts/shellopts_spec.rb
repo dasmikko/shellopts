@@ -12,9 +12,9 @@ describe "ShellOpts::ShellOpts" do
       end
     end
     context "on errors in the arguments" do
-      it "terminates the program" do
+      it "raises a UserError" do
         allow(STDERR).to receive(:print) # Silence #error
-        expect { ShellOpts::ShellOpts.new("a", %w(-b)) }.to raise_error(SystemExit)
+        expect { ShellOpts::ShellOpts.new("a", %w(-b)) }.to raise_error(ShellOpts::UserError)
       end
     end
   end

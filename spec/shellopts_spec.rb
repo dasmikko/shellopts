@@ -65,4 +65,17 @@ describe ShellOpts do
       }.to raise_error InternalError
     end
   end
+# context "when ShellOpts is included" do
+#   it "defines an #error method"
+#   it "defines a #fail method"
+#
+#   it "captures UserError exceptions" do
+#     output = `spec/scripts/raise_shellopts_exception.rb ShellOpts::UserError 2>&1`
+#     expect(output.split('\n').first).to match /^.*: ShellOpts::UserError handled/
+#   end
+#   it "captures SystemFail exceptions" do
+#     output = `spec/scripts/raise_shellopts_exception.rb ShellOpts::SystemFail 2>&1`
+#     expect(output.split('\n').first).to match /^.*: ShellOpts::SystemFail handled/
+#   end
+# end
 end

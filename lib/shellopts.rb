@@ -66,6 +66,20 @@ module ShellOpts
     end
   end
 
+  # Raised when an error is detected in the command line
+  class ParserError < Error; end
+
+  # Raised when the command line error is caused by the user. It is raised by
+  # the parser but can also be used by the application if the command line
+  # fails a semantic check
+  class UserError < ParserError; end
+
+  # Raised when the error is caused by a failed assumption about the system. It
+  # is not raised by the ShellOpts library as it only concerns itself with
+  # command line syntax but can be used by the application to report a failure
+  # through ShellOpts#fail method when the ShellOpts module is included
+  class SystemFail < Error; end
+
   # Raised when an error is detected during conversion from the Idr to array,
   # hash, or struct
   class ConversionError < Error; end
@@ -127,17 +141,42 @@ module ShellOpts
   # Print error message and usage string and exit with status 1. This method
   # should be called in response to user-errors (eg. specifying an illegal
   # option)
-  def self.error(*msgs)
-    raise "Oops" if shellopts.nil?
-    shellopts.error(*msgs)
+  def self.error(*msgs, exit: true)
+    raise InternalError, "Oops" if shellopts.nil?
+    shellopts.error(msgs, exit: exit)
   end
 
   # Print error message and exit with status 1. This method should not be
   # called in response to system errors (eg. disk full)
   def self.fail(*msgs)
-    raise "Oops" if shellopts.nil?
+    raise InternError, "Oops" if shellopts.nil?
     shellopts.fail(*msgs)
   end
+
+  # Instance method version of ShellOpts.error. It is accessible when the
+  # ShellOpts module is included
+  def error(*msgs, exit: true) ShellOpts.error(*msgs, exit: exit) end
+
+  # Instance method version of ShellOpts.fail. It is accessible when the
+  # ShellOpts module is included
+  def fail(*msgs) ShellOpts.fail(*msgs) end
+
+  def self.included(base)
+    if !@is_included
+      @is_included = true
+      at_exit do
+        case $!
+          when ShellOpts::UserError
+            ::ShellOpts.error($!.message, exit: false)
+            exit!(1)
+          when ShellOpts::SystemFail
+            ::ShellOpts.fail($!.message)
+            exit!(1)
+        end
+      end
+    end
+  end
+
 
 private
   # Reset state variables
@@ -146,4 +185,6 @@ private
   end
 
   @shellopts = nil
+  @is_included = false
 end
+
