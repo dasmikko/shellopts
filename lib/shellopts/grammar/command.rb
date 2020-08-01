@@ -41,8 +41,7 @@ module ShellOpts
       # if this is the root object. name is the name of the command (without
       # the exclamation mark), and option_list a list of Option objects
       def initialize(parent, name, option_list)
-        super("#{name}!".to_sym)
-        @name = name
+        super("#{name}!".to_sym, name)
         parent.attach(self) if parent
         @option_list = option_list
         @subcommand_list = []

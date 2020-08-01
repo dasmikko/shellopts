@@ -27,7 +27,8 @@ module ShellOpts
       # informal name of the option argument (eg. 'FILE') or nil if not present
       def initialize(short_names, long_names, flags, label = nil)
         @key_name = long_names.first || short_names.first
-        super(@key_name.sub(/^-+/, "").to_sym)
+        name = @key_name.sub(/^-+/, "")
+        super(name.to_sym, name)
         @short_names, @long_names = short_names, long_names
         @flags = flags.map { |flag| [flag, true] }.to_h
         @label = label

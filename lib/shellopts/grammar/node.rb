@@ -10,14 +10,22 @@ module ShellOpts
       # Key (Symbol) of node. Unique within the enclosing command
       attr_reader :key
 
-      def initialize(key)
-        @key = key
+      # Name of node. The name of an option is without the prefixed '-' or
+      # '--', the name of a command is without the suffixed '!'. Note that name
+      # collisions can happen between options and commands names
+      attr_reader :name
+
+      def initialize(key, name)
+        @key, @name = key, name
       end
 
       # :nocov:
       def dump(&block) 
         puts key.inspect
-        indent { yield } if block_given?
+        indent { 
+          puts "name: #{name.inspect}"
+          yield if block_given?
+        }
       end
       # :nocov:
     end
