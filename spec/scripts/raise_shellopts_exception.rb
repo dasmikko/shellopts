@@ -13,3 +13,6 @@ klass_name = ARGV.first
 klass = self.instance_eval(klass_name)
 
 raise klass, "#{klass_name} handled"
+
+#opts, args = ShellOpts.as_struct("a C!", [])
+#opts.subcommand!

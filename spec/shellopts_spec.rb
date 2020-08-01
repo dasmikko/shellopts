@@ -108,8 +108,8 @@ describe ShellOpts do
   end
 
   context "when errors in the spec of the library" do
-    it 'raise a ShellOpts::InternalError' do
-      expect { ShellOpts.error }.to raise_error ShellOpts::InternalError
+    it 'raise a ShellOpts::UserError' do
+      expect { ShellOpts.error }.to raise_error ShellOpts::UserError
     end
   end
   context "when ShellOpts is included" do

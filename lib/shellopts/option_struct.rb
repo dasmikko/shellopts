@@ -91,7 +91,8 @@ module ShellOpts
         instance.instance_eval("def subcommand?() false end")
         instance.instance_eval %(
             def subcommand!(*msgs)
-              ::Kernel.raise ShellOpts::UserError, msgs.empty? ? 'No command' : msgs.join
+              $stderr.puts "in subcommand!"
+              ::Kernel.raise ::ShellOpts::UserError, (msgs.empty? ? 'No command' : msgs.join)
             end
         )
       end

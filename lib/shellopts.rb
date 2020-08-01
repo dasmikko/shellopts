@@ -62,17 +62,6 @@ require 'shellopts/main.rb'
 # main exe file
 #
 module ShellOpts
-  # Base class for ShellOpts exceptions
-  class Error < RuntimeError; end
-
-  # Raised when a syntax error is detected in the spec string
-  class CompilerError < Error
-    def initialize(start, usage)
-      super(usage)
-      set_backtrace(caller(start))
-    end
-  end
-
   def self.default_name()
     @default_name || defined?(PROGRAM) ? PROGRAM : File.basename($0)
   end
@@ -95,6 +84,17 @@ module ShellOpts
 
   def self.default_key_type=(type)
     @default_key_type = type
+  end
+
+  # Base class for ShellOpts exceptions
+  class Error < RuntimeError; end
+
+  # Raised when a syntax error is detected in the spec string
+  class CompilerError < Error
+    def initialize(start, usage)
+      super(usage)
+      set_backtrace(caller(start))
+    end
   end
 
   # Raised when an error is detected in the command line
@@ -122,8 +122,8 @@ module ShellOpts
   def self.shellopts() @shellopts end
 
   # Name of program
-  def name() shellopts!.name end
-  def name=(name) shellopts!.name = name end
+  def program_name() shellopts!.name end
+  def program_name=(name) shellopts!.name = name end
 
   # Usage string
   def usage() shellopts!.spec end
@@ -211,10 +211,10 @@ module ShellOpts
       at_exit do
         case $!
           when ShellOpts::UserError
-            ::ShellOpts.error($!.usage, exit: false)
+            ::ShellOpts.error($!.message, exit: false)
             exit!(1)
           when ShellOpts::SystemFail
-            ::ShellOpts.fail($!.usage)
+            ::ShellOpts.fail($!.message)
             exit!(1)
         end
       end
@@ -232,8 +232,8 @@ private
   end
 
   # (shorthand) Raise an InternalError if shellopts is nil. Return shellopts
-  def shellopts!
-    shellopts or raise InternalError, "No ShellOpts.shellopts object" if shellopts.nil?
+  def self.shellopts!
+    ::ShellOpts.shellopts or raise UserError, "No ShellOpts.shellopts object"
   end
 
   @shellopts = nil
