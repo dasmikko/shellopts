@@ -44,7 +44,6 @@ describe ShellOpts::OptionStruct do
 
     it "defines a #subcommand method on the object" do
       expect { struct.subcommand }.not_to raise_error
-      expect(struct.subcommand).to eq :A!
     end
 
     it "defines a #subcommand? method on the object" do
@@ -54,7 +53,6 @@ describe ShellOpts::OptionStruct do
 
     it "defines a #subcommand! method on the object" do
       expect { struct.subcommand! }.not_to raise_error
-      expect(struct.subcommand!).to be struct.A!
     end
 
     it "raises if option is a reserved word" do
@@ -67,9 +65,25 @@ describe ShellOpts::OptionStruct do
     it "raises on name collisions between 'subcommand' and commands"
   end
 
-  describe "#subcommand!" do
-    it "returns the subcommand" do
+  describe "#subcommand" do
+    it "returns the key of the subcommand" do
       expect(struct.subcommand).to eq :A!
+    end
+    it "returns nil if no subcommand was given" do
+      expect(struct_no_command.subcommand).to eq nil  
+    end
+  end
+
+  describe "#subcommand?" do
+    it "returns true if the a subcommand was given" do
+      expect(struct.subcommand?).to eq true
+      expect(struct_no_command.subcommand?).to eq false
+    end
+  end
+
+  describe "#subcommand!" do
+    it "returns the key of the subcommand" do
+      expect(struct.subcommand!).to eq :A!
     end
 
     it "raises a UserError if no subcommand" do

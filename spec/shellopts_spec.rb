@@ -3,6 +3,7 @@ require 'shellopts.rb'
 
 shared_examples 'as_* methods' do |method, forward_method, result_class|
   let(:cmd) { ShellOpts.send(method, "a", %w(ARG)) }
+
   it "sets the current shellopts object" do
     ShellOpts.reset
     expect(ShellOpts.shellopts).to be nil

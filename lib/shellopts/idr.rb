@@ -192,23 +192,19 @@ module ShellOpts
       def key() nil end
 
       # Remaining command line arguments
-      def args() @ast.arguments end
-
-      # Messenger object that is used to emit error messages. It should
-      # implement #error(*args) and #fail(*args)
-      attr_reader :messenger
+      def args() @shellopts.args end
 
       # Initialize the top-level Idr::Program object
-      def initialize(ast, messenger)
-        @messenger = messenger
-        super(nil, ast)
+      def initialize(shellopts)
+        @shellopts = shellopts
+        super(nil, shellopts.ast)
       end
 
       # Emit error message and a usage description before exiting with status 1
-      def error(*args) messenger.error(*error_messages) end
+      def error(*args) shellopts.error(*error_messages) end
 
       # Emit error message before exiting with status 1
-      def fail(*args) messenger.fail(*error_messages) end
+      def fail(*args) shellopts.fail(*error_messages) end
     end
   end
 end

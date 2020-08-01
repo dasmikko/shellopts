@@ -3,9 +3,9 @@ require 'shellopts/idr.rb'
 
 module ShellOpts
   module Idr
-    # Generates an Idr::Program from an Ast::Program object
-    def self.generate(ast, messenger)
-      Idr::Program.new(ast, messenger)
+    # Generates an Idr::Program from a ShellOpts object
+    def self.generate(shellopts)
+      Idr::Program.new(shellopts)
     end
   end
 end

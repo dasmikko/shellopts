@@ -29,6 +29,10 @@ module ShellOpts
     # Name of program
     attr_reader :name
 
+    # Usage description of program
+    def usage() @usage || @grammar.usage end
+    def usage=(usage) @usage = usage end
+
     # The grammar compiled from the usage string
     attr_reader :grammar
 
@@ -53,13 +57,13 @@ module ShellOpts
     # +ShellOpts::CompilerError+ exception.  Errors in the +argv+ arguments are
     # caused by the user and terminates the program with an error message and a
     # short description of its usage
-    def initialize(usage, argv, name: PROGRAM, messenger: nil)
+    def initialize(usage, argv, name: PROGRAM, usage_description: nil)
       @name = name
+      @usage = usage_description
       begin
         @grammar = Grammar.compile(name, usage)
-        @messenger = messenger || Messenger.new(name, @grammar.usage)
         @ast = Ast.parse(@grammar, argv)
-        @idr = Idr.generate(@ast, @messenger)
+        @idr = Idr.generate(self)
       rescue Grammar::Compiler::Error => ex
         raise CompilerError.new(5, ex.message)
       rescue Ast::Parser::Error => ex
@@ -89,12 +93,18 @@ module ShellOpts
     # Print error messages and usage string and exit with status 1. This method
     # should be called in response to user-errors (eg. specifying an illegal
     # option)
-    def error(*msgs, exit: true) @messenger.error(msgs, exit: exit) end
+    def error(*msgs, exit: true)
+      msg = "#{name}: #{msgs.join}\n" + (@usage ? usage : "Usage: #{name} #{usage}")
+      $stderr.puts msg.rstrip
+      exit(1) if exit
+    end
 
     # Print error message and exit with status 1. This method should called in
     # response to system errors (like disk full)
-    def fail(*msgs, exit: true) @messenger.fail(*msgs, exit: exit) end
+    def fail(*msgs, exit: true)
+      $stderr.puts "#{name}: #{msgs.join}"
+      exit(1) if exit
+    end
   end
 end
-
 

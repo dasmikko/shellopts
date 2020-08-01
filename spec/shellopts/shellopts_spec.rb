@@ -30,6 +30,13 @@ describe "ShellOpts::ShellOpts" do
     end
   end
 
+  describe "#usage" do
+    it "describe the usage of the program" do
+      shellopts = ShellOpts::ShellOpts.new("a -- FILE", %w(-a))
+      expect(shellopts.usage).to eq "-a FILE"
+    end
+  end
+
   describe "#grammar" do
     it "is the grammar of the program" do
       shellopts = ShellOpts::ShellOpts.new("a", %w(-a))
@@ -113,25 +120,66 @@ describe "ShellOpts::ShellOpts" do
   end
 
   describe "#error" do
-    it "forwards to @message.error" do
-      shellopts = ShellOpts::ShellOpts.new("a", %w(-a))
-      expect(shellopts.messenger).to receive(:error)
-      begin
-        shellopts.error("Error message")
-      rescue SystemExit
+    let(:shellopts) { ShellOpts::ShellOpts.new("a b -- FILE", [], name: "cmd") }
+
+    def expect_error(message = "Error message")
+      expect {
+        begin
+          shellopts.error message
+        rescue SystemExit
+        end
+      }
+    end
+
+    it "terminates the program with status 1" do
+      allow(STDERR).to receive(:puts) # Silence #error
+      expect { shellopts.error("Error message") }.to raise_error SystemExit
+    end
+
+    it "writes the message on stderr" do
+      expected = "cmd: Error message\nUsage: cmd -a -b FILE\n"
+      expect_error.to output(expected).to_stderr
+    end
+
+    it "doesn't exit if exit: is false" do
+      allow(STDERR).to receive(:puts) # Silence #error
+      expect { shellopts.error("Error message", exit: false) }.not_to raise_error
+    end
+
+    context "when #usage has been assigned to" do
+      it "prints the usage as is" do
+        shellopts.usage = "Usage description"
+        expected = "cmd: Error message\nUsage description\n"
+        expect_error.to output(expected).to_stderr
+      end
+      it "strips suffixed whitespace" do
+        shellopts.usage = ""
+        expected = "cmd: Error message\n"
+        expect_error.to output(expected).to_stderr
       end
     end
-    
   end
 
   describe "#fail" do
-    it "forwards to @message.fail" do
-      shellopts = ShellOpts::ShellOpts.new("a", %w(-a))
-      expect(shellopts.messenger).to receive(:fail)
-      begin
-        shellopts.fail("Error message") 
-      rescue SystemExit
-      end
+    let(:shellopts) { ShellOpts::ShellOpts.new("a b -- FILE", [], name: "cmd") }
+
+    def expect_fail(message = "Error message")
+      expect {
+        begin
+          shellopts.fail message
+        rescue SystemExit
+        end
+      }
+    end
+
+    it "terminates the program with status 1" do
+      allow(STDERR).to receive(:puts) # Silence #error
+      expect { shellopts.fail("Error message") }.to raise_error SystemExit
+    end
+
+    it "writes the message on stderr" do
+      expected = "cmd: Error message\n"
+      expect_fail.to output(expected).to_stderr
     end
   end
 end
