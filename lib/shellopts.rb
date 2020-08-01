@@ -137,11 +137,11 @@ module ShellOpts
   def self.as_hash(
       spec, argv, 
       name: ::ShellOpts.default_name, usage: ::ShellOpts.default_usage, 
-      use: ShellOpts::DEFAULT_USE, 
+      key_type: ShellOpts::DEFAULT_KEY_TYPE, 
       aliases: {})
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(spec, argv, name: name, usage: usage)
-    [shellopts.to_h(use: use, aliases: aliases), shellopts.args]
+    [shellopts.to_h(key_type: key_type, aliases: aliases), shellopts.args]
   end
 
   # Process command line, set current shellopts object, and return a [struct,
@@ -150,11 +150,10 @@ module ShellOpts
   def self.as_struct(
       spec, argv, 
       name: ::ShellOpts.default_name, usage: ::ShellOpts.default_usage, 
-      use: ShellOpts::DEFAULT_USE, 
       aliases: {})
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(spec, argv, name: name, usage: usage)
-    [shellopts.to_struct(use: use, aliases: aliases), shellopts.args]
+    [shellopts.to_struct(aliases: aliases), shellopts.args]
   end
 
   # Process command line, set current shellopts object, and then iterate

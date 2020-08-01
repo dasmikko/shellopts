@@ -58,7 +58,7 @@ module ShellOpts
   class OptionStruct < BasicObject
     # +key=:name+ cause command methods to be named without the exclamation
     # mark. It doesn't change how options are named
-    def self.new(idr, key = :key, aliases = {})
+    def self.new(idr, aliases = {})
       # Shorthands
       ast = idr.instance_variable_get("@ast")
       grammar = ast.grammar

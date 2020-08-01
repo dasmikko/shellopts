@@ -215,7 +215,7 @@ describe Idr do
       end
       it "uses key name for keys when :use is :name" do
         idr = make_idr("a b,ball", "-a -b")
-        expect(idr.to_h(use: :name)).to eq({"-a" => true, "--ball" => true})
+        expect(idr.to_h(key_type: :name)).to eq({"-a" => true, "--ball" => true})
       end
       it "commands are nested hashes" do
         idr = make_idr("a C! b", "-a C -b")
@@ -229,7 +229,7 @@ describe Idr do
       end
       it "key and aliases arguments can be combined" do
         idr = make_idr("a,all C!", "-a C")
-        h = idr.to_h(use: :name, aliases: { :C! => "command" })
+        h = idr.to_h(key_type: :name, aliases: { :C! => "command" })
         expect expect(h).to eq({"--all" => true, "command" => {}})
       end 
     end

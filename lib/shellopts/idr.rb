@@ -135,22 +135,22 @@ module ShellOpts
       # Return options and command as a hash. The hash also define the
       # singleton method #subcommand that returns the key of the subcommand
       #
-      # +key+ controls the type of keys used: +:key+ (the default) use the
-      # symbolic key, +:name+ use key_name. Note that using +:name+ can cause name collisions between
-      # option and command names and that #to_s raises an exception if it detects a collision
+      # +key_type+ controls the type of keys used: +:key+ (the default) use the
+      # symbolic key, +:name+ use #key_name. Note that using +:name+ can cause
+      # name collisions between option and command names and
       #
       # +aliases+ maps from key to replacement key (which could be any object).
       # +aliases+ can be used to avoid name collisions between options and
-      # commands
+      # commands when using key_format: :name. #to_s raises an exception if it
+      # detects a collision
       #
-      # IDEA: Make subcommand _not_ follow the +key+ setting so that setting key to
-      # IDEA: Add a singleton method #subcommand to the hash
+      # IDEA: Add a singleton methods to the hash with #name, #usage, etc.
       #
-      def to_h(use: :key, aliases: {})
+      def to_h(key_type: :key, aliases: {})
         value = {}
         value.define_singleton_method(:subcommand) { nil }
         options.values.each { |opt|
-          ident = aliases[opt.key] || (use == :key ? opt.key : opt.ast.grammar.key_name)
+          ident = aliases[opt.key] || (key_type == :key ? opt.key : opt.ast.grammar.key_name)
           !value.key?(ident) or raise ConversionError, "Duplicate key: #{ident.inspect}"
           case opt
             when Option
@@ -166,7 +166,7 @@ module ShellOpts
       end
 
       # Return options and command as a struct
-      def to_struct(key = :key, aliases = {}) OptionStruct.new(self, key, aliases) end
+      def to_struct(aliases = {}) OptionStruct.new(self, aliases) end
 
     protected
       # Initialize an Idr::Command object and all dependent objects

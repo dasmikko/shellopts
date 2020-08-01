@@ -6,7 +6,7 @@ include ShellOpts
 
 describe ShellOpts::OptionStruct do
   def make_struct(usage, argv, aliases = {})
-    make_idr(usage, argv).to_struct
+    make_idr(usage, argv).to_struct(aliases: aliases)
   end
 
   let(:struct) { make_struct("a b A! aa bb B!", "-a A --aa") }
