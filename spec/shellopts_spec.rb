@@ -45,9 +45,9 @@ describe "Requiring shellopts" do
 end
 
 describe ShellOpts do
-  def process(usage, argv, &block)
+  def process(spec, argv, &block)
     ::ShellOpts.reset
-    ::ShellOpts.process(usage, argv, &block)
+    ::ShellOpts.process(spec, argv, &block)
   end
 
   it "has a version number" do
@@ -62,12 +62,12 @@ describe ShellOpts do
   end
 
   describe ".process" do
-    let(:usage) { "a b= c" }
+    let(:spec) { "a b= c" }
     let(:argv) { %w(-a -bhello -c ARG) }
 
 
     it "returns a ShellOpts object" do
-      expect(process(usage, argv)).to be_a ShellOpts::ShellOpts
+      expect(process(spec, argv)).to be_a ShellOpts::ShellOpts
     end
   end
 
@@ -91,7 +91,7 @@ describe ShellOpts do
     include_examples 'as_* methods', :as_struct, :to_struct, nil
   end
 
-  context "when syntax errors in the usage string" do
+  context "when syntax errors in the spec string" do
     it 'raises a ShellOpts::CompilerError' do
       expect { process("a++", "") {} }.to raise_error ShellOpts::CompilerError
     end
@@ -113,7 +113,7 @@ describe ShellOpts do
     end
   end
 
-  context "when errors in the usage of the library" do
+  context "when errors in the spec of the library" do
     it 'raise a ShellOpts::InternalError' do
       expect { ShellOpts.error }.to raise_error ShellOpts::InternalError
     end

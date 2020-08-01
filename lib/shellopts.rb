@@ -20,7 +20,7 @@ PROGRAM = File.basename($PROGRAM_NAME)
 #
 # For example; the following process and convert a command line into a struct
 # representation and also sets ShellOpts.shellopts object so that the #error
-# method can print a relevant usage string:
+# method can print a relevant spec string:
 #
 #   USAGE = "a,all f,file=FILE -- ARG1 ARG2"
 #   opts, args = ShellOpts.as_struct(USAGE, ARGV)
@@ -65,10 +65,10 @@ module ShellOpts
   # Base class for ShellOpts exceptions
   class Error < RuntimeError; end
 
-  # Raised when a syntax error is detected in the usage string
+  # Raised when a syntax error is detected in the spec string
   class CompilerError < Error
-    def initialize(start, usage_description)
-      super(usage_description)
+    def initialize(start, usage)
+      super(usage)
       set_backtrace(caller(start))
     end
   end
@@ -97,47 +97,55 @@ module ShellOpts
   # The current compilation object. It is set by #process
   def self.shellopts() @shellopts end
 
+  # Name of program
+  def name() shellopts!.name end
+  def name=(name) shellopts!.name = name end
+
+  # Usage string
+  def usage() shellopts!.spec end
+  def usage=(spec) shellopts!.spec = spec end
+
   # Process command line, set current shellopts object, and return it.
   # Remaining arguments from the command line can be accessed through
   # +shellopts.args+
-  def self.process(usage, argv, name: PROGRAM, usage_description: nil)
+  def self.process(spec, argv, name: PROGRAM, usage: nil)
     @shellopts.nil? or reset
-    @shellopts = ShellOpts.new(usage, argv, name: name, usage_description: usage_description)
+    @shellopts = ShellOpts.new(spec, argv, name: name, usage: usage)
   end
 
   # Process command line, set current shellopts object, and return a
   # [Idr::Program, argv] tuple. Automatically includes the ShellOpts module
   # if called from the main Ruby object (ie. your executable)
-  def self.as_program(usage, argv, name: PROGRAM, usage_description: nil) 
+  def self.as_program(spec, argv, name: PROGRAM, usage: nil) 
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
-    process(usage, argv, name: name, usage_description: usage_description)
+    process(spec, argv, name: name, usage: usage)
     [shellopts.idr, shellopts.args]
   end
 
   # Process command line, set current shellopts object, and return a [array,
   # argv] tuple. Automatically includes the ShellOpts module if called from the
   # main Ruby object (ie. your executable)
-  def self.as_array(usage, argv, name: PROGRAM, usage_description: nil)
+  def self.as_array(spec, argv, name: PROGRAM, usage: nil)
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
-    process(usage, argv, name: name, usage_description: usage_description)
+    process(spec, argv, name: name, usage: usage)
     [shellopts.to_a, shellopts.args]
   end
 
   # Process command line, set current shellopts object, and return a [hash,
   # argv] tuple. Automatically includes the ShellOpts module if called from the
   # main Ruby object (ie. your executable)
-  def self.as_hash(usage, argv, name: PROGRAM, usage_description: nil, use: ShellOpts::DEFAULT_USE, aliases: {})
+  def self.as_hash(spec, argv, name: PROGRAM, usage: nil, use: ShellOpts::DEFAULT_USE, aliases: {})
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
-    process(usage, argv, name: name, usage_description: usage_description)
+    process(spec, argv, name: name, usage: usage)
     [shellopts.to_h(use: use, aliases: aliases), shellopts.args]
   end
 
   # Process command line, set current shellopts object, and return a [struct,
   # argv] tuple. Automatically includes the ShellOpts module if called from the
   # main Ruby object (ie. your executable)
-  def self.as_struct(usage, argv, name: PROGRAM, usage_description: nil, use: ShellOpts::DEFAULT_USE, aliases: {})
+  def self.as_struct(spec, argv, name: PROGRAM, usage: nil, use: ShellOpts::DEFAULT_USE, aliases: {})
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
-    process(usage, argv, name: name, usage_description: usage_description)
+    process(spec, argv, name: name, usage: usage)
     [shellopts.to_struct(use: use, aliases: aliases), shellopts.args]
   end
 
@@ -146,25 +154,23 @@ module ShellOpts
   # representation of the current shellopts object if not given a block
   # argument. Automatically includes the ShellOpts module if called from the
   # main Ruby object (ie. your executable)
-  def self.each(usage = nil, argv = nil, name: PROGRAM, usage_description: nil, &block)
+  def self.each(spec = nil, argv = nil, name: PROGRAM, usage: nil, &block)
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
-    process(usage, argv, name: name, usage_description: usage_description)
+    process(spec, argv, name: name, usage: usage)
     shellopts.each(&block)
   end
 
-  # Print error usage_description and usage string and exit with status 1. This method
+  # Print error usage and spec string and exit with status 1. This method
   # should be called in response to user-errors (eg. specifying an illegal
   # option)
   def self.error(*msgs, exit: true)
-    raise InternalError, "No ShellOpts.shellopts object" if shellopts.nil?
-    shellopts.error(msgs, exit: exit)
+    shellopts!.error(msgs, exit: exit)
   end
 
-  # Print error usage_description and exit with status 1. This method should not be
+  # Print error usage and exit with status 1. This method should not be
   # called in response to system errors (eg. disk full)
   def self.fail(*msgs, exit: true)
-    raise InternalError, "No ShellOpts.shellopts object" if shellopts.nil?
-    shellopts.fail(*msgs, exit: exit)
+    shellopts!.fail(*msgs, exit: exit)
   end
 
   def self.included(base)
@@ -174,10 +180,10 @@ module ShellOpts
       at_exit do
         case $!
           when ShellOpts::UserError
-            ::ShellOpts.error($!.usage_description, exit: false)
+            ::ShellOpts.error($!.usage, exit: false)
             exit!(1)
           when ShellOpts::SystemFail
-            ::ShellOpts.fail($!.usage_description)
+            ::ShellOpts.fail($!.usage)
             exit!(1)
         end
       end
@@ -189,6 +195,11 @@ private
   # Reset state variables
   def self.reset()
     @shellopts = nil
+  end
+
+  # (shorthand) Raise an InternalError if shellopts is nil. Return shellopts
+  def shellopts!
+    shellopts or raise InternalError, "No ShellOpts.shellopts object" if shellopts.nil?
   end
 
   @shellopts = nil

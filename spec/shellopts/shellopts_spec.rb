@@ -6,7 +6,7 @@ require 'shellopts/option_struct.rb'
 
 describe "ShellOpts::ShellOpts" do
   describe "#initialize" do
-    context "on errors in the usage string" do
+    context "on errors in the spec string" do
       it "raises a CompilerError" do
         expect { ShellOpts::ShellOpts.new("-", %w(-b)) }.to raise_error ShellOpts::CompilerError
       end
@@ -30,7 +30,7 @@ describe "ShellOpts::ShellOpts" do
     end
   end
 
-  describe "#usage" do
+  describe "#spec" do
     it "describe the usage of the program" do
       shellopts = ShellOpts::ShellOpts.new("a -- FILE", %w(-a))
       expect(shellopts.usage).to eq "-a FILE"
@@ -54,12 +54,12 @@ describe "ShellOpts::ShellOpts" do
   # TODO: Make to_a check for ...
 #   context "with a block" do
 #     it "returns the remaining arguments" do
-#       args = process(usage, argv) {}
+#       args = process(spec, argv) {}
 #       expect(args).to eq %w(ARG)
 #     end
 #     it "yields a [opt, val] tuple for each option" do
 #       block_args = []
-#       process(usage, argv) { |opt, val| block_args << [opt, val] }
+#       process(spec, argv) { |opt, val| block_args << [opt, val] }
 #       expect(block_args).to eq [["-a", nil], ["-b", "hello"], ["-c", nil]]
 #     end
 #     it "yields a [cmd, opt-cmd-array] for each comamnd" do

@@ -6,7 +6,7 @@ require "shellopts/args.rb"
 # TODO
 #
 # PROCESSING
-#   1. Compile usage string and yield a grammar
+#   1. Compile spec string and yield a grammar
 #   2. Parse the options using the grammar and yield an AST
 #   3. Construct the Program model from the AST
 #   4. Apply defaults to the model
@@ -27,13 +27,19 @@ module ShellOpts
     DEFAULT_USE = :key
 
     # Name of program
-    attr_reader :name
+    attr_accessor :name
 
-    # Usage description of program
+    # Usage string. If #usage is nil, the auto-generated default is used
     def usage() @usage || @grammar.usage end
     def usage=(usage) @usage = usage end
 
-    # The grammar compiled from the usage string
+    # Specification of the command
+    attr_reader :spec
+
+    # Original argv argument
+    attr_reader :argv
+
+    # The grammar compiled from the spec string
     attr_reader :grammar
 
     # The AST parsed from the command line arguments
@@ -42,27 +48,25 @@ module ShellOpts
     # The IDR generated from the Ast
     attr_reader :idr
 
-    # Object for error & fail messages. Default is to write a message on
-    # standard error and exit with status 1
-    attr_accessor :messenger
-
-    # Compile a usage string into a grammar and use that to parse command line
+    # Compile a spec string into a grammar and use that to parse command line
     # arguments
     #
-    # +usage+ is the usage string, and +argv+ the command line (typically the
+    # +spec+ is the spec string, and +argv+ the command line (typically the
     # global ARGV array). +name+ is the name of the program and defaults to the
     # basename of the program
     #
-    # Syntax errors in the usage string are caused by the developer and raise a
-    # +ShellOpts::CompilerError+ exception.  Errors in the +argv+ arguments are
+    # Syntax errors in the spec string are caused by the developer and raise a
+    # +ShellOpts::CompilerError+ exception. Errors in the +argv+ arguments are
     # caused by the user and terminates the program with an error message and a
-    # short description of its usage
-    def initialize(usage, argv, name: PROGRAM, usage_description: nil)
+    # short description of its spec
+    def initialize(spec, argv, name: PROGRAM, usage: nil)
       @name = name
-      @usage = usage_description
+      @spec = spec
+      @usage = usage
+      @argv = argv
       begin
-        @grammar = Grammar.compile(name, usage)
-        @ast = Ast.parse(@grammar, argv)
+        @grammar = Grammar.compile(@name, @spec)
+        @ast = Ast.parse(@grammar, @argv)
         @idr = Idr.generate(self)
       rescue Grammar::Compiler::Error => ex
         raise CompilerError.new(5, ex.message)
@@ -90,7 +94,7 @@ module ShellOpts
     # Iterate options and commands as name/value pairs. Same as +to_a.each+
     def each(&block) to_a.each(&block) end
 
-    # Print error messages and usage string and exit with status 1. This method
+    # Print error messages and spec string and exit with status 1. This method
     # should be called in response to user-errors (eg. specifying an illegal
     # option)
     def error(*msgs, exit: true)

@@ -24,7 +24,7 @@ module ShellOpts
       # '--all' becomes :all
       attr_reader :key
 
-      # Name of command and option as used on the command line
+      # Name of command or option as used on the command line
       attr_reader :name
 
       # Value of node. This can be a simple value (String, Integer, or Float),
@@ -126,8 +126,8 @@ module ShellOpts
       end
 
       # Apply defaults recursively. Values can be lambdas that will be evaluated to
-      # get the default value
-      def apply(defaults = {}) end
+      # get the default value. TODO
+      def apply(defaults = {}) raise InternalError, "Not implemented" end
 
       # Return options and command as an array
       def to_a() @ast.values end
@@ -188,6 +188,14 @@ module ShellOpts
     end
 
     class Program < Command
+      # Name of command and option as used on the command line
+      def name() @shellopts.name end
+      def name=(name) @shellopts.name = name end
+
+      # Usage string
+      def usage() @shellopts.usage end
+      def usage=(usage) @shellopts.usage = usage end
+
       # #key is nil for the top-level Program object
       def key() nil end
 
@@ -201,10 +209,10 @@ module ShellOpts
       end
 
       # Emit error message and a usage description before exiting with status 1
-      def error(*args) shellopts.error(*error_messages) end
+      def error(*args) @shellopts.error(*error_messages) end
 
       # Emit error message before exiting with status 1
-      def fail(*args) shellopts.fail(*error_messages) end
+      def fail(*args) @shellopts.fail(*error_messages) end
     end
   end
 end
