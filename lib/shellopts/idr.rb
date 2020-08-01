@@ -18,10 +18,6 @@ module ShellOpts
 
       # Unique key (within context) for the option or command. nil for the
       # top-level Program object
-      #
-      # It is usually the first long option if present and else the first short
-      # option turned into a Symbol by first removing prefixed dashed, eg.
-      # '--all' becomes :all
       attr_reader :key
 
       # Name of command or option as used on the command line
@@ -136,28 +132,27 @@ module ShellOpts
       # singleton method #subcommand that returns the key of the subcommand
       #
       # +key_type+ controls the type of keys used: +:key+ (the default) use the
-      # symbolic key, +:name+ use #key_name. Note that using +:name+ can cause
-      # name collisions between option and command names and
+      # symbolic key, +:name+ use #name. Note that using +:name+ can cause
+      # name collisions between option and command names
       #
       # +aliases+ maps from key to replacement key (which could be any object).
       # +aliases+ can be used to avoid name collisions between options and
-      # commands when using key_format: :name. #to_s raises an exception if it
-      # detects a collision
+      # commands when using key_format: :name
       #
       # IDEA: Add a singleton methods to the hash with #name, #usage, etc.
       #
-      def to_h(key_type: :key, aliases: {})
+      def to_h(key_type: ::ShellOpts.default_key_type, aliases: {})
+        keys = map_keys(key_type, aliases)
         value = {}
         value.define_singleton_method(:subcommand) { nil }
-        options.values.each { |opt|
-          ident = aliases[opt.key] || (key_type == :key ? opt.key : opt.ast.grammar.key_name)
-          !value.key?(ident) or raise ConversionError, "Duplicate key: #{ident.inspect}"
+        options.values.each { |opt| # includes subcommand
+          key = keys[opt.key]
           case opt
             when Option
-              value[ident] = opt.value
+              value[key] = opt.value
             when Command
-              value[ident] = opt.value.to_h
-              value.define_singleton_method(:subcommand) { ident } # Redefine
+              value[key] = opt.value.to_h(key_type: key_type, aliases: aliases[opt.key] || {})
+              value.define_singleton_method(:subcommand) { key } # Redefine
           else
             raise InternalError, "Oops"
           end
@@ -166,7 +161,9 @@ module ShellOpts
       end
 
       # Return options and command as a struct
-      def to_struct(aliases = {}) OptionStruct.new(self, aliases) end
+      def to_struct(key_type: ::ShellOpts.default_key_type, aliases: {})
+        OptionStruct.new(self, key_type, aliases) 
+      end
 
     protected
       # Initialize an Idr::Command object and all dependent objects
@@ -185,10 +182,28 @@ module ShellOpts
         }.to_h
         @options[subcommand.key] = @subcommand if @subcommand
       end
+
+      # Internal-key to used-key map. Checks for reserved words and
+      # name-collisions
+      def map_keys(key_type, aliases, reserved_words = [])
+        keys = {}
+        used_keys = {}
+        (grammar.option_list + grammar.subcommand_list).each { |node|
+          internal_key = node.key
+          key = aliases[internal_key] || (key_type == :name ? node.name.to_sym : internal_key)
+          !reserved_words.include?(key) or
+              raise ::ShellOpts::ConversionError, "'#{key}' is a reserved word"
+          !used_keys.key?(key) or 
+              raise ::ShellOpts::ConversionError, "Name collision between '--#{key}' and '#{key}!'"
+          keys[internal_key] = key
+          used_keys[key] = true
+        }
+        keys
+      end
     end
 
     class Program < Command
-      # Name of command and option as used on the command line
+      # Name of program
       def name() @shellopts.name end
       def name=(name) @shellopts.name = name end
 

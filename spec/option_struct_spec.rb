@@ -34,12 +34,12 @@ describe ShellOpts::OptionStruct do
     end
 
     it "creates a reader method for each command" do
-      expect { struct.A! }.not_to raise_error
-      expect { struct.B! }.not_to raise_error
-      expect { struct.C! }.to raise_error NoMethodError
+      expect { struct.A }.not_to raise_error
+      expect { struct.B }.not_to raise_error
+      expect { struct.C }.to raise_error NoMethodError
 
-      expect(OptionStruct.class_of(struct.A!)).to be OptionStruct
-      expect(struct.B!).to eq nil
+      expect(OptionStruct.class_of(struct.A)).to be OptionStruct
+      expect(struct.B).to eq nil
     end
 
     it "defines a #subcommand method on the object" do
@@ -60,6 +60,8 @@ describe ShellOpts::OptionStruct do
       expect { make_struct("subcommand", "") }.to raise_error ConversionError
     end
 
+    it "applies aliases"
+    it "use the naming convention given by :key_type"
     it "raises on name collisions on aliased keys"
     it "raises on name collisions between 'subcommand' and options"
     it "raises on name collisions between 'subcommand' and commands"
@@ -67,7 +69,7 @@ describe ShellOpts::OptionStruct do
 
   describe "#subcommand" do
     it "returns the key of the subcommand" do
-      expect(struct.subcommand).to eq :A!
+      expect(struct.subcommand).to eq :A
     end
     it "returns nil if no subcommand was given" do
       expect(struct_no_command.subcommand).to eq nil  
@@ -83,7 +85,7 @@ describe ShellOpts::OptionStruct do
 
   describe "#subcommand!" do
     it "returns the key of the subcommand" do
-      expect(struct.subcommand!).to eq :A!
+      expect(struct.subcommand!).to eq :A
     end
 
     it "raises a UserError if no subcommand" do

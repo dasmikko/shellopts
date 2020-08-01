@@ -56,12 +56,14 @@ module ShellOpts
   # reserved words or with the special #command method
   #
   class OptionStruct < BasicObject
-    # +key=:name+ cause command methods to be named without the exclamation
-    # mark. It doesn't change how options are named
-    def self.new(idr, aliases = {})
+    # Create a OptionStruct object recursively from an Idr::Command object
+    def self.new(idr, key_type, aliases = {})
       # Shorthands
       ast = idr.instance_variable_get("@ast")
       grammar = ast.grammar
+
+      # Get key map
+      keys = idr.send(:map_keys, key_type, aliases, RESERVED_WORDS)
 
       # Allocate OptionStruct instance
       instance = allocate
@@ -71,14 +73,14 @@ module ShellOpts
 
       # Generate general option accessor methods
       grammar.option_list.each { |option|
-        key = alias_key(option.key, aliases)
+        key = keys[option.key]
         instance.instance_eval("def #{key}() @#{key} end")
         instance.instance_eval("def #{key}?() false end")
       }
 
       # Generate accessor method for present options
       idr.option_list.each { |option|
-        key = alias_key(option.key, aliases)
+        key = keys[option.key]
         set_variable(instance, "@#{key}", idr[option.key])
         instance.instance_eval("def #{key}?() true end")
       }
@@ -96,9 +98,9 @@ module ShellOpts
 
       # Generate individual subcommand methods
       grammar.subcommand_list.each { |subcommand|
-        key = alias_key(subcommand.key, aliases)
+        key = keys[subcommand.key]
         if subcommand.key == idr.subcommand&.key
-          struct = OptionStruct.new(idr.subcommand, aliases[idr.subcommand.key] || {})
+          struct = OptionStruct.new(idr.subcommand, key_type, aliases[idr.subcommand.key] || {})
           set_variable(instance, "@subcommand", struct)
           instance.instance_eval("def #{key}() @subcommand end")
           instance.instance_eval("def subcommand() :#{key} end")
@@ -118,14 +120,6 @@ module ShellOpts
     def self.class_of(object) 
       # https://stackoverflow.com/a/18621313/2130986
       ::Kernel.instance_method(:class).bind(object).call 
-    end
-
-    # Replace key with alias and check against the list of reserved words
-    def self.alias_key(internal_key, aliases)
-      key = aliases[internal_key] || internal_key
-      !RESERVED_WORDS.include?(key) or
-        raise ::ShellOpts::ConversionError, "Can't create struct: '#{key}' is a reserved word"
-      key
     end
 
     # Class method implementation of ObjectStruct#instance_variable_set that is

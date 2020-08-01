@@ -17,10 +17,6 @@ require "shellopts/args.rb"
 module ShellOpts
   # The command line processing object
   class ShellOpts
-    # One of :key, :name
-    # TODO :option type => '--option,-o,--opt' / 'command' (multihash, no collision)
-    DEFAULT_KEY_TYPE = :key
-
     # Name of program
     attr_accessor :name
 
@@ -57,7 +53,7 @@ module ShellOpts
     #
     # TODO: Change to (name, spec, argv, usage: nil) because
     # ShellOpts::ShellOpts isn't a magician like the ShellOpts module
-    def initialize(spec, argv, name: File.basename($0), usage: nil)
+    def initialize(spec, argv, name: ::ShellOpts.default_name, usage: ::ShellOpts.default_usage)
       @name = name
       @spec = spec
       @usage = usage
@@ -81,14 +77,18 @@ module ShellOpts
     def to_a() idr.to_a end
 
     # Return a hash representation of the options. See {ShellOpts::OptionsHash}
-    def to_h(key_type: :key, aliases: {}) @idr.to_h(key_type: :key_type, aliases: aliases) end
+    def to_h(key_type: ::ShellOpts.default_key_type, aliases: {})
+      @idr.to_h(key_type: :key_type, aliases: aliases) 
+    end
 
     # TODO
     # Return OptionHash object
     # def to_hash(...)
 
     # Return a struct representation of the options. See {ShellOpts::OptionStruct}
-    def to_struct(aliases: {}) @idr.to_struct(aliases: aliases) end
+    def to_struct(key_type: ::ShellOpts.default_key_type, aliases: {}) 
+      @idr.to_struct(key_type: key_type, aliases: aliases) 
+    end
 
     # List of remaining non-option command line arguments. Returns a Argv object
     def args() Args.new(self, ast&.arguments) end

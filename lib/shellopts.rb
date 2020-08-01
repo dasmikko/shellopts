@@ -73,6 +73,30 @@ module ShellOpts
     end
   end
 
+  def self.default_name()
+    @default_name || defined?(PROGRAM) ? PROGRAM : File.basename($0)
+  end
+
+  def self.default_name=(name)
+    @default_name = name
+  end
+
+  def self.default_usage()
+    @default_usage || defined?(USAGE) ? USAGE : nil
+  end
+
+  def self.default_usage=(usage)
+    @default_usage = usage
+  end
+
+  def self.default_key_type()
+    @default_key_type || ::ShellOpts::DEFAULT_KEY_TYPE
+  end
+
+  def self.default_key_type=(type)
+    @default_key_type = type
+  end
+
   # Raised when an error is detected in the command line
   class ParserError < Error; end
 
@@ -137,7 +161,7 @@ module ShellOpts
   def self.as_hash(
       spec, argv, 
       name: ::ShellOpts.default_name, usage: ::ShellOpts.default_usage, 
-      key_type: ShellOpts::DEFAULT_KEY_TYPE, 
+      key_type: ::ShellOpts.default_key_type, 
       aliases: {})
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(spec, argv, name: name, usage: usage)
@@ -199,6 +223,9 @@ module ShellOpts
   end
 
 private
+  # Default default key type
+  DEFAULT_KEY_TYPE = :name
+
   # Reset state variables
   def self.reset()
     @shellopts = nil
@@ -207,14 +234,6 @@ private
   # (shorthand) Raise an InternalError if shellopts is nil. Return shellopts
   def shellopts!
     shellopts or raise InternalError, "No ShellOpts.shellopts object" if shellopts.nil?
-  end
-
-  def self.default_name()
-    defined?(PROGRAM) ? PROGRAM : File.basename($0)
-  end
-
-  def self.default_usage()
-    defined?(USAGE) ? USAGE : nil
   end
 
   @shellopts = nil

@@ -203,35 +203,26 @@ describe Idr do
         expect(idr.to_h).to eq({})
       end
       it "adds a #subcommand method to the hash" do
-        idr = make_idr("C!", "C")
-        expect(idr.to_h).to respond_to(:subcommand)
-        expect(idr.to_h.subcommand).to eq :C!
-        idr = make_idr("C!", "")
-        expect(idr.to_h.subcommand).to eq nil
+        h = make_idr("C!", "C").to_h
+        expect(h).to respond_to(:subcommand)
+        expect(h.subcommand).to eq :C
+        h = make_idr("C!", "").to_h
+        expect(h.subcommand).to eq nil
       end
-      it "uses key for names by default" do
-        idr = make_idr("a", "-a")
-        expect(idr.to_h).to eq({:a => true})
+      it "uses unique keys when key type is :key" do
+        h = make_idr("a C!", "-a C").to_h(key_type: :key)
+        expect(h).to eq({:a => true, :C! => {}})
+        expect(h.subcommand).to eq :C!
       end
-      it "uses key name for keys when :use is :name" do
-        idr = make_idr("a b,ball", "-a -b")
-        expect(idr.to_h(key_type: :name)).to eq({"-a" => true, "--ball" => true})
+      it "renames keys using +aliases+" do
+        h = make_idr("a C!", "-a C").to_h(aliases: { a: :all, C!: :command })
+        expect(h).to eq({:all => true, :command => {}})
+        expect(h.subcommand).to eq :command
       end
       it "commands are nested hashes" do
         idr = make_idr("a C! b", "-a C -b")
-        expect(idr.to_h).to eq({:a => true, :C! => { :b => true }})
+        expect(idr.to_h).to eq({:a => true, :C => { :b => true }})
       end
-      it "keys can be renamed" do
-        idr = make_idr("a C!", "-a C")
-        h = idr.to_h(aliases: {:a => "all", :C! => "command"})
-        expect expect(h.to_h).to eq({"all" => true, "command" => {}})
-        expect expect(h.to_h.subcommand).to eq "command"
-      end
-      it "key and aliases arguments can be combined" do
-        idr = make_idr("a,all C!", "-a C")
-        h = idr.to_h(key_type: :name, aliases: { :C! => "command" })
-        expect expect(h).to eq({"--all" => true, "command" => {}})
-      end 
     end
   end
 
