@@ -49,8 +49,7 @@ describe ShellOpts::Args do
         expect(args3).to eq [3]
       end
       it "expects at least count elements" do
-        expect(messenger).to receive(:error)
-        args.extract(10)
+        expect { args.extract(10) }.to raise_error ::ShellOpts::UserError
       end
     end
     context "when given a range" do
@@ -63,41 +62,39 @@ describe ShellOpts::Args do
         expect(args2.extract(0..3)).to eq [1, 2, nil]
       end
       it "expects the range to require at most the full array" do
-        expect(messenger).to receive(:error)
-        args.extract(6..10)
+        expect { args.extract(6..10) }.to raise_error ::ShellOpts::UserError
       end
     end
     it "emits a custom message if given" do
-      expect(messenger).to receive(:error).with("Custom")
-      args.extract(6..10, "Custom")
+      expect { args.extract(6..10, "Custom") }.to raise_error ::ShellOpts::UserError, "Custom"
     end
   end
 
   describe "#expect" do
+    let(:inoa) { "Illegal number of arguments" }
     it "returns the elements of the array" do
       expect(args.expect(5)).to eq [1, 2, 3, 4, 5]
     end
     context "when given a count" do
       it "returns nil if count is 0" do
-        expect(args2.expect(0)).to eq nil
+        expect(args0.expect(0)).to eq nil
       end
       it "returns an object if count is 1" do
-        expect(args2.expect(1)).to eq 1
+        expect(args1.expect(1)).to eq 1
       end
       it "returns an array if count is greater than 1" do
         expect(args2.expect(2)).to eq [1, 2]
       end
       it "expects exactly count elements" do
-        expect(messenger).to receive(:error).exactly(2).times
-        args.expect(4)
-        args.expect(6)
+        expect { args.expect(4) }.to raise_error inoa
+        expect { args.expect(6) }.to raise_error inoa
+        expect { args.expect(5) }.not_to raise_error 
       end
     end
     context "when given a range" do
       it "expects the range to include the number of elements" do
-        expect(messenger).to receive(:error).exactly(2).times
-        args.expect(0..4)
-        args.expect(6..10)
+        expect { args.expect(0..4) }.to raise_error inoa
+        expect { args.expect(6..10) }.to raise_error inoa
       end
       it "always returns an array" do
         expect(args0.expect(0..0)).to eq []
@@ -106,8 +103,7 @@ describe ShellOpts::Args do
       end
     end
     it "emits a custom message if given" do
-      expect(messenger).to receive(:error).with("Custom")
-      args.expect(10, "Custom")
+      expect { args.expect(10, "Custom") }.to raise_error ::ShellOpts::UserError, "Custom"
     end
   end
 end

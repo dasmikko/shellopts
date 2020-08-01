@@ -36,14 +36,13 @@ module ShellOpts
     # As extract except it doesn't allow negative counts and that the array is
     # expect to be emptied by the operation
     def expect(count_or_range, message = nil)
-      r = extract(count_or_range, message)
-      self.empty? or inoa
-      r
+      count_or_range === self.size or inoa(message)
+      extract(count_or_range) # Can't fail
     end
 
   private
     def inoa(message = nil) 
-      @shellopts.messenger.error(message || "Illegal number of arguments") 
+      raise ShellOpts::UserError, message || "Illegal number of arguments"
     end
   end
 end
