@@ -38,12 +38,6 @@ shared_examples 'as_* methods' do |method, forward_method, result_class|
   end
 end
 
-describe "Requiring shellopts" do
-  it "defines the global PROGRAM constant" do
-    expect(PROGRAM).to eq "rspec"
-  end
-end
-
 describe ShellOpts do
   def process(spec, argv, &block)
     ::ShellOpts.reset

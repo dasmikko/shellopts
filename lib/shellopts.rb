@@ -7,7 +7,7 @@ require 'shellopts/option_struct.rb'
 require 'shellopts/main.rb'
 
 # Name of program. Defined as the basename of the program file
-PROGRAM = File.basename($PROGRAM_NAME)
+#PROGRAM = File.basename($PROGRAM_NAME)
 
 # ShellOpts main Module
 #
@@ -108,7 +108,7 @@ module ShellOpts
   # Process command line, set current shellopts object, and return it.
   # Remaining arguments from the command line can be accessed through
   # +shellopts.args+
-  def self.process(spec, argv, name: PROGRAM, usage: nil)
+  def self.process(spec, argv, name: ::ShellOpts.default_name, usage: ::ShellOpts.default_usage) 
     @shellopts.nil? or reset
     @shellopts = ShellOpts.new(spec, argv, name: name, usage: usage)
   end
@@ -116,7 +116,7 @@ module ShellOpts
   # Process command line, set current shellopts object, and return a
   # [Idr::Program, argv] tuple. Automatically includes the ShellOpts module
   # if called from the main Ruby object (ie. your executable)
-  def self.as_program(spec, argv, name: PROGRAM, usage: nil) 
+  def self.as_program(spec, argv, name: ::ShellOpts.default_name, usage: ::ShellOpts.default_usage) 
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(spec, argv, name: name, usage: usage)
     [shellopts.idr, shellopts.args]
@@ -125,7 +125,7 @@ module ShellOpts
   # Process command line, set current shellopts object, and return a [array,
   # argv] tuple. Automatically includes the ShellOpts module if called from the
   # main Ruby object (ie. your executable)
-  def self.as_array(spec, argv, name: PROGRAM, usage: nil)
+  def self.as_array(spec, argv, name: ::ShellOpts.default_name, usage: ::ShellOpts.default_usage)
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(spec, argv, name: name, usage: usage)
     [shellopts.to_a, shellopts.args]
@@ -134,7 +134,11 @@ module ShellOpts
   # Process command line, set current shellopts object, and return a [hash,
   # argv] tuple. Automatically includes the ShellOpts module if called from the
   # main Ruby object (ie. your executable)
-  def self.as_hash(spec, argv, name: PROGRAM, usage: nil, use: ShellOpts::DEFAULT_USE, aliases: {})
+  def self.as_hash(
+      spec, argv, 
+      name: ::ShellOpts.default_name, usage: ::ShellOpts.default_usage, 
+      use: ShellOpts::DEFAULT_USE, 
+      aliases: {})
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(spec, argv, name: name, usage: usage)
     [shellopts.to_h(use: use, aliases: aliases), shellopts.args]
@@ -143,7 +147,11 @@ module ShellOpts
   # Process command line, set current shellopts object, and return a [struct,
   # argv] tuple. Automatically includes the ShellOpts module if called from the
   # main Ruby object (ie. your executable)
-  def self.as_struct(spec, argv, name: PROGRAM, usage: nil, use: ShellOpts::DEFAULT_USE, aliases: {})
+  def self.as_struct(
+      spec, argv, 
+      name: ::ShellOpts.default_name, usage: ::ShellOpts.default_usage, 
+      use: ShellOpts::DEFAULT_USE, 
+      aliases: {})
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(spec, argv, name: name, usage: usage)
     [shellopts.to_struct(use: use, aliases: aliases), shellopts.args]
@@ -154,7 +162,7 @@ module ShellOpts
   # representation of the current shellopts object if not given a block
   # argument. Automatically includes the ShellOpts module if called from the
   # main Ruby object (ie. your executable)
-  def self.each(spec = nil, argv = nil, name: PROGRAM, usage: nil, &block)
+  def self.each(spec = nil, argv = nil, name: ::ShellOpts.default_name, usage: ::ShellOpts.default_usage, &block)
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(spec, argv, name: name, usage: usage)
     shellopts.each(&block)
@@ -200,6 +208,14 @@ private
   # (shorthand) Raise an InternalError if shellopts is nil. Return shellopts
   def shellopts!
     shellopts or raise InternalError, "No ShellOpts.shellopts object" if shellopts.nil?
+  end
+
+  def self.default_name()
+    defined?(PROGRAM) ? PROGRAM : File.basename($0)
+  end
+
+  def self.default_usage()
+    defined?(USAGE) ? USAGE : nil
   end
 
   @shellopts = nil

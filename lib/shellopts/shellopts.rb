@@ -59,7 +59,10 @@ module ShellOpts
     # +ShellOpts::CompilerError+ exception. Errors in the +argv+ arguments are
     # caused by the user and terminates the program with an error message and a
     # short description of its spec
-    def initialize(spec, argv, name: PROGRAM, usage: nil)
+    #
+    # TODO: Change to (name, spec, argv, usage: nil) because
+    # ShellOpts::ShellOpts isn't a magician like the ShellOpts module
+    def initialize(spec, argv, name: File.basename($0), usage: nil)
       @name = name
       @spec = spec
       @usage = usage
