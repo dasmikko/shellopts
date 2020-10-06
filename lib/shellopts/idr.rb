@@ -154,7 +154,9 @@ module ShellOpts
               value[key] = opt.value.to_h(key_type: key_type, aliases: aliases[opt.key] || {})
               value.define_singleton_method(:subcommand) { key } # Redefine
           else
+            # :nocov:
             raise InternalError, "Oops"
+            # :nocov:
           end
         }
         value
