@@ -39,17 +39,16 @@ module ShellOpts
     # The IDR generated from the Ast
     attr_reader :idr
 
-    # Compile a spec string into a grammar and use that to parse command line
-    # arguments
+    # Compile a spec string into a grammar
     #
     # +spec+ is the spec string, and +argv+ the command line (typically the
     # global ARGV array). +name+ is the name of the program and defaults to the
     # basename of the program
     #
-    # Syntax errors in the spec string are caused by the developer and raise a
-    # +ShellOpts::CompilerError+ exception. Errors in the +argv+ arguments are
-    # caused by the user and terminates the program with an error message and a
-    # short description of its spec
+    # Syntax errors in the spec string are caused by the developer and cause
+    # #initialize to raise a +ShellOpts::CompilerError+ exception. Errors in
+    # the +argv+ arguments are caused by the user and cause #process to raise
+    # ShellOpts::UserError exception
     #
     # TODO: Change to (name, spec, argv, usage: nil) because
     # ShellOpts::ShellOpts isn't a magician like the ShellOpts module
@@ -60,13 +59,21 @@ module ShellOpts
       @argv = argv
       begin
         @grammar = Grammar.compile(@name, @spec)
-        @ast = Ast.parse(@grammar, @argv)
-        @idr = Idr.generate(self)
       rescue Grammar::Compiler::Error => ex
         raise CompilerError.new(5, ex.message)
+      end
+    end
+
+    # Process command line arguments and return self. Raises a
+    # ShellOpts::UserError in case of an error
+    def process
+      begin
+        @ast = Ast.parse(@grammar, @argv)
+        @idr = Idr.generate(self)
       rescue Ast::Parser::Error => ex
         raise UserError.new(ex.message)
       end
+      self
     end
 
     # Return an array representation of options and commands in the same order

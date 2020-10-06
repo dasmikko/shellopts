@@ -37,7 +37,7 @@ RSpec::Core::Formatters::DocumentationFormatter.prepend FormatterOverrides
 
 # Create a Idr object from usage and argv string
 def make_idr(usage, argv_string)
-  ShellOpts::ShellOpts.new(usage, argv_string.split(" ")).idr
+  ShellOpts::ShellOpts.new(usage, argv_string.split(" ")).process.idr
 end
 
 

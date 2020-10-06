@@ -135,6 +135,7 @@ module ShellOpts
   def self.process(spec, argv, name: ::ShellOpts.default_name, usage: ::ShellOpts.default_usage) 
     @shellopts.nil? or reset
     @shellopts = ShellOpts.new(spec, argv, name: name, usage: usage)
+    @shellopts.process
   end
 
   # Process command line, set current shellopts object, and return a

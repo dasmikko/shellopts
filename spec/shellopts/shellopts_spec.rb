@@ -14,7 +14,8 @@ describe "ShellOpts::ShellOpts" do
     context "on errors in the arguments" do
       it "raises a UserError" do
         allow(STDERR).to receive(:print) # Silence #error
-        expect { ShellOpts::ShellOpts.new("a", %w(-b)) }.to raise_error(ShellOpts::UserError)
+        shellopts = ShellOpts::ShellOpts.new("a", %w(-b))
+        expect { shellopts.process }.to raise_error(ShellOpts::UserError)
       end
     end
   end
@@ -46,7 +47,7 @@ describe "ShellOpts::ShellOpts" do
 
   describe "#ast" do
     it "is the AST of the command line" do
-      shellopts = ShellOpts::ShellOpts.new("a", %w(-a))
+      shellopts = ShellOpts::ShellOpts.new("a", %w(-a)).process
       expect(shellopts.ast).to be_a ShellOpts::Ast::Program
     end
   end
@@ -71,7 +72,7 @@ describe "ShellOpts::ShellOpts" do
 
   describe "#to_a" do
     it "serializes the AST to a recursive array" do
-      shellopts = ShellOpts::ShellOpts.new("a cmd! b", %w(-a cmd -b))
+      shellopts = ShellOpts::ShellOpts.new("a cmd! b", %w(-a cmd -b)).process
       arr = []
       shellopts.to_a.each { |name, value| arr << [name, value] }
       expect(arr).to eq [["-a", nil], ["cmd", [["-b", nil]]]]
@@ -80,21 +81,21 @@ describe "ShellOpts::ShellOpts" do
 
   describe "#to_h" do
     it "returns an OptionsHash representation of the AST" do
-      shellopts = ShellOpts::ShellOpts.new("a", %w(-a))
+      shellopts = ShellOpts::ShellOpts.new("a", %w(-a)).process
       expect(shellopts.to_h).to be_a Hash
     end
   end
 
   describe "#to_struct" do
     it "returns an OptionStruct representation of the AST" do
-      shellopts = ShellOpts::ShellOpts.new("a", %w(-a))
+      shellopts = ShellOpts::ShellOpts.new("a", %w(-a)).process
       expect(ShellOpts::OptionStruct.class_of(shellopts.to_struct)).to be ShellOpts::OptionStruct
     end
   end
 
   describe "#args" do
     it "returns a Args object" do
-      shellopts = ShellOpts::ShellOpts.new("a", %w(-a ARG1 ARG2))
+      shellopts = ShellOpts::ShellOpts.new("a", %w(-a ARG1 ARG2)).process
       expect(shellopts.args).to be_a ShellOpts::Args
       expect(shellopts.args).to eq ["ARG1", "ARG2"]
     end
@@ -103,7 +104,7 @@ describe "ShellOpts::ShellOpts" do
   describe "#each" do
     context "with a block" do
       it "iterates option/command tuples" do
-        shellopts = ShellOpts::ShellOpts.new("a cmd! b", %w(-a cmd -b))
+        shellopts = ShellOpts::ShellOpts.new("a cmd! b", %w(-a cmd -b)).process
         arr = []
         shellopts.each { |name, value| arr << [name, value] }
         expect(arr).to eq [["-a", nil], ["cmd", [["-b", nil]]]]
@@ -111,7 +112,7 @@ describe "ShellOpts::ShellOpts" do
     end
     context "without a block" do
       it "serializes the AST to a recursive array enumerator" do
-        res = ShellOpts::ShellOpts.new("a cmd! b", %w(-a cmd -b)).each
+        res = ShellOpts::ShellOpts.new("a cmd! b", %w(-a cmd -b)).process.each
         expect(res).to be_a Enumerator
         arr = [["-a", nil], ["cmd", [["-b", nil]]]]
         expect(res.to_a).to eq arr
@@ -120,7 +121,7 @@ describe "ShellOpts::ShellOpts" do
   end
 
   describe "#error" do
-    let(:shellopts) { ShellOpts::ShellOpts.new("a b -- FILE", [], name: "cmd") }
+    let(:shellopts) { ShellOpts::ShellOpts.new("a b -- FILE", [], name: "cmd").process }
 
     def expect_error(message = "Error message")
       expect {
