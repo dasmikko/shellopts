@@ -26,12 +26,13 @@ module ShellOpts
         n_extract = [self.size, range.max].min
         n_extend = range.max > self.size ? range.max - self.size : 0
         r = self.shift(n_extract) + Array.new(n_extend)
+        range.max <= 1 ? r.first : r
       else
         count = count_or_range
         self.size >= count.abs or inoa(message)
         start = count >= 0 ? 0 : size + count
         r = slice!(start, count.abs)
-        r.size == 0 ? nil : (r.size == 1 ? r.first : r)
+        r.size <= 0 ? nil : (r.size == 1 ? r.first : r)
       end
     end
 

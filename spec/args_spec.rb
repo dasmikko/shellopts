@@ -57,7 +57,13 @@ describe ShellOpts::Args do
         expect(args.extract(2..3)).to eq [1, 2, 3]
         expect(args).to eq [4, 5]
       end
-      it "always returns an array of max length" do
+      it "returns an object if max length is 0 or 1" do
+        expect(args0.expect(0..0)).to eq nil
+        expect(args0.expect(0..1)).to eq nil
+        expect(args1.expect(0..1)).to eq 1
+        expect(args2.expect(0..2)).to eq [1, 2]
+      end
+      it "returns an array if max length is greater than 1" do
         expect(args1.extract(0..3)).to eq [1, nil, nil]
         expect(args2.extract(0..3)).to eq [1, 2, nil]
       end
@@ -96,9 +102,13 @@ describe ShellOpts::Args do
         expect { args.expect(0..4) }.to raise_error inoa
         expect { args.expect(6..10) }.to raise_error inoa
       end
-      it "always returns an array" do
-        expect(args0.expect(0..0)).to eq []
-        expect(args1.expect(0..1)).to eq [1]
+      it "returns an object if max length is 0 or 1" do
+        expect(args0.expect(0..0)).to eq nil
+        expect(args0.expect(0..1)).to eq nil
+        expect(args1.expect(0..1)).to eq 1
+        expect(args2.expect(0..2)).to eq [1, 2]
+      end
+      it "returns an array if max length is greater than 1" do
         expect(args2.expect(0..2)).to eq [1, 2]
       end
     end
