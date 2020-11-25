@@ -86,6 +86,10 @@ module ShellOpts
     @default_key_type = type
   end
 
+  # Result of the last as_* command
+  def self.opts() @opts end
+  def self.args() @args end
+
   # Base class for ShellOpts exceptions
   class Error < RuntimeError; end
 
@@ -144,7 +148,9 @@ module ShellOpts
   def self.as_program(spec, argv, name: ::ShellOpts.default_name, usage: ::ShellOpts.default_usage) 
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(spec, argv, name: name, usage: usage)
-    [shellopts.idr, shellopts.args]
+    @opts = shellopts.idr
+    @args = shellopts.args
+    [@opts, @args]
   end
 
   # Process command line, set current shellopts object, and return a [array,
@@ -153,7 +159,9 @@ module ShellOpts
   def self.as_array(spec, argv, name: ::ShellOpts.default_name, usage: ::ShellOpts.default_usage)
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(spec, argv, name: name, usage: usage)
-    [shellopts.to_a, shellopts.args]
+    @opts = shellopts.to_a
+    @args = shellopts.args
+    [@opts, @args]
   end
 
   # Process command line, set current shellopts object, and return a [hash,
@@ -166,7 +174,9 @@ module ShellOpts
       aliases: {})
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(spec, argv, name: name, usage: usage)
-    [shellopts.to_h(key_type: key_type, aliases: aliases), shellopts.args]
+    @opts = shellopts.to_h(key_type: key_type, aliases: aliases)
+    @args = shellopts.args
+    [@opts, @args]
   end
 
   # Process command line, set current shellopts object, and return a [struct,
@@ -178,7 +188,9 @@ module ShellOpts
       aliases: {})
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(spec, argv, name: name, usage: usage)
-    [shellopts.to_struct(aliases: aliases), shellopts.args]
+    @opts = shellopts.to_struct(aliases: aliases)
+    @args = shellopts.args
+    [@opts, @args]
   end
 
   # Process command line, set current shellopts object, and then iterate
@@ -189,6 +201,8 @@ module ShellOpts
   def self.each(spec = nil, argv = nil, name: ::ShellOpts.default_name, usage: ::ShellOpts.default_usage, &block)
     Main.main.send(:include, ::ShellOpts) if caller.last =~ Main::CALLER_RE
     process(spec, argv, name: name, usage: usage)
+    @opts = shellopts.to_a
+    @args = shellopts.args
     shellopts.each(&block)
   end
 
