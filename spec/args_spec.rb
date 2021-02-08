@@ -1,6 +1,6 @@
 require 'spec_helper.rb'
 
-require 'shellopts/args.rb'
+#require 'shellopts/args.rb'
 
 class RSpecMessenger
   attr_reader :message
@@ -17,7 +17,7 @@ end
 
 include ShellOpts
 
-describe ShellOpts::Args do
+describe Args do
   let(:messenger) { RSpecMessenger.new }
   let(:shellopts) { RSpecShellOpts.new(messenger) }
   let(:args) { Args.new(shellopts, [1, 2, 3, 4, 5]) }
@@ -49,7 +49,7 @@ describe ShellOpts::Args do
         expect(args3).to eq [3]
       end
       it "expects at least count elements" do
-        expect { args.extract(10) }.to raise_error ::ShellOpts::UserError
+        expect { args.extract(10) }.to raise_error ::ShellOpts::Error
       end
     end
     context "when given a range" do
@@ -68,11 +68,11 @@ describe ShellOpts::Args do
         expect(args2.extract(0..3)).to eq [1, 2, nil]
       end
       it "expects the range to require at most the full array" do
-        expect { args.extract(6..10) }.to raise_error ::ShellOpts::UserError
+        expect { args.extract(6..10) }.to raise_error ShellOpts::Error
       end
     end
     it "emits a custom message if given" do
-      expect { args.extract(6..10, "Custom") }.to raise_error ::ShellOpts::UserError, "Custom"
+      expect { args.extract(6..10, "Custom") }.to raise_error ShellOpts::Error, "Custom"
     end
   end
 
@@ -113,7 +113,7 @@ describe ShellOpts::Args do
       end
     end
     it "emits a custom message if given" do
-      expect { args.expect(10, "Custom") }.to raise_error ::ShellOpts::UserError, "Custom"
+      expect { args.expect(10, "Custom") }.to raise_error ShellOpts::Error, "Custom"
     end
   end
 end

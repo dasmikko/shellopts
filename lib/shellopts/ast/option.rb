@@ -1,21 +1,15 @@
 module ShellOpts
   module Ast
-    class Option < Node
-      # Optional value. Can be a String, Integer, or Float
-      attr_reader :value
+    class Option
+      attr_reader :grammar
+      attr_reader :name # The actual name used on the command line
+      attr_reader :argument
 
-      def initialize(grammar, name, value)
-        super(grammar, name)
-        @value = value
+      def initialize(grammar, name, argument)
+        @grammar = grammar
+        @name = name
+        @argument = argument
       end
-
-      def values() value end
-
-      # :nocov:
-      def dump
-        super { puts "values: #{values.inspect}" }
-      end
-      # :nocov:
     end
   end
 end

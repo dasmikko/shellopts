@@ -1,80 +1,87 @@
 module ShellOpts
   module Grammar
-    # A command. Commands are organized hierarchically with a Program object as
-    # the root node
-    #
-    # Sets Node#key to the name of the command incl. the exclamation point
-    class Command < Node
-      # Parent command. Nil if this is the top level command (the program)
+    # TODO: Command aliases: list.something!,list.somethingelse!
+    class Command
+      # Parent command. nil for the program-level Command object. Initialized
+      # by the analyzer
       attr_reader :parent
 
-      # Name of command (String). Name doesn't include the exclamation point ('!')
+      # Name of command. nil for the program-level Command object
       attr_reader :name
 
-      # Same as #name. TODO Define in Grammar::Node instead
-      alias :key_name :name
+      # Ident of command. nil for the program-level Command object
+      attr_reader :ident
 
-      # List of options in declaration order
-      attr_reader :option_list
+      # Path of command. The empty string for the program-level Command object
+      attr_reader :path
 
-      # List of commands in declaration order
-      attr_reader :subcommand_list
+      # Path of parent command. nil for the program-level Command object. This
+      # is the same as #parent&.path but is available before #parent is
+      # intialized. It is used to build the command hierarchy in the analyzer
+      attr_reader :parent_path
 
-      # Multihash from option key or names (both short and long names) to option. This
-      # means an option can occur more than once as the hash value
-      def options() 
-        @option_multihash ||= @option_list.flat_map { |option| 
-          option.identifiers.map { |ident| [ident, option] }
-        }.to_h
+      # List of comments. Initialized by the parser
+      attr_reader :text 
+
+      # List of options. Initialized by the parser
+      attr_reader :opts 
+
+      # List of sub-commands. Initialized by the parser
+      attr_reader :cmds 
+
+      # List of arguments. Initialized by the parser
+      attr_reader :args
+
+      # Hash from name/identifier to option. Note that each option has at least
+      # two entries in the hash: One by name and one by identifier. Option
+      # aliases are also keys in the hash. Initialized by the analyzer
+      attr_reader :options 
+
+      # Hash from name to sub-command. Note that each command has two entries in
+      # the hash: One by name and one by identifier. Initialized by the analyzer
+      attr_reader :commands 
+
+      def initialize(path, virtual: false)
+        if path == ""
+          @path = path
+        else
+          @path = path.sub(/!$/, "")
+          components = @path.split(".")
+          @name = components.pop
+          @parent_path = components.join(".")
+          @ident = @name.gsub(/-/, "_").to_sym
+        end
+        @virtual = virtual
+        @text = []
+        @opts = []
+        @cmds = []
+        @args = []
+
+        @options = {}
+        @commands = {}
       end
 
-      # Sub-commands of this command. Is a multihash from sub-command key or
-      # name to command object. Lazily constructed because subcommands are added
-      # after initialization
-      def subcommands()
-        @subcommand_multihash ||= @subcommand_list.flat_map { |subcommand| 
-          subcommand.identifiers.map { |name| [name, subcommand] }
-        }.to_h
-      end
+      # True if this is the program-level command
+      def program?() @path == "" end
 
-      # Initialize a Command object. parent is the parent Command object or nil
-      # if this is the root object. name is the name of the command (without
-      # the exclamation mark), and option_list a list of Option objects
-      def initialize(parent, name, option_list)
-        super("#{name}!".to_sym, name)
-        parent.attach(self) if parent
-        @option_list = option_list
-        @subcommand_list = []
-      end
+      # True if this is a virtual command that cannot be called without a
+      # sub-command
+      def virtual?() @virtual end
 
-      # Return key for the identifier
-      def identifier2key(ident)
-        options[ident]&.key || subcommands[ident]&.key
+      def <=>(other)
+        path <=> other.path
       end
+    end
 
-      # Return list of identifiers for the command
-      def identifiers() [key, name] end
-
-      # :nocov:
-      def dump(&block)
-        puts "#{key.inspect}"
-        indent {
-          puts "parent: #{parent&.key.inspect}"
-          puts "name: #{name.inspect}"
-          yield if block_given?
-          puts "options:"
-          indent { option_list.each { |opt| opt.dump } }
-          puts "subcommands: "
-          indent { subcommand_list.each { |cmd| cmd.dump } }
-        }
+    class Program < Command
+      def initialize(name) 
+        super("") 
+        @name = name
       end
-      # :nocov:
+    end
 
-    protected
-      def attach(subcommand)
-        subcommand.instance_variable_set(:@parent, self)
-        @subcommand_list << subcommand
-      end
+    class VirtualCommand < Command
+      def initialize(path) super(path, virtual: true) end
     end
   end
 end

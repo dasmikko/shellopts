@@ -5,7 +5,7 @@ require "shellopts/version"
 
 Gem::Specification.new do |spec|
   spec.name          = "shellopts"
-  spec.version       = Shellopts::VERSION
+  spec.version       = ShellOpts::VERSION
   spec.authors       = ["Claus Rasmussen"]
   spec.email         = ["claus.l.rasmussen@gmail.com"]
 

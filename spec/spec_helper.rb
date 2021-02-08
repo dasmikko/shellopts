@@ -1,9 +1,5 @@
-require 'simplecov'
-SimpleCov.start
-
 require "bundler/setup"
 require "shellopts"
-require "indented_io"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
@@ -33,12 +29,4 @@ module FormatterOverrides
 end
 
 RSpec::Core::Formatters::DocumentationFormatter.prepend FormatterOverrides
-
-
-# Create a Idr object from usage and argv string
-def make_idr(usage, argv_string)
-  ShellOpts::ShellOpts.new(usage, argv_string.split(" ")).process.idr
-end
-
-
 

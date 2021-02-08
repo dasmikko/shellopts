@@ -1,3 +1,3 @@
-module Shellopts
-  VERSION = "2.0.0.pre.13"
+module ShellOpts
+  VERSION = "0.1.0"
 end

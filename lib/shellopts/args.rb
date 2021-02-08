@@ -48,7 +48,7 @@ module ShellOpts
 
   private
     def inoa(message = nil) 
-      raise ShellOpts::UserError, message || "Illegal number of arguments"
+      raise Error.new(nil), message || "Illegal number of arguments"
     end
   end
 end
