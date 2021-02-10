@@ -13,4 +13,5 @@ o Support for paging of help:
     ensure 
       file.close 
     end 
-
+o A ShellOpts#shift command that makes it possible for Array#expect to emit
+  relevant error messages
