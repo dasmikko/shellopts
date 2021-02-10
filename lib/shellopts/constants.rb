@@ -43,7 +43,7 @@ module ShellOpts
     COMMAND_PATH_SUB_RE = /#{COMMAND_IDENT_SUB_RE}(?:\.#{COMMAND_IDENT_SUB_RE})*!/
 
     # Command argument
-    ARGUMENT_SUB_RE = /[A-Z][A-Z0-9_-]*[A-Z0-9]/
+    ARGUMENT_SUB_RE = /[A-Z][A-Z0-9_-]*[A-Z0-9](?:\.\.\.)?/
     ARGUMENT_EXPR_SUB_RE = /\[?#{ARGUMENT_SUB_RE}(?:#{ARGUMENT_SUB_RE}|[\[\]\|\s])*/
 
     # Matches a line starting with a command or an option

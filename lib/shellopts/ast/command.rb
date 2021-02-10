@@ -11,7 +11,9 @@ module ShellOpts
         @subcommands_hash = {} # have at most one element
 
         @grammar.opts.each { |opt|
-          self.instance_eval("def #{opt.ident}() @options_hash[:#{opt.ident}].value end")
+          if opt.argument?
+            self.instance_eval("def #{opt.ident}() @options_hash[:#{opt.ident}] end")
+          end
           self.instance_eval("def #{opt.ident}?() @options_hash.key?(:#{opt.ident}) end")
         }
 
@@ -37,7 +39,7 @@ module ShellOpts
       # Return the sub-command Command object or nil if not present. Defined in
       # #initialize for each sub-command
       # def <command>!() end
-      
+
       # The sub-command identifier or nil if not present
       def subcommand() @subcommand && Command.grammar(@subcommand).ident end
 

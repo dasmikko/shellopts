@@ -13,7 +13,7 @@ module ShellOpts
     end
 
     # Return string with help for the given command
-    def self.help_string(command, levels: 1, margin: "", tab: "  ")
+    def self.help_string(command, levels: 10, margin: "", tab: "  ")
       io = StringIO.new
       elements(command, levels: levels, help: true).each { |head, texts, options|
         io.puts "#{margin}#{head}"
@@ -23,6 +23,7 @@ module ShellOpts
           io.puts "#{margin}#{tab}#{opt_head}"
           opt_texts.each { |text| io.puts "#{margin}#{tab*2}#{text}" }
         }
+        io.puts
       }
       io.string[0..-2]
     end

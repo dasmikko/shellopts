@@ -68,7 +68,7 @@ module ShellOpts
       device.puts Formatter.usage_string(subject, levels: levels, margin: margin)
     end
 
-    def help(subject = nil, device: $stdout, levels: 1, margin: "", tab: "  ")
+    def help(subject = nil, device: $stdout, levels: 10, margin: "", tab: "  ")
       subject = find_subject(subject)
       device.puts Formatter.help_string(subject, levels: levels, margin: margin, tab: tab)
     end
@@ -88,6 +88,7 @@ module ShellOpts
         when String; lookup(obj)
         when Ast::Command; Command.grammar(obj)
         when Grammar::Command; obj
+        when NilClass; grammar
       else
         raise Internal, "Illegal object: #{obj.class}"
       end
@@ -107,7 +108,7 @@ module ShellOpts
     $shellopts.fail(message)
   end
 
-  def self.help(subject = nil, device: $stdout, levels: 1, margin: "", tab: "  ")
+  def self.help(subject = nil, device: $stdout, levels: 10, margin: "", tab: "  ")
     $shellopts.help(subject, device: device, levels: levels, margin: margin, tab: tab)
   end
 
