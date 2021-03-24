@@ -20,6 +20,14 @@ describe ShellOpts::Grammar::Lexer do
       src = "cmd1! ARG1 cmd2! ARG2"
       expect(lex(src)).to eq [["CMD", "cmd1!"], ["ARG", "ARG1"], ["CMD", "cmd2!"], ["ARG", "ARG2"]]
     end
+    it "recognizes the end-of-arguments marker" do
+      src = "-a -- ARG"
+      expect(lex(src)).to eq [["OPT", "-a"], ["ARG", "ARG"]]
+    end
+    it "accepts no options and no commands" do
+      src = "ARG"
+      expect(lex(src)).to eq [["ARG", "ARG"]]
+    end
     it "returns multiple arguments as one" do
       src = "cmd! -a ARG1 ARG2"
       expect(lex(src)).to eq [["CMD", "cmd!"], ["OPT", "-a"], ["ARG", "ARG1 ARG2"]]
