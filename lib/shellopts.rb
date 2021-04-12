@@ -38,7 +38,7 @@ module ShellOpts
     attr_reader :program
     attr_reader :arguments
 
-    def initialize(spec, argv, name: nil)
+    def initialize(spec, argv, name: nil, exception: false)
       @name = name || File.basename($PROGRAM_NAME)
       @spec, @argv = spec, argv.dup
       exprs = Grammar::Lexer.lex(@spec)
@@ -48,6 +48,7 @@ module ShellOpts
       begin
         @program, @arguments = Ast::Parser.parse(@grammar, @argv)
       rescue Error => ex
+        raise if exception
         error(ex.subject, ex.message)
       end
     end
@@ -95,8 +96,8 @@ module ShellOpts
     end
   end
 
-  def self.process(spec, argv, name: nil)
-    $shellopts = ShellOpts.new(spec, argv, name: name)
+  def self.process(spec, argv, name: nil, exception: false)
+    $shellopts = ShellOpts.new(spec, argv, name: name, exception: exception)
     [$shellopts.program, $shellopts.arguments]
   end
 
