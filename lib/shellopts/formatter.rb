@@ -16,7 +16,10 @@ module ShellOpts
     def self.help_string(command, levels: 10, margin: "", tab: "  ")
       io = StringIO.new
       elements(command, levels: levels, help: true).each { |head, texts, options|
-        io.puts "#{margin}#{head}"
+#       io.puts "#{margin}#{head}"
+        io.print "#{margin}#{head}" # FIXME Fixture fox fix
+        puts if !texts.empty? # FIXME Fixture fox fix
+
         texts.each { |text| io.puts "#{margin}#{tab}#{text}" }
         options.each { |opt_head, opt_texts|
           io.puts
@@ -51,7 +54,8 @@ module ShellOpts
               next if opt.text.empty?
               opts << [option_help(opt), opt.text]
             }
-            acc << [usage, cmd.text, opts]
+#           acc << [usage, cmd.text, opts]
+            acc << ["Options", cmd.text, opts] # FIXME Fixture fox fix
           else
             acc << usage
           end
