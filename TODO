@@ -1,3 +1,5 @@
+
+o Parse and check enumeration arguments ('--debug=tokens|ast|idr|...')
 o Somehow escape comments where a line starts with an option name
 o 'help' should list commands in declaration order
 o 'help' should use all levels by default
