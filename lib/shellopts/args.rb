@@ -13,7 +13,7 @@ module ShellOpts
     #
     # If +count_or_range+ is a number, that number of elements will be
     # returned.  If the count is one, a simple value is returned instead of an
-    # array.  If the count is negative, the elements will be removed from the
+    # array. If the count is negative, the elements will be removed from the
     # end of the array. If +count_or_range+ is a range, the number of elements
     # returned will be in that range. The range can't contain negative numbers 
     #
@@ -42,7 +42,11 @@ module ShellOpts
     # #expect raise a ShellOpts::UserError exception if the array is not emptied 
     # by the operation
     def expect(count_or_range, message = nil)
-      count_or_range === self.size or inoa(message)
+      if count_or_range.is_a?(Range)
+        count_or_range === self.size or inoa(message)
+      else
+        count_or_range.abs <= self.size or inoa(message)
+      end
       extract(count_or_range) # Can't fail
     end
 

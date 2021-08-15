@@ -25,7 +25,8 @@ module ShellOpts
                       "OPT"
                     when COMMAND_PATH_RE
                       "CMD"
-                    when ARGUMENT_EXPR_RE
+                    when "--", ARGUMENT_EXPR_RE
+                      word = words.shift if word == "--"
                       args = [word]
                       # Scan arguments
                       while words.first =~ ARGUMENT_EXPR_RE

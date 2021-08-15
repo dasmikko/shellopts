@@ -47,22 +47,22 @@ describe "Formatter" do
     end
   end
 
-  describe "::help_string" do
-    it "returns an array of [usage_string, help_string, option-descriptions] triplets" do
-      src = "-a,all\ncmd1! ARG1\ncmd1 descr\nmore descr\n-a,all\nAll\ncmd2! ARG2\ncmd2 descr"
-      grammar = parse(src)
-      cmd = grammar.commands["cmd1"]
-      expect(Formatter.help_string(cmd)).to eq \
-          "rspec cmd1 -a ARG1\n  cmd1 descr\n  more descr\n\n  -a, --all\n    All"
-    end
-    it "formats option arguments too" do
-      src = "-a,all\ncmd1! ARG1\ncmd1 descr\nmore descr\n-a,arg=ARG\nArg descr"
-      grammar = parse(src)
-      cmd = grammar.commands["cmd1"]
-      cmd = grammar.commands["cmd1"]
-      expect(Formatter.help_string(cmd)).to eq \
-          "rspec cmd1 -a ARG ARG1\n  cmd1 descr\n  more descr\n\n  -a, --arg=ARG\n    Arg descr"
-    end
-  end
+# describe "::help_string" do
+#   it "returns an array of [usage_string, help_string, option-descriptions] triplets" do
+#     src = "-a,all\ncmd1! ARG1\ncmd1 descr\nmore descr\n-a,all\nAll\ncmd2! ARG2\ncmd2 descr"
+#     grammar = parse(src)
+#     cmd = grammar.commands["cmd1"]
+#     expect(Formatter.help_string(cmd)).to eq \
+#         "rspec cmd1 -a ARG1\n  cmd1 descr\n  more descr\n\n  -a, --all\n    All"
+#   end
+#   it "formats option arguments too" do
+#     src = "-a,all\ncmd1! ARG1\ncmd1 descr\nmore descr\n-a,arg=ARG\nArg descr"
+#     grammar = parse(src)
+#     cmd = grammar.commands["cmd1"]
+#     cmd = grammar.commands["cmd1"]
+#     expect(Formatter.help_string(cmd)).to eq \
+#         "rspec cmd1 -a ARG ARG1\n  cmd1 descr\n  more descr\n\n  -a, --arg=ARG\n    Arg descr"
+#   end
+# end
 end
 

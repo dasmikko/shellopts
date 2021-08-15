@@ -40,7 +40,7 @@ module ShellOpts
       # #initialize for each sub-command
       # def <command>!() end
 
-      # The sub-command identifier or nil if not present
+      # The sub-command identifier or nil if not present. TODO: Rename #command
       def subcommand() @subcommand && Command.grammar(@subcommand).ident end
 
       # The sub-command Command object or nil if not present
@@ -66,7 +66,7 @@ module ShellOpts
       # Add an option. Only used from the parser
       def __add_option__(option)
         @options_list << option
-        if option.grammar.repeatable?        
+        if option.grammar.repeatable?
           (@options_hash[option.grammar.ident] ||= []) << option.argument
         else
           @options_hash[option.grammar.ident] = option.argument

@@ -1,4 +1,12 @@
 
+o Subcommands can be parsed as well: 
+    opts, args = Shellopts.process(OPTIONS, ARGV)
+    ...
+    opts, command = opts.process
+    case command
+      when ...
+    end
+o Allow assignment to options (this makes practical stuff easier)
 o Parse and check enumeration arguments ('--debug=tokens|ast|idr|...')
 o Somehow escape comments where a line starts with an option name
 o 'help' should list commands in declaration order
