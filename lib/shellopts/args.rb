@@ -20,19 +20,22 @@ module ShellOpts
     # #extract raise a ShellOpts::UserError exception if there's is not enough
     # elements in the array to satisfy the request
     def extract(count_or_range, message = nil) 
-      if count_or_range.is_a?(Range)
-        range = count_or_range
-        range.min <= self.size or inoa(message)
-        n_extract = [self.size, range.max].min
-        n_extend = range.max > self.size ? range.max - self.size : 0
-        r = self.shift(n_extract) + Array.new(n_extend)
-        range.max <= 1 ? r.first : r
-      else
-        count = count_or_range
-        self.size >= count.abs or inoa(message)
-        start = count >= 0 ? 0 : size + count
-        r = slice!(start, count.abs)
-        r.size <= 0 ? nil : (r.size == 1 ? r.first : r)
+      case count_or_range
+        when Range
+          range = count_or_range
+          range.min <= self.size or inoa(message)
+          n_extract = [self.size, range.max].min
+          n_extend = range.max > self.size ? range.max - self.size : 0
+          r = self.shift(n_extract) + Array.new(n_extend)
+          range.max <= 1 ? r.first : r
+        when Integer
+          count = count_or_range
+          count.abs <= self.size or inoa(message)
+          start = count >= 0 ? 0 : size + count
+          r = slice!(start, count.abs)
+          r.size <= 0 ? nil : (r.size == 1 ? r.first : r)
+        else
+          raise ArgumentError
       end
     end
 
@@ -42,10 +45,12 @@ module ShellOpts
     # #expect raise a ShellOpts::UserError exception if the array is not emptied 
     # by the operation
     def expect(count_or_range, message = nil)
-      if count_or_range.is_a?(Range)
-        count_or_range === self.size or inoa(message)
-      else
-        count_or_range.abs <= self.size or inoa(message)
+      case count_or_range
+        when Range
+          count_or_range === self.size or inoa(message)
+        when Integer
+          count_or_range >= 0 or raise ArgumentError, "Count can't be negative"
+          count_or_range.abs == self.size or inoa(message)
       end
       extract(count_or_range) # Can't fail
     end
@@ -56,3 +61,4 @@ module ShellOpts
     end
   end
 end
+

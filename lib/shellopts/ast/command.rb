@@ -36,6 +36,9 @@ module ShellOpts
       # have their values aggregated into an array
       def [](ident) @options_hash[ident].argument end
 
+      # Assign a value to an option. This can be used to implement default values
+      def [](ident, value) @options_hash[ident].argument = value end
+
       # Return the sub-command Command object or nil if not present. Defined in
       # #initialize for each sub-command
       # def <command>!() end

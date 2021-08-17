@@ -3,7 +3,7 @@ module ShellOpts
     class Option
       attr_reader :grammar
       attr_reader :name # The actual name used on the command line
-      attr_reader :argument
+      attr_accessor :argument
 
       def initialize(grammar, name, argument)
         @grammar = grammar

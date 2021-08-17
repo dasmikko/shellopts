@@ -78,6 +78,7 @@ describe Args do
 
   describe "#expect" do
     let(:inoa) { "Illegal number of arguments" }
+
     it "returns the elements of the array" do
       expect(args.expect(5)).to eq [1, 2, 3, 4, 5]
     end
