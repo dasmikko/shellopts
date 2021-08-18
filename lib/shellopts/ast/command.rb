@@ -13,6 +13,7 @@ module ShellOpts
         @grammar.opts.each { |opt|
           if opt.argument?
             self.instance_eval("def #{opt.ident}() @options_hash[:#{opt.ident}] end")
+            self.instance_eval("def #{opt.ident}=(value) @options_hash[:#{opt.ident}] = value end")
           end
           self.instance_eval("def #{opt.ident}?() @options_hash.key?(:#{opt.ident}) end")
         }
@@ -34,10 +35,11 @@ module ShellOpts
       
       # Hash from option identifier to option value. Note that repeated options
       # have their values aggregated into an array
-      def [](ident) @options_hash[ident].argument end
+      def [](ident) @options_hash[ident] end
 
-      # Assign a value to an option. This can be used to implement default values
-      def [](ident, value) @options_hash[ident].argument = value end
+      # Assign a value to an option. This can be used to implement default
+      # values. Note that the option value in #options_list is not updated
+      def []=(ident, value) @options_hash[ident] = value end
 
       # Return the sub-command Command object or nil if not present. Defined in
       # #initialize for each sub-command
