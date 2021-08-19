@@ -19,15 +19,40 @@ def args() State.args end
 
 
 describe ShellOpts::Ast::Command do
+  it "has a #name? method for each option" do
+    process("-a", "-a")
+    expect { opts.a? }.not_to raise_error
+  end
+  it "has a #name method for each option with arguments" do
+    process("-a=ARG", "-aARG")
+    expect { opts.a }.not_to raise_error
+    expect(opts.a).to eq "ARG"
+  end
+  it "has a #name= method for each option with arguments" do
+    process("-a=ARG", "-aARG")
+    expect { opts.a = "value" }.not_to raise_error
+    expect(opts.a).to eq "value"
+  end
+  it "has a #name method for each repeated option" do
+    process("+a=ARG", "-aARG1", "-aARG2")
+    expect { opts.a }.not_to raise_error
+    expect(opts.a).to eq %w(ARG1 ARG2)
+  end
+  it "has a #name= method for each repeated option" do
+    process("+a=ARG", "-aARG1", "-aARG2")
+    expect { opts.a = %w(arg1 arg2) }.not_to raise_error
+    expect(opts.a).to eq %w(arg1 arg2)
+  end
+
   describe "#[]" do
     it "reads the option" do
-      process("-a=FILE", "-afile")
-      expect(opts.a).to eq "file"
+      process("-a=ARG", "-aarg")
+      expect(opts.a).to eq "arg"
     end
   end
   describe "#[]=" do
     it "assigns a value to the option" do
-      process("-a=FILE", "-afile")
+      process("-a=ARG", "-aarg")
       opts.a = "another"
       expect(opts.a).to eq "another"
     end

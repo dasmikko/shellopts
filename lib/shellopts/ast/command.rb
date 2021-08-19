@@ -11,7 +11,7 @@ module ShellOpts
         @subcommands_hash = {} # have at most one element
 
         @grammar.opts.each { |opt|
-          if opt.argument?
+          if opt.argument? || opt.repeatable?
             self.instance_eval("def #{opt.ident}() @options_hash[:#{opt.ident}] end")
             self.instance_eval("def #{opt.ident}=(value) @options_hash[:#{opt.ident}] = value end")
           end
