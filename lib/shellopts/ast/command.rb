@@ -6,7 +6,7 @@ module ShellOpts
       def initialize(grammar)
         @grammar = grammar
         @options_list = []
-        @options_hash = {}
+        @options_hash = {} # Maps from option identifier to true or an integer
         @subcommand = nil
         @subcommands_hash = {} # have at most one element
 
@@ -72,7 +72,12 @@ module ShellOpts
       def __add_option__(option)
         @options_list << option
         if option.grammar.repeatable?
-          (@options_hash[option.grammar.ident] ||= []) << option.argument
+          if option.grammar.argument?
+            (@options_hash[option.grammar.ident] ||= []) << option.argument
+          else
+            @options_hash[option.grammar.ident] ||= 0
+            @options_hash[option.grammar.ident] += 1
+          end
         else
           @options_hash[option.grammar.ident] = option.argument
         end

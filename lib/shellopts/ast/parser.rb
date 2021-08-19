@@ -90,17 +90,16 @@ module ShellOpts
         elsif option.integer?
           arg =~ /^-?\d+$/ or error "Illegal integer in '#{name}' argument: '#{arg}'"
           arg.to_i
-        else # option.float?
+        elsif # option.float?
           # https://stackoverflow.com/a/21891705/2130986
           arg =~ /^[+-]?(?:0|[1-9]\d*)(?:\.(?:\d*[1-9]|0))?$/ or
               error "Illegal float in '#{name}' argument: '#{arg}'"
           arg.to_f
+        else
+          raise ArgumentError
         end
       end
     end
   end
 end
-
-
-
 
