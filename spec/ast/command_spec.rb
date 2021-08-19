@@ -45,6 +45,10 @@ describe ShellOpts::Ast::Command do
           process("+a", "-a", "-a")
           expect(opts.a).to eq 2
         end
+        it "returns 0 if the option wasn't used" do
+          process("+a -b", "-b")
+          expect(opts.a).to eq 0
+        end
       end
       context "with optional argument" do
         it "returns an array with nil values for missing arguments" do

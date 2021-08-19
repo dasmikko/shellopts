@@ -14,6 +14,7 @@ module ShellOpts
           if opt.argument? || opt.repeatable?
             self.instance_eval("def #{opt.ident}() @options_hash[:#{opt.ident}] end")
             self.instance_eval("def #{opt.ident}=(value) @options_hash[:#{opt.ident}] = value end")
+            @options_hash[opt.ident] = 0 if !opt.argument?
           end
           self.instance_eval("def #{opt.ident}?() @options_hash.key?(:#{opt.ident}) end")
         }
