@@ -1,4 +1,5 @@
 
+o Fix that it is near unsable when the user doens't do 'include ShellOpts'
 o Subcommands can be parsed as well: 
     opts, args = Shellopts.process(OPTIONS, ARGV)
     ...
