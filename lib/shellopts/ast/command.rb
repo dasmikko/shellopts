@@ -12,7 +12,19 @@ module ShellOpts
 
         @grammar.opts.each { |opt|
           if opt.argument? || opt.repeatable?
-            self.instance_eval("def #{opt.ident}() @options_hash[:#{opt.ident}] end")
+            if opt.optional?
+              self.instance_eval %(
+                def #{opt.ident}(default = nil)
+                  if @options_hash.key?(:#{opt.ident}) 
+                    @options_hash[:#{opt.ident}] || default
+                  else
+                    nil
+                  end
+                end
+              )
+            else
+              self.instance_eval("def #{opt.ident}() @options_hash[:#{opt.ident}] end")
+            end
             self.instance_eval("def #{opt.ident}=(value) @options_hash[:#{opt.ident}] = value end")
             @options_hash[opt.ident] = 0 if !opt.argument?
           end
@@ -39,7 +51,8 @@ module ShellOpts
       def [](ident) @options_hash[ident] end
 
       # Assign a value to an option. This can be used to implement default
-      # values. Note that the option value in #options_list is not updated
+      # values. Note that the corresponding option value in #options_list is
+      # not updated
       def []=(ident, value) @options_hash[ident] = value end
 
       # Return the sub-command Command object or nil if not present. Defined in
