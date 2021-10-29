@@ -59,7 +59,7 @@ module ShellOpts
       
       # Hash from option identifier to option value. Note that repeated options
       # have their values aggregated into an array
-      def [](ident) self.send(ident) end
+      def [](ident) self.send(:"#{ident}") end
 
       # Assign a value to an option. This can be used to implement default
       # values. Note that the corresponding option value in #options_list is
