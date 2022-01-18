@@ -31,7 +31,6 @@ module ShellOpts
       # Generate tokens
       tokens = [Token.new(:program, 0, -1, source)]
       while !eos?
-        p head
         tokens << 
             case head
               when /\A[^\S\r\n]*\n/
@@ -39,7 +38,7 @@ module ShellOpts
               when /\A(?:--|\+\+) /
                 Token.new(:arguments, *gettext)
               when /\A#/
-                Token.new(:brief, *getline)
+                Token.new(:brief, *getline) # TODO: Make initial '#' either a meta comment or part of code block
               when /\A-\w/, /\A--\w/
                 Token.new(:option, *getword)
               when /\A[\w\.]+!/
@@ -48,7 +47,6 @@ module ShellOpts
               getchar if curr == "\\"
               Token.new(:line,  *getline)
             end
-        p tokens.last
       end
       initial_indent = tokens[1]&.char
 

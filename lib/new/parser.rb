@@ -61,7 +61,7 @@ module ShellOpts
             nodes.push paragraph # Leave paragraph on stack so we can detect code blocks
           end
 
-        else
+        elsif token.kind != :blank
           nodes.push eval("#{token.kind.capitalize}").parse(nodes.top, token)
         end
       end

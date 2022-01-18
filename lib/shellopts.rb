@@ -59,8 +59,10 @@ module ShellOpts
       @tokens.each(&:dump)
       puts
 
-      @ast = Parser.parse(@tokens)
-      @ast.dump
+      @grammar = Parser.parse(@tokens)
+#     @ast.dump
+
+      Analyzer.analyze(@grammar)
 
 #     grammar = Parser.parse(@spec)
 

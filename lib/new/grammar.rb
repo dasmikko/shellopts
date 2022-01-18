@@ -23,6 +23,10 @@ module ShellOpts
         self.new(parent, token).parse
       end
 
+      def traverse(*klasses, &block)
+        do_traverse(Array(klasses).flatten, &block)
+      end
+
       def dump
         puts "#{self.class} @ #{token.pos} #{dump_source}"
         indent { children.each(&:dump) }
@@ -31,6 +35,11 @@ module ShellOpts
       def dump_source() token.source.inspect end
 
     protected
+      def do_traverse(klasses, &block)
+        yield(self) if klasses.any? { |klass| self.is_a?(klass) }
+        children.each { |node| node.traverse(klasses, &block) }
+      end
+
       def err(message)
         raise CompilerError, "#{token.pos} #{message}"
       end
@@ -82,7 +91,7 @@ module ShellOpts
       # Path of command
       attr_reader :path
 
-      # Options (initialized by the analyzer)
+      # Array of options (initialized by the analyzer)
       attr_reader :options
 
       attr_reader :brief
@@ -114,8 +123,8 @@ module ShellOpts
     end
 
     class Paragraph < Node
-      def dump_source() "" end
       def text() @text ||= children.map { |line| line.source }.join(" ") end
+      def dump_source() "" end
     end
 
     class Code < Paragraph
