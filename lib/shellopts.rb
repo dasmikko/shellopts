@@ -9,6 +9,7 @@ include ForwardTo
 
 require 'shellopts/version.rb'
 
+require 'new/stack.rb'
 require 'new/token.rb'
 require 'new/lexer.rb'
 require 'new/grammar.rb'
@@ -55,7 +56,7 @@ module ShellOpts
       @spec, @argv = spec, argv.dup
       @quiet, @verbose, @debug = false, 0, false
 
-      @tokens = Lexer.lex(@spec)
+      @tokens = Lexer.lex(@name, @spec)
       @tokens.each(&:dump)
       puts
 

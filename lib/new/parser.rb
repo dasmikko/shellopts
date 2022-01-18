@@ -4,12 +4,6 @@ require 'constrain'
 include Constrain
 
 module ShellOpts
-  module Stack
-    refine Array do
-      def top() last end
-    end
-  end
-
   class Parser
     include Grammar
     using Stack
@@ -26,7 +20,8 @@ module ShellOpts
     end
 
     def parse()
-      @program = Program.new(tokens.shift)
+#     @program = Program.new(tokens.shift).parse
+      @program = Program.parse(tokens.shift)
       nodes.push @program
 
       while token = tokens.shift

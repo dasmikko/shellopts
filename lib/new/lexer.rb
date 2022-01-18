@@ -5,15 +5,17 @@ module ShellOpts
   #     simpler, since we only need to scan for '-', '--', '++', '#'. The 
   #     rest will be comments or blank lines
   class Lexer
+    attr_reader :name # Name of program
     attr_reader :source
     attr_reader :tokens
 
-    def initialize(source)
+    def initialize(name, source)
+      @name = name
       @source = source
       @source += "\n" if @source[-1] != "\n" # Always terminate source with a newline
     end
 
-    def lex()
+    def lex
       @line, @char = 0, 0
       @i = 0
 
@@ -29,16 +31,19 @@ module ShellOpts
       end
 
       # Generate tokens
-      tokens = [Token.new(:program, 0, -1, source)]
+      tokens = [Token.new(:program, 0, -1, @name)]
       while !eos?
         tokens << 
             case head
               when /\A[^\S\r\n]*\n/
                 Token.new(:blank, *getline)
               when /\A(?:--|\+\+) /
+                # TODO: Make it possible to define a command after arguments
+                # Token.new(:arguments, *getargs)
                 Token.new(:arguments, *gettext)
               when /\A#/
-                Token.new(:brief, *getline) # TODO: Make initial '#' either a meta comment or part of code block
+                # TODO: Make initial '#' either a meta comment or part of code block
+                Token.new(:brief, *getline) 
               when /\A-\w/, /\A--\w/
                 Token.new(:option, *getword)
               when /\A[\w\.]+!/
@@ -78,8 +83,8 @@ module ShellOpts
       @tokens = wo_briefs
     end
 
-    def self.lex(source)
-      self.new(source).lex
+    def self.lex(name, source)
+      self.new(name, source).lex
     end
 
   protected
@@ -116,6 +121,10 @@ module ShellOpts
 
     # Get text until newline
     def getline() getre /[^\n]/ end
+
+    # Get text until command (used for arguments). Requires that getre can
+    # match a string instead of just characters
+    # def getargs() ... end TODO
 
     # Skip over whitespace until (and including) first newline
     def skipws()

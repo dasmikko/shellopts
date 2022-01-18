@@ -15,16 +15,44 @@ module ShellOpts
         @parent.children << self if @parent
       end
 
+      # Return list of nodes in preorder or execute block on each node
+      def preorder(include_self: true, &block)
+        if block_given?
+          yield(self) if include_self
+          children.each { |e| e.preorder(include_self: include_self, &block) }
+        else
+          (include_self ? [self] : []) + 
+              children.inject([]) { |a,e| a + e.preorder(include_self: include_self) }
+        end
+      end
+
+      # Return list of nodes in postorder. If block given execute block on each node
+      def postorder(&block)
+        if block_given?
+          children.each { |e| e.postorder(include_self: include_self, &block) }
+          yield(self) if include_self
+        else
+          children.inject([]) { |a,e| a + e.postorder(include_self: include_self) } +
+              (include_self ? [self] : [])
+        end
+      end
+
+      def traverse(*klasses, &block)
+        do_traverse(Array(klasses).flatten, &block)
+      end
+
+      def link(command)
+        children.each { |node| node.link(command) }
+      end
+
       def parse
         self
       end
 
       def self.parse(parent, token)
-        self.new(parent, token).parse
-      end
-
-      def traverse(*klasses, &block)
-        do_traverse(Array(klasses).flatten, &block)
+        this = self.new(parent, token)
+        this.parse
+        this
       end
 
       def dump
@@ -69,6 +97,14 @@ module ShellOpts
         @long_names = (@name.size > 1 ? [name] : [])
         self
       end
+
+      def link(command)
+        command.options << self
+      end
+
+      def name_list
+        (short_names.map { |name| "-#{name}" } + long_names.map { |name| "--#{name}" }).join(", ")
+      end
     end
 
     class OptionGroup < Node
@@ -94,32 +130,58 @@ module ShellOpts
       # Array of options (initialized by the analyzer)
       attr_reader :options
 
+      # Array of sub-commands (initialized by the analyzer)
+      attr_reader :commands
+
+      # Array of argument specifications
+      attr_reader :arguments
+
       attr_reader :brief
       attr_reader :description 
+
+      def initialize(parent, token)
+        super
+        @options = []
+        @commands = []
+        @arguments = []
+      end
 
       def parse
         @path = token.to_s.sub("!", "")
         @name = @path.split(".").last
-        @options = []
         self
+      end
+
+      def link(command = nil)
+        command.commands << self if command
+        children.each { |node| node.link(self) }
+      end
+
+      def dump_command
+        puts name
+        indent { 
+          puts "Options" if !options.empty?
+          indent { options.each { |option| puts option.name_list } }
+          puts "Commands" if !commands.empty?
+          indent { commands.each(&:dump_command) }
+          puts "Arguments" if !arguments.empty?
+          indent { puts arguments.map { |args| args.token.source } }
+        }
       end
     end
 
     class Program < Command
-      def initialize(token, name = $PROGRAM_NAME)
-        @name = name
+      def self.parse(token)
         super(nil, token)
-      end
-
-      def parse() 
-        @path = name 
-        self
       end
 
       def dump_source() "" end
     end
 
     class Arguments < Node
+      def link(command)
+        command.arguments << self
+      end
     end
 
     class Paragraph < Node
