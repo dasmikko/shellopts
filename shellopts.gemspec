@@ -24,6 +24,9 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
+  spec.add_dependency "forward_to"
+  spec.add_dependency "constrain"
+
   spec.add_development_dependency "bundler", "~> 2.2.10"
   spec.add_development_dependency "rake", ">= 12.3.3"
   spec.add_development_dependency "rspec", "~> 3.0"
@@ -31,11 +34,11 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "simplecov"
 
   # In development mode override load paths for gems whose source are located
-  # as siblings of this project directory
-  if File.directory?("#{__dir__}/.git")
-    local_projects = Dir["../*"].select { |path| 
-      File.directory?(path) && File.exist?("#{path}/Gemfile")
-    }.map { |relpath| "#{File.absolute_path(relpath)}/lib" }
-    $LOAD_PATH.unshift *local_projects
-  end
+  # as siblings of this project directory. Only for fox-project. TODO Remove
+# if File.directory?("#{__dir__}/.git")
+#   local_projects = Dir["../*"].select { |path| 
+#     File.directory?(path) && File.exist?("#{path}/Gemfile")
+#   }.map { |relpath| "#{File.absolute_path(relpath)}/lib" }
+#   $LOAD_PATH.unshift *local_projects
+# end
 end

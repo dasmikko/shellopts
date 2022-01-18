@@ -17,5 +17,5 @@ module ShellOpts
 end
 
 class NotYet < NotImplementedError; end
-class NotThis < ScriptError; end
-class NotHere < ScriptError; end
+class NotThis < ScriptError; end # Pure virtual method called
+class NotHere < ScriptError; end # Unexpected case
