@@ -4,6 +4,127 @@ require 'constrain'
 include Constrain
 
 module ShellOpts
+  module Grammar
+    class Node
+      def parse
+        ;
+      end
+
+      def self.parse(parent, token)
+        this = self.new(parent, token)
+        this.parse
+        this
+      end
+    end
+
+    # Grammar
+    #   [ "+" ] name-list [ "=" [ label ] [ ":" [ "#" | "$" | enum | special-constant ] ] [ "?" ] ]
+    #
+    #   -a=           # syntax error
+    #   -a=#          # Renders as -a=INT
+    #   -b=$          # Renders as -b=NUM
+    #   -c=a,b,c      # Renders as -c=a|b|c
+    #   -d=3..5       # Renders as -d=3..5
+    #   -e=:DIR       # Renders as -e=DIR
+    #   -f=:FILE      # Renders as -f=FILE
+    #
+    #   -o=COUNT
+    #   -a=COUNT:#
+    #   -b=COUNT:$
+    #   -c=COUNT:a,b,c
+    #   -e=DIR:DIRPATH
+    #   -f=FILE:FILEPATH
+    #
+    #
+    # Special constants
+    #
+    #           Exist   Missing   Optional
+    #
+    #   File    FILE    -         FILEPATH
+    #   Dir     DIR     -         DIRPATH
+    #   Node    NODE    NEW       PATH
+    #
+
+    class Option < Node
+      def parse
+        token.source =~ /^(-|--|\+|\+\+)([a-zA-Z0-9_,][a-zA-Z0-9_,-]*)(?:=(.+?)(\?)?)?$/ or 
+            raise "Illegal option: #{token.source.inspect}"
+        initial = $1
+        names = $2.split(",")
+        arg = $3
+        optional = $4
+
+        @repeatable = %w(+ ++).include?(initial)
+
+        @short_names = []
+        if %(- +).include?(initial)
+          while names.first&.size == 1
+            @short_names << names.shift
+          end
+        end
+        @long_names = names
+        @name = @long_names.first || @short_names.first
+        @argument = !arg.nil?
+
+        named = true
+        if @argument
+          if arg =~ /^([^:]+)(?::(.*))/
+            @argument_name = $1
+            named = true
+            arg = $2
+          elsif arg =~ /^:(.*)/
+            arg = $1
+            named = false
+          end
+
+          case arg
+            when "", nil
+              @argument_name ||= "VAL"
+              @argument_type = ArgumentType.new
+            when "#"
+              @argument_name ||= "INT"
+              @argument_type = IntegerArgument.new
+            when "$"
+              @argument_name ||= "NUM"
+              @argument_type = FloatArgument.new
+            when "FILE", "DIR", "NODE", "FILEPATH", "DIRPATH", "PATH", "NEW"
+              @argument_name ||= %w(FILE DIR).include?(arg) ? arg : "PATH"
+              @argument_type = FileArgument.new(@argument_name.downcase.to_sym)
+            when /,/
+              @argument_name ||= arg
+              @argument_type = EnumArgument.new(arg.split(","))
+            else
+              named && @argument_name.nil? or raise ParserError, "Illegal type expression: #{arg.inspect}"
+              @argument_name = arg
+              @argument_type = ArgumentType.new
+          end
+          @optional = !optional.nil?
+        else
+          @argument_type = ArgumentType.new
+        end
+      end
+    end
+
+    class Command < Node
+      def parse
+        @path = token.to_s.sub("!", "")
+        @name = @path.split(".").last
+      end
+    end
+
+    class Program < Command
+      def self.parse(token)
+        super(nil, token)
+      end
+    end
+
+    class Arguments < Node
+      def parse # TODO
+        super
+      end
+    end
+  end
+
   class Parser
     include Grammar
     using Stack
@@ -20,7 +141,6 @@ module ShellOpts
     end
 
     def parse()
-#     @program = Program.new(tokens.shift).parse
       @program = Program.parse(tokens.shift)
       nodes.push @program
 
@@ -74,23 +194,4 @@ module ShellOpts
     def err(token, message) raise ParserError, "#{token.pos} #{message}" end
   end
 end
-
-
-__END__
-      def select(*klasses)
-        klasses = Array(klasses).flatten
-        @children.select { |node| klasses.any? { |klass| node.is_a?(klass) } }
-      end
-
-      def reject(*klasses)
-        klasses = Array(klasses).flatten
-        @children.reject { |node| klasses.any? { |klass| node.is_a?(klass) } }
-      end
-    class Objekt < Node
-      # Command name or canonical option name
-      attr_reader :name
-
-      def brief() select(Brief) end
-      def content() reject(Brief, Arguments) end
-
 

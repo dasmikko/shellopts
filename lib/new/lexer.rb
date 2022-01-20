@@ -44,7 +44,7 @@ module ShellOpts
               when /\A#/
                 # TODO: Make initial '#' either a meta comment or part of code block
                 Token.new(:brief, *getline) 
-              when /\A-\w/, /\A--\w/
+              when /\A(?:-|--|\+|\+\+)\w/
                 Token.new(:option, *getword)
               when /\A[\w\.]+!/
                 Token.new(:command, *getword)

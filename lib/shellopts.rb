@@ -13,6 +13,7 @@ require 'new/stack.rb'
 require 'new/token.rb'
 require 'new/lexer.rb'
 require 'new/grammar.rb'
+require 'new/argument_type.rb'
 require 'new/parser.rb'
 require 'new/analyzer.rb'
 
@@ -28,6 +29,7 @@ module ShellOpts
   class Error < StandardError; end
   class CompilerError < Error; end
   class ParserError < CompilerError; end
+  class AnalyzerError < CompilerError; end
   class Failure < Error; end
   class InternalError < Error; end
 
