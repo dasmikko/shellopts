@@ -1,9 +1,9 @@
 
 module ShellOpts
   class Token
-    # Kind of token. Can be :program, :option, :command, :arguments, :comment, :brief
-    # (comment), or :blank (line). Each kind should have a corresponding Ast
-    # class with the same name
+    # Kind of token. Can be :program, :option, :command, :usage, :spec, :arg,
+    # :brief, :doc, or :blank (line). Each kind should have a corresponding
+    # Grammar class with the same name
     attr_reader :kind
 
     # Line number. Zero based
@@ -17,6 +17,7 @@ module ShellOpts
     attr_reader :source
 
     def initialize(kind, line, char, source)
+      constrain kind, :program, :option, :command, :usage, :spec, :arg, :brief, :doc, :blank
       @kind, @line, @char, @source = kind, line, char, source
     end
 

@@ -102,13 +102,16 @@ module ShellOpts
     end
 
     class Command < Node
-      # Name of command
+      # Command identifier (incl. the exclamation mark)
+      def ident() "#{name}!".to_sym end
+
+      # Name of command without the exclamation mark. String
       attr_reader :name
 
       # Path of command
       attr_reader :path
 
-      # Array of options (initialized by the analyzer)
+      # Array of options in declaration order (initialized by the analyzer)
       attr_reader :options
 
       # Array of sub-commands (initialized by the analyzer)
@@ -123,9 +126,16 @@ module ShellOpts
       def initialize(parent, token)
         super
         @options = []
+        @options_hash = {}
         @commands = []
+        @commands_hash = {}
         @arguments = []
       end
+
+      # Maps from any name of an option or command (incl. the '!') to the
+      # associated option. Names can be a Symbol or String objects
+      def [](name) (name.to_s =~ /!$/ ? @commands_hash : @options_hash)[name] end
+      def key?(name) (name.to_s =~ /!$/ ? @commands_hash : @options_hash).key?(name) end
 
       def dump_command
         puts name
@@ -145,7 +155,21 @@ module ShellOpts
       def dump_source() "" end
     end
 
-    class Arguments < Node
+    class Spec < Node
+    end
+
+    class Arg < Node
+    end
+
+    class Usage < Node
+    end
+
+    class Brief < Node
+      attr_reader :text
+
+      def parse
+        @text = token.source.sub(/^#\s*/, "")
+      end
     end
 
     class Paragraph < Node
@@ -160,18 +184,7 @@ module ShellOpts
       end
     end
 
-    class Line < Node
-    end
-
-    class Brief < Line
-      attr_reader :text
-
-      def parse
-        @text = token.source.sub(/^#\s*/, "")
-      end
-    end
-
-    class Blank < Line
+    class Doc < Node
     end
   end
 end

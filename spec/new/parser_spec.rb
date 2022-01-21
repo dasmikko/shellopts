@@ -4,13 +4,13 @@ include ShellOpts
 describe "Parser" do
 end
 
-def opt(source, method = nil)
-  token = Token.new(:option, 1, 1, source)
-  option = Grammar::Option.parse(nil, token)
-  method ? option.send(method) : option
-end
-
 describe "Option#parse" do
+  def opt(source, method = nil)
+    token = Token.new(:option, 1, 1, source)
+    option = Grammar::Option.parse(nil, token)
+    method ? option.send(method) : option
+  end
+
   it "accepts -s and +s" do
     expect { opt "-s" }.not_to raise_error
     expect { opt "+s" }.not_to raise_error
@@ -54,8 +54,6 @@ describe "Option#parse" do
   it "sets repeatable?" do
     expect(opt "-v", :repeatable?).to eq false
     expect(opt "+v", :repeatable?).to eq true
-    expect(opt "--verbose", :repeatable?).to eq false
-    expect(opt "++verbose", :repeatable?).to eq true
   end
 
   it "sets argument?" do
@@ -70,6 +68,9 @@ describe "Option#parse" do
   end
 
   context "with an argument" do
+    it "fails on missing argument" do
+      expect { opt "-s=" }.to raise_error ParserError
+    end
     it "accepts non-interpreted arguments" do
       src = "-s=<some-value>"
       expect { opt src }.not_to raise_error

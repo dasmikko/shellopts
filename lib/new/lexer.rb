@@ -1,10 +1,37 @@
 
 module ShellOpts
-  # TODO: 
-  #   o Change syntax for commands to !command.name. This makes the lexer
-  #     simpler, since we only need to scan for '-', '--', '++', '#'. The 
-  #     rest will be comments or blank lines
+  class Line
+    attr_reader :source, :line, :char, :text
+
+    def initialize(line, source)
+      @line, @source = line, source
+      @char = (@source =~ /(\S.*?)\s*$/) || 0
+      @text = $1 || ""
+    end
+
+    forward_to :@text, :=~
+
+    def words
+      return @words if @words
+      @words = []
+      char = self.char
+      text.scan(/(\s*)(\S*)/)[0..-2].each { |spaces, word|
+        char += spaces.size
+        @words << [char, word] if word != ""
+        char += word.size
+      }
+      @words
+    end
+
+    def to_s() text end
+    def dump() puts "#{line+1}:#{char+1} #{text.inspect}" end
+  end
+
   class Lexer
+    DECL_RE = /^(?:-|--|\+|\+\+|!|#)/
+
+    using Ext::Array::ShiftWhile
+
     attr_reader :name # Name of program
     attr_reader :source
     attr_reader :tokens
@@ -16,141 +43,59 @@ module ShellOpts
     end
 
     def lex
-      @line, @char = 0, 0
-      @i = 0
+      lines = source[0..-2].split("\n").map.with_index { |line,i| Line.new(i, line) }
 
-      # Scan through initial whitespace or comments
-      while !eos?
-        if curr =~ /\s/
-          getchar
-        elsif curr == "#"
-          getline
-        else
-          break
+      # Skip initial comments and blank lines
+      lines.shift_while { |line| line =~ /^(?:#.*)?$/ }
+      initial_indent = lines.first.char
+
+      tokens = [Token.new(:program, 0, -1, @name)]
+      while line = lines.shift
+        # Pass-trough blank lines
+        if line.to_s == ""
+          tokens << Token.new(:blank, line.line, line.char, "")
+          next
+        end
+          
+        # Ignore meta comments
+        if line.char < initial_indent
+          next if line =~ /^#/
+          raise LexerError, "Illegal indent in line #{line.line+1}"
+        end
+
+        # Options, commands, usage, arguments, and briefs
+        if line =~ DECL_RE
+          words = line.words
+          while (char, word = words.shift)
+            case word
+              when /^#/
+                source = words.shift_while { true }.map(&:last).join(" ")
+                tokens << Token.new(:brief, line.line, char, source)
+              when "--"
+                source = words.shift_while { |_,w| w !~ DECL_RE }.map(&:last).join(" ")
+                tokens << Token.new(:usage, line.line, char, source)
+              when "++"
+                tokens << Token.new(:spec, line.line, char, "++")
+                words.shift_while { |c,w| w !~ DECL_RE && tokens << Token.new(:arg, line.line, c, w) }
+              when /^-|\+/
+                tokens << Token.new(:option, line.line, char, word)
+              when /^!/
+                tokens << Token.new(:command, line.line, char, word)
+            else
+              raise InternalError, "Illegal expression in line #{line.line+1}: #{word.inspect}"
+            end
+          end
+        else # Comments
+          i = (line =~ /^\\[!#+-]\S/ ? 1 : 0)
+          tokens << Token.new(:doc, line.line, line.char, line.text[i..-1])
         end
       end
 
-      # Generate tokens
-      tokens = [Token.new(:program, 0, -1, @name)]
-      while !eos?
-        tokens << 
-            case head
-              when /\A[^\S\r\n]*\n/
-                Token.new(:blank, *getline)
-              when /\A(?:--|\+\+) /
-                # TODO: Make it possible to define a command after arguments
-                # Token.new(:arguments, *getargs)
-                Token.new(:arguments, *gettext)
-              when /\A#/
-                # TODO: Make initial '#' either a meta comment or part of code block
-                Token.new(:brief, *getline) 
-              when /\A(?:-|--|\+|\+\+)\w/
-                Token.new(:option, *getword)
-              when /\A[\w\.]+!/
-                Token.new(:command, *getword)
-            else
-              getchar if curr == "\\"
-              Token.new(:line,  *getline)
-            end
-      end
-      initial_indent = tokens[1]&.char
-
-      # Filter blank lines except when surrounded by comments with the same
-      # indent. Included blank lines have their indent adjusted to the indent
-      # of the enclosing comments
-      tokens.pop while tokens.last.kind == :blank
-      wo_blanks = [tokens.shift]
-      
-      if tokens.size > 0
-        tokens[0..-2].each.with_index { |token, i|
-          if token.kind == :blank
-            p = tokens[i-1]
-            n = tokens[i+1]
-            next if p.kind != :line || n.kind != :line || p.char != n.char
-            token.char = p.char
-          end
-          wo_blanks << token
-        }
-        wo_blanks << tokens[-1]
-      end
-
-      # Filter outdented briefs (aka. meta comments)
-      wo_briefs = [wo_blanks.shift]
-      wo_blanks.each { |token|
-        wo_briefs << token if token.kind != :brief || token.char >= initial_indent
-      }
-
-      @tokens = wo_briefs
+      @tokens = tokens
     end
 
     def self.lex(name, source)
-      self.new(name, source).lex
-    end
-
-  protected
-    def eos?() @i >= @source.size end
-    def line() @line end
-    def char() @char end
-
-    # Current character
-    def curr() @source[@i] end
-
-    # Next character
-    def peek() @source[@i+1] end
-
-    # The remaining source
-    def head() @source[@i..-1] end
-
-    # Get a single character
-    def getchar()
-      return nil if eos?
-      if @source[@i] == "\n"
-        @line += 1
-        @char = 0
-      else
-        @char += 1
-      end
-      @source[@i+=1]
-    end
-
-    # Get text until whitespace or newline
-    def getword() getre /\S/ end
-
-    # Get text until comment or newline
-    def gettext() getre /[^#\n]/ end
-
-    # Get text until newline
-    def getline() getre /[^\n]/ end
-
-    # Get text until command (used for arguments). Requires that getre can
-    # match a string instead of just characters
-    # def getargs() ... end TODO
-
-    # Skip over whitespace until (and including) first newline
-    def skipws()
-      return nil if eos?
-      if head =~ /^[^\S\n]*(\n[^\S\n]*)?/m
-        if $1
-          @line += 1 
-          @char = $1.size - 1
-        else
-          @char += $&.size
-        end
-        @i += $&.size
-      end
-    end
-
-  private
-    # General get-matching-text method. Return a tuple of the line and character
-    # number and the source itself
-    def getre(re)
-      return nil if eos?
-      l, c = @line, @char
-      line = @source[@i..-1].each_char.take_while { |char| char =~ re }.join
-      @i += line.size
-      @char += line.size
-      skipws
-      [l, c, line.rstrip]
+      Lexer.new(name, source).lex
     end
   end
 end

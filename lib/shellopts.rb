@@ -4,6 +4,11 @@ $verb = nil
 $debug = nil
 $shellopts = nil
 
+#$LOAD_PATH.unshift "../constrain/lib"
+require 'constrain'
+include Constrain
+
+require 'ext/array.rb'
 require 'ext/forward_to.rb'
 include ForwardTo
 
@@ -11,8 +16,9 @@ require 'shellopts/version.rb'
 
 require 'new/stack.rb'
 require 'new/token.rb'
-require 'new/lexer.rb'
 require 'new/grammar.rb'
+require 'new/expr.rb'
+require 'new/lexer.rb'
 require 'new/argument_type.rb'
 require 'new/parser.rb'
 require 'new/analyzer.rb'
@@ -28,8 +34,11 @@ require 'indented_io'
 module ShellOpts
   class Error < StandardError; end
   class CompilerError < Error; end
+  class LexerError < Error; end
   class ParserError < CompilerError; end
   class AnalyzerError < CompilerError; end
+  class InterpreterError < Error; end # Error by the developer
+  class UserError < Error; end
   class Failure < Error; end
   class InternalError < Error; end
 
@@ -59,13 +68,19 @@ module ShellOpts
       @quiet, @verbose, @debug = false, 0, false
 
       @tokens = Lexer.lex(@name, @spec)
+#     @tokens = Lexer.lex(@name, @spec)
       @tokens.each(&:dump)
-      puts
+#     puts
+#     exit
 
       @grammar = Parser.parse(@tokens)
-#     @ast.dump
+#     @grammar.dump
+#     exit
+
 
       Analyzer.analyze(@grammar)
+      @grammar.dump_command
+      exit
 
 #     grammar = Parser.parse(@spec)
 
@@ -128,6 +143,19 @@ module ShellOpts
       subject = find_subject(subject)
       device.puts Formatter.help_string(subject, levels: levels, margin: margin, tab: tab)
     end
+
+    # Accessor methods to the given command object. The methods are class
+    # methods because they can be overridden by options or sub-commands in
+    # Expr::Command and they're defined in ShellOpts class to for cosmetic
+    # reasons (you don't have to type eg. `Expr::Command.options(command)` but
+    # "just" `ShellOpts.options(command)`
+    forward_self_to ::ShellOpts::Expr::Command, :ident, :name, :grammar, :options, :command, :command!
+#   def self.ident(command) ::ShellOpts::Expr::Command.ident(command) end
+#   def self.name(command) ::ShellOpts::Expr::Command.name(command) end
+#   def self.grammar(command) ::ShellOpts::Expr::Command.grammar(command) end
+#   def self.options(command) ::ShellOpts::Expr::Command.options(command) end
+#   def self.command(command) ::ShellOpts::Expr::Command.command(command) end
+#   def self.command!(command) ::ShellOpts::Expr::Command.command!(command) end
 
   private
     def lookup(name)

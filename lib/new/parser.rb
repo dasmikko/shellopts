@@ -1,8 +1,4 @@
 
-require 'constrain'
-
-include Constrain
-
 module ShellOpts
   module Grammar
     class Node
@@ -20,21 +16,20 @@ module ShellOpts
     # Grammar
     #   [ "+" ] name-list [ "=" [ label ] [ ":" [ "#" | "$" | enum | special-constant ] ] [ "?" ] ]
     #
-    #   -a=           # syntax error
-    #   -a=#          # Renders as -a=INT
-    #   -b=$          # Renders as -b=NUM
-    #   -c=a,b,c      # Renders as -c=a|b|c
-    #   -d=3..5       # Renders as -d=3..5
-    #   -e=:DIR       # Renders as -e=DIR
-    #   -f=:FILE      # Renders as -f=FILE
+    #   -a=               # Renders as -a=
+    #   -a=#              # Renders as -a=INT
+    #   -b=$              # Renders as -b=NUM
+    #   -c=a,b,c          # Renders as -c=a|b|c
+    #   -d=3..5           # Renders as -d=3..5
+    #   -e=:DIR           # Renders as -e=DIR
+    #   -f=:FILE          # Renders as -f=FILE
     #
-    #   -o=COUNT
+    #   -o=COUNT          
     #   -a=COUNT:#
     #   -b=COUNT:$
     #   -c=COUNT:a,b,c
     #   -e=DIR:DIRPATH
     #   -f=FILE:FILEPATH
-    #
     #
     # Special constants
     #
@@ -44,13 +39,14 @@ module ShellOpts
     #   Dir     DIR     -         DIRPATH
     #   Node    NODE    NEW       PATH
     #
-
     class Option < Node
       def parse
         token.source =~ /^(-|--|\+|\+\+)([a-zA-Z0-9_,][a-zA-Z0-9_,-]*)(?:=(.+?)(\?)?)?$/ or 
-            raise "Illegal option: #{token.source.inspect}"
+            raise ParserError, "Illegal option: #{token.source.inspect}"
         initial = $1
-        names = $2.split(",")
+        names = $2.split(",").map { |name| name.sub("-", "_") }
+        names.all? { |name| name !~ /^_/ } or
+            raise ParserError, "Illegal option name: #{name.inspect} - can't start with an underscore"
         arg = $3
         optional = $4
 
@@ -64,6 +60,7 @@ module ShellOpts
         end
         @long_names = names
         @name = @long_names.first || @short_names.first
+        @ident = ::ShellOpts::Expr::Command::RESERVED_OPTION_NAMES.include?(name) ? nil : name.to_sym
         @argument = !arg.nil?
 
         named = true
@@ -118,7 +115,7 @@ module ShellOpts
       end
     end
 
-    class Arguments < Node
+    class Spec < Node
       def parse # TODO
         super
       end
@@ -128,6 +125,7 @@ module ShellOpts
   class Parser
     include Grammar
     using Stack
+    using Ext::Array::ShiftWhile
 
     # Array of token
     attr_reader :tokens
@@ -140,9 +138,12 @@ module ShellOpts
       @nodes = [] # Stack of Nodes. Follows the indentation of the source
     end
 
+
     def parse()
       @program = Program.parse(tokens.shift)
       nodes.push @program
+
+      @counter = 0
 
       while token = tokens.shift
         while token.char <= indent
@@ -155,30 +156,40 @@ module ShellOpts
           if !nodes.top.is_a?(OptionGroup)
             nodes.push OptionGroup.new(nodes.top, token)
           end
-          Option.parse(nodes.top, token)
+          Grammar::Option.parse(nodes.top, token)
         
-        elsif token.kind == :line
+        elsif token.kind == :doc
           # Detect nested comment groups (code)
           if nodes.top.is_a?(Paragraph)
             code = Code.parse(nodes.top.parent, token) # Using parent of paragraph
             tokens.unshift token
-            while tokens.first.kind == :line && tokens.first.char >= code.token.char
-              Line.parse(code, tokens.shift)
+            while token = tokens.shift
+              if token.kind == :doc && token.char >= code.token.char
+                Doc.parse(code, token)
+              elsif token.kind == :blank
+                Doc.parse(code, token) if tokens.first.kind == :doc && tokens.first.char >= code.token.char
+              else
+                tokens.unshift token
+                break
+              end
             end
 
           # Detect comment groups (paragraphs)
           else
             paragraph = Paragraph.parse(nodes.top, token)
             tokens.unshift token
-            while tokens.first.kind == :line && tokens.first.char == paragraph.token.char
-              Line.parse(paragraph, tokens.shift)
+            while tokens.first.kind == :doc && tokens.first.char == paragraph.token.char
+              Doc.parse(paragraph, tokens.shift)
             end
             nodes.push paragraph # Leave paragraph on stack so we can detect code blocks
           end
 
         elsif token.kind != :blank
-          nodes.push eval("#{token.kind.capitalize}").parse(nodes.top, token)
+          nodes.push eval("Grammar::#{token.kind.capitalize}").parse(nodes.top, token)
         end
+
+        # Skip blank lines
+        tokens.shift_while { |token| token.kind == :blank }
       end
 
       @program
