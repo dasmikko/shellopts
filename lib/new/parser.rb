@@ -161,9 +161,9 @@ module ShellOpts
             tokens.unshift token
             while token = tokens.shift
               if token.kind == :doc && token.char >= code.token.char
-                Doc.parse(code, token)
+                Text.parse(code, token)
               elsif token.kind == :blank
-                Doc.parse(code, token) if tokens.first.kind == :doc && tokens.first.char >= code.token.char
+                Text.parse(code, token) if tokens.first.kind == :doc && tokens.first.char >= code.token.char
               else
                 tokens.unshift token
                 break
@@ -175,7 +175,7 @@ module ShellOpts
             paragraph = Paragraph.parse(nodes.top, token)
             tokens.unshift token
             while tokens.first.kind == :doc && tokens.first.char == paragraph.token.char
-              Doc.parse(paragraph, tokens.shift)
+              Text.parse(paragraph, tokens.shift)
             end
             nodes.push paragraph # Leave paragraph on stack so we can detect code blocks
           end

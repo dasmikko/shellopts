@@ -184,7 +184,7 @@ module ShellOpts
       end
     end
 
-    class Doc < Node
+    class Text < Node
     end
   end
 end

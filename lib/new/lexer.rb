@@ -88,7 +88,7 @@ module ShellOpts
           end
         else # Comments
           i = (line =~ /^\\[!#+-]\S/ ? 1 : 0)
-          @tokens << Token.new(:doc, line.line, line.char, line.text[i..-1])
+          @tokens << Token.new(:text, line.line, line.char, line.text[i..-1])
         end
       end
       @tokens

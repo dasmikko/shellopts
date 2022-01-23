@@ -76,7 +76,7 @@ describe "Lexer" do
         -a
           Explanation
       )
-      expect(make src, fields: :kind).to eq [:option, :doc]
+      expect(make src, fields: :kind).to eq [:option, :text]
       expect(make src, fields: :source).to eq %w(-a Explanation)
     end
 
@@ -85,7 +85,7 @@ describe "Lexer" do
         -o
         \\-p
       )
-      expect(make src, fields: :kind).to eq [:option, :doc]
+      expect(make src, fields: :kind).to eq [:option, :text]
       expect(make src, fields: :source).to eq %w(-o -p)
     end
     it "creates blank-line token" do
@@ -94,7 +94,7 @@ describe "Lexer" do
 
         -a
       )
-      expect(make src, fields: :kind).to eq [:doc, :blank, :option]
+      expect(make src, fields: :kind).to eq [:text, :blank, :option]
     end
 
     it "ignores initial blank and commented lines" do
@@ -104,37 +104,8 @@ describe "Lexer" do
 # Meta-comment
         Text
       )
-      expect(make src, fields: :kind).to eq [:option, :doc]
+      expect(make src, fields: :kind).to eq [:option, :text]
     end
   end
 end
-
-__END__
-SOURCE = %(
-  -a,all      
-  -b,beta # Brief inline comment     
-  --verbose -h,help -v,version # Multi option line  
-  -f=FILE   
-    Indented comment  
-# A comment that should not be included in the source (usefull to out-comment
-# sections of source)
-#
-# The following blank line should be ignored       
-
-  -l=MODE:short,long?   
-    Another indented comment. The following blank line should be included
-
-    But not if it is the last blank line     
-
-  -- ARG1 ARG2   
-  command!   
-    Description of command. Then we list the options: 
-
-      -c,copt # Inline comment  
-      -d,dopt # Brief and nested comment  
-        Even more nested comment   
-
-    This text should be included too  
-    ++ CMD_ARG1 CMD_ARG2 # Comment        
-)
 
