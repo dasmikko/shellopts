@@ -41,17 +41,16 @@ module ShellOpts
     #
     class Option < Node
       def parse
-        token.source =~ /^(-|--|\+|\+\+)([a-zA-Z0-9_,][a-zA-Z0-9_,-]*)(?:=(.+?)(\?)?)?$/ or 
+        token.source =~ /^(-|--|\+|\+\+)([a-zA-Z0-9][a-zA-Z0-9_,-]*)(?:=(.+?)(\?)?)?$/ or 
             raise ParserError, "Illegal option: #{token.source.inspect}"
         initial = $1
-        names = $2.split(",").map { |name| name.sub("-", "_") }
-        names.all? { |name| name !~ /^_/ } or
-            raise ParserError, "Illegal option name: #{name.inspect} - can't start with an underscore"
+        names = $2
         arg = $3
         optional = $4
 
         @repeatable = %w(+ ++).include?(initial)
 
+        names = names.split(",").map { |name| name.sub("-", "_") }
         @short_names = []
         if %(- +).include?(initial)
           while names.first&.size == 1
