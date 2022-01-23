@@ -138,12 +138,9 @@ module ShellOpts
       @nodes = [] # Stack of Nodes. Follows the indentation of the source
     end
 
-
     def parse()
       @program = Program.parse(tokens.shift)
       nodes.push @program
-
-      @counter = 0
 
       while token = tokens.shift
         while token.char <= indent

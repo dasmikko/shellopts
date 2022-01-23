@@ -158,7 +158,7 @@ module ShellOpts
     class Spec < Node
     end
 
-    class Arg < Node
+    class Argument < Node
     end
 
     class Usage < Node

@@ -1,8 +1,6 @@
 module ShellOpts
   module Grammar
     class ArgumentType
-#     def source() end
-#     def to_s() end
       def convert(value) value end
       def match?(value) true end
     end

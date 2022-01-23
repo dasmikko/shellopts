@@ -36,6 +36,7 @@ module ShellOpts
     attr_reader :source
     attr_reader :tokens
 
+
     def initialize(name, source)
       @name = name
       @source = source
@@ -47,13 +48,13 @@ module ShellOpts
 
       # Skip initial comments and blank lines
       lines.shift_while { |line| line =~ /^(?:#.*)?$/ }
-      initial_indent = lines.first.char
+      initial_indent = lines.first&.char
 
-      tokens = [Token.new(:program, 0, -1, @name)]
+      @tokens = [Token.new(:program, 0, -1, @name)]
       while line = lines.shift
         # Pass-trough blank lines
         if line.to_s == ""
-          tokens << Token.new(:blank, line.line, line.char, "")
+          @tokens << Token.new(:blank, line.line, line.char, "")
           next
         end
           
@@ -70,28 +71,27 @@ module ShellOpts
             case word
               when /^#/
                 source = words.shift_while { true }.map(&:last).join(" ")
-                tokens << Token.new(:brief, line.line, char, source)
+                @tokens << Token.new(:brief, line.line, char, source)
               when "--"
-                source = words.shift_while { |_,w| w !~ DECL_RE }.map(&:last).join(" ")
-                tokens << Token.new(:usage, line.line, char, source)
+                source = (["--"] + words.shift_while { |_,w| w !~ DECL_RE }.map(&:last)).join(" ")
+                @tokens << Token.new(:usage, line.line, char, source)
               when "++"
-                tokens << Token.new(:spec, line.line, char, "++")
-                words.shift_while { |c,w| w !~ DECL_RE && tokens << Token.new(:arg, line.line, c, w) }
+                @tokens << Token.new(:spec, line.line, char, "++")
+                words.shift_while { |c,w| w !~ DECL_RE && @tokens << Token.new(:argument, line.line, c, w) }
               when /^-|\+/
-                tokens << Token.new(:option, line.line, char, word)
+                @tokens << Token.new(:option, line.line, char, word)
               when /^!/
-                tokens << Token.new(:command, line.line, char, word)
+                @tokens << Token.new(:command, line.line, char, word)
             else
               raise InternalError, "Illegal expression in line #{line.line+1}: #{word.inspect}"
             end
           end
         else # Comments
           i = (line =~ /^\\[!#+-]\S/ ? 1 : 0)
-          tokens << Token.new(:doc, line.line, line.char, line.text[i..-1])
+          @tokens << Token.new(:doc, line.line, line.char, line.text[i..-1])
         end
       end
-
-      @tokens = tokens
+      @tokens
     end
 
     def self.lex(name, source)

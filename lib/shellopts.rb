@@ -70,16 +70,18 @@ module ShellOpts
       @tokens = Lexer.lex(@name, @spec)
 #     @tokens = Lexer.lex(@name, @spec)
       @tokens.each(&:dump)
-#     puts
+      puts
 #     exit
 
       @grammar = Parser.parse(@tokens)
 #     @grammar.dump
+#     puts
 #     exit
 
 
       Analyzer.analyze(@grammar)
       @grammar.dump_command
+      puts
       exit
 
 #     grammar = Parser.parse(@spec)
