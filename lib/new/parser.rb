@@ -147,42 +147,64 @@ module ShellOpts
           !nodes.empty? or err(token, "Illegal indent")
         end
 
-        # Detect option groups
-        if token.kind == :option
-          if !nodes.top.is_a?(OptionGroup)
-            nodes.push OptionGroup.new(nodes.top, token)
-          end
-          Grammar::Option.parse(nodes.top, token)
-        
-        elsif token.kind == :doc
-          # Detect nested comment groups (code)
-          if nodes.top.is_a?(Paragraph)
-            code = Code.parse(nodes.top.parent, token) # Using parent of paragraph
-            tokens.unshift token
-            while token = tokens.shift
-              if token.kind == :doc && token.char >= code.token.char
-                Text.parse(code, token)
-              elsif token.kind == :blank
-                Text.parse(code, token) if tokens.first.kind == :doc && tokens.first.char >= code.token.char
-              else
-                tokens.unshift token
-                break
+        case token.kind
+          when :option
+            if !nodes.top.is_a?(OptionGroup) # Ensure a token group at the top of the stack
+              nodes.push OptionGroup.new(nodes.top, token)
+            end
+            Grammar::Option.parse(nodes.top, token)
+
+          when :command
+            nodes.push Command.parse(nodes.top, token)
+
+          when :spec
+            nodes.push Command.parse(nodes.top, token)
+
+          when :argument
+            Argument.parse(nodes.top, token)
+
+          when :usage
+            Usage.parse(nodes.top, token)
+
+          when :text
+            # Detect nested comment groups (code)
+            if nodes.top.is_a?(Paragraph)
+              code = Code.parse(nodes.top.parent, token) # Using parent of paragraph
+              tokens.unshift token
+              while token = tokens.shift
+                if token.kind == :text && token.char >= code.token.char
+                  Text.parse(code, token)
+                elsif token.kind == :blank
+                  Text.parse(code, token) if tokens.first.kind == :doc && tokens.first.char >= code.token.char
+                else
+                  tokens.unshift token
+                  break
+                end
               end
+
+            # Detect comment groups (paragraphs)
+            else
+              paragraph = Paragraph.parse(nodes.top, token)
+              tokens.unshift token
+              while tokens.first.kind == :text && tokens.first.char == paragraph.token.char
+                Text.parse(paragraph, tokens.shift)
+              end
+              nodes.push paragraph # Leave paragraph on stack so we can detect code blocks
             end
 
-          # Detect comment groups (paragraphs)
-          else
-            paragraph = Paragraph.parse(nodes.top, token)
-            tokens.unshift token
-            while tokens.first.kind == :doc && tokens.first.char == paragraph.token.char
-              Text.parse(paragraph, tokens.shift)
-            end
-            nodes.push paragraph # Leave paragraph on stack so we can detect code blocks
-          end
+          when :brief
+            Brief.parse(nodes.top, token)
 
-        elsif token.kind != :blank
-          nodes.push eval("Grammar::#{token.kind.capitalize}").parse(nodes.top, token)
+          when :blank
+            ; # do nothing
+
+        else
+          raise InternalError, "Unexpected token kind: #{token.kind.inspect}"
         end
+
+        # Create default node
+#       elsif token.kind != :blank
+#         nodes.push eval("Grammar::#{token.kind.capitalize}").parse(nodes.top, token)
 
         # Skip blank lines
         tokens.shift_while { |token| token.kind == :blank }

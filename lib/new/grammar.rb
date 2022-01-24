@@ -19,12 +19,33 @@ module ShellOpts
         do_traverse(Array(klasses).flatten, &block)
       end
 
-      def dump
-        puts "#{self.class} @ #{token.pos} #{dump_source}"
-        indent { children.each(&:dump) }
+      def render
+        children.each(&:render)
       end
 
-      def dump_source() token.source.inspect end
+      def dump
+        puts "#{self.class} @ #{token.pos} #{token.source}"
+      end
+
+      def dump_ast
+        puts "#{self.class} @ #{token.pos} #{token.source}"
+        indent { children.each(&:dump_ast) }
+      end
+
+      def dump_attrs(*attrs)
+        indent {
+          Array(attrs).flatten.each { |attr|
+            value = self.send(attr)
+            if value.is_a?(DocNode)
+              puts "#{attr}: #{value.to_s}"
+            else
+              puts "#{attr}: #{value.inspect}"
+            end
+          }
+        }
+      end
+
+
 
     protected
       def do_traverse(klasses, &block)
@@ -38,7 +59,7 @@ module ShellOpts
     end
 
     class Option < Node
-      def command() parent.parent end
+      def command() parent.parent end # double-parent because options live in option groups
 
       # Symbolic identifier. This is the canonical name of the option with
       # dashes replaced with underscores. It is only defined if it doesn't
@@ -62,7 +83,7 @@ module ShellOpts
       # Name of argument or nil if not present
       attr_reader :argument_name
 
-      # Value argument_type. An OptionConstraint object
+      # Value argument_type. An OptionArgument object
       attr_reader :argument_type
 
       # Brief description (a String)
@@ -70,11 +91,11 @@ module ShellOpts
 
       def repeatable?() @repeatable end
       def argument?() @argument end
-      def integer?() @argument_type.is_a? IntegerConstraint end
-      def float?() @argument_type.is_a? FloatConstraint end
-      def file?() @argument_type.is_a? FileConstraint end
-      def enum?() @argument_type.is_a? EnumConstraint end
-      def string?() argument? !integer? && !float? && !file? && !enums? end
+      def integer?() @argument_type.is_a? IntegerArgument end
+      def float?() @argument_type.is_a? FloatArgument end
+      def file?() @argument_type.is_a? FileArgument end
+      def enum?() @argument_type.is_a? EnumArgument end
+      def string?() argument? && !integer? && !float? && !file? && !enum? end
       def optional?() @optional end
 
       def match?(value) argument_type.match?(value) end
@@ -85,6 +106,19 @@ module ShellOpts
 
       def name_list
         (short_names.map { |name| "-#{name}" } + long_names.map { |name| "--#{name}" }).join(", ")
+      end
+
+      def dump
+        super
+#       p parent.class
+#       p parent.parent.class
+#       p parent.parent.name
+#       indent { puts "command: #{command.name || "nil"}" }
+#       exit
+        dump_attrs(
+            :ident, :name, :short_names, :long_names, :argument_name, :brief,
+            :repeatable?, :argument?, :integer?, :float?, :file?, :enum?, :string?, 
+            :optional?)
       end
     end
 
@@ -98,10 +132,16 @@ module ShellOpts
         super(parent, token)
       end
 
-      def dump_source() "" end
+      def dump
+        super
+        dump_attrs(:command, :ṗarent)
+        children.each(&:dump)
+      end
     end
 
     class Command < Node
+      alias_method :command, :parent
+
       # Command identifier (incl. the exclamation mark)
       def ident() "#{name}!".to_sym end
 
@@ -117,8 +157,11 @@ module ShellOpts
       # Array of sub-commands (initialized by the analyzer)
       attr_reader :commands
 
-      # Array of argument specifications
-      attr_reader :arguments
+      # Argument specification object
+      attr_reader :spec
+
+      # Usage if present
+      attr_reader :usage
 
       # Brief description of command (a String)
       attr_accessor :brief
@@ -137,25 +180,26 @@ module ShellOpts
       def [](name) (name.to_s =~ /!$/ ? @commands_hash : @options_hash)[name] end
       def key?(name) (name.to_s =~ /!$/ ? @commands_hash : @options_hash).key?(name) end
 
-      def dump_command
-        puts name
+      def dump
+        super
+        indent { puts "command: #{command&.ident || "nil"}" }
+        dump_attrs(:name, :path, :brief)
         indent { 
-          puts "brief: #{brief.text.inspect}" if brief
-          puts "options:" if !options.empty?
-          indent { options.each { |option| puts option.name_list } }
-          puts "commands:" if !commands.empty?
-          indent { commands.each(&:dump_command) }
-          puts "arguments:" if !arguments.empty?
-          indent { puts arguments.map { |args| args.token.source } }
+        puts "Options" if !options.empty?
+          indent { options.each(&:dump) }
+          puts "Commands" if !commands.empty?
+          indent { commands.each(&:dump) }
+#         puts "Arguments" if !arguments.empty?
+#         indent { arguments.each(&:dump) }
         }
       end
     end
 
     class Program < Command
-      def dump_source() "" end
     end
 
     class Spec < Node
+      attr_reader :arguments
     end
 
     class Argument < Node
@@ -164,27 +208,30 @@ module ShellOpts
     class Usage < Node
     end
 
-    class Brief < Node
-      attr_reader :text
-
-      def parse
-        @text = token.source.sub(/^#\s*/, "")
-      end
+    class DocNode < Node
+      def text() @text ||= children.map { |line| line.source }.join(" ") end
+      def to_s() @text end
     end
 
-    class Paragraph < Node
-      def text() @text ||= children.map { |line| line.source }.join(" ") end
-      def dump_source() "" end
+    class Brief < DocNode
+      def parse() @text = token.source.sub(/^#\s*/, "") end
+    end
+
+    # Aka. "a line"
+    class Text < DocNode
+    end
+
+    class Paragraph < DocNode
     end
 
     class Code < Paragraph
       def text()
-        indent = token.char
-        children.map { |line| " " * (line.token.char - indent) + line.token.source }.join("\n") 
+        @text ||= begin
+          indent = token.char
+          children.map { |line| " " * (line.token.char - indent) + line.token.source }.join("\n") 
+        end
       end
-    end
 
-    class Text < Node
     end
   end
 end
@@ -212,23 +259,23 @@ __END__
         end
       end
 
-    class OptionConstraint
+    class OptionArgument
       def source() end
       def to_s() end
       def convert(value) value end
     end
 
-    class IntegerConstraint < OptionConstraint
+    class IntegerArgument < OptionArgument
       def match?(value) value.is_a?(Integer) end
       def convert(value) value.to_i end
     end
 
-    class FloatConstraint < OptionConstraint
+    class FloatArgument < OptionArgument
       def match?(value) value.is_a?(Number) end
       def convert(value) value.to_f end
     end
 
-    class FileSystemConstraint < OptionConstraint
+    class FileSystemArgument < OptionArgument
       attr_reader :kind # :file, :dir, :node, :filepath, :dirpath, :path, :new
       def initialize(kind) 
         @kind = kind 
@@ -247,7 +294,7 @@ __END__
       end
     end
 
-    class EnumConstraint < OptionConstraint
+    class EnumArgument < OptionArgument
       attr_reader :values
       def initialize(values) @values = values.dup end
       def match?(value) values.include?(value) end

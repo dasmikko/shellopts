@@ -2,6 +2,7 @@
 module ShellOpts
   module Grammar
     class Node
+      # Links up Command, Option, Usage, and Argument objects
       def link_objekts(command, option)
         children.each { |node| node.link_objekts(command, option) }
       end
@@ -52,7 +53,7 @@ module ShellOpts
       end
     end
 
-    class Brief < Node
+    class Brief < DocNode
       def link_objekts(command, option)
         (option || command).brief = self
       end

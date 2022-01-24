@@ -68,19 +68,18 @@ module ShellOpts
       @quiet, @verbose, @debug = false, 0, false
 
       @tokens = Lexer.lex(@name, @spec)
-#     @tokens = Lexer.lex(@name, @spec)
-      @tokens.each(&:dump)
-      puts
-#     exit
-
-      @grammar = Parser.parse(@tokens)
-#     @grammar.dump
+#     @tokens.each(&:dump)
 #     puts
 #     exit
 
+      @grammar = Parser.parse(@tokens)
+      @grammar.dump_ast
+      puts
+      exit
+
 
       Analyzer.analyze(@grammar)
-      @grammar.dump_command
+      @grammar.dump
       puts
       exit
 
