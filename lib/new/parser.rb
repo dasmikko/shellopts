@@ -135,36 +135,41 @@ module ShellOpts
     def initialize(tokens)
       @tokens = tokens.dup
       @nodes = [] # Stack of Nodes. Follows the indentation of the source
+      @commands = [] # Stack of commands
     end
 
     def parse()
       @program = Program.parse(tokens.shift)
       nodes.push @program
+      commands.push @program
 
       while token = tokens.shift
         while token.char <= indent
-          nodes.pop
+          node = nodes.pop
+          commands.pop if commands.top == node
           !nodes.empty? or err(token, "Illegal indent")
         end
 
         case token.kind
           when :option
             if !nodes.top.is_a?(OptionGroup) # Ensure a token group at the top of the stack
-              nodes.push OptionGroup.new(nodes.top, token)
+              nodes.push OptionGroup.new(commands.top, token)
             end
             Grammar::Option.parse(nodes.top, token)
 
           when :command
-            nodes.push Command.parse(nodes.top, token)
+            command = Command.parse(nodes.top, token)
+            nodes.push command
+            commands.push command
 
           when :spec
-            nodes.push Command.parse(nodes.top, token)
+            nodes.push Spec.parse(commands.top, token)
 
           when :argument
             Argument.parse(nodes.top, token)
 
           when :usage
-            Usage.parse(nodes.top, token)
+            nodes.push Usage.parse(commands.top, token)
 
           when :text
             # Detect nested comment groups (code)
@@ -175,7 +180,7 @@ module ShellOpts
                 if token.kind == :text && token.char >= code.token.char
                   Text.parse(code, token)
                 elsif token.kind == :blank
-                  Text.parse(code, token) if tokens.first.kind == :doc && tokens.first.char >= code.token.char
+                  Text.parse(code, token) if tokens.first.kind == :text && tokens.first.char >= code.token.char
                 else
                   tokens.unshift token
                   break
@@ -184,16 +189,18 @@ module ShellOpts
 
             # Detect comment groups (paragraphs)
             else
-              paragraph = Paragraph.parse(nodes.top, token)
+              parent = nodes.top.is_a?(Command) || nodes.top.is_a?(OptionGroup) ? nodes.top : nodes.top.parent
+              paragraph = Paragraph.parse(parent, token)
               tokens.unshift token
-              while tokens.first.kind == :text && tokens.first.char == paragraph.token.char
+              while tokens.first && tokens.first.kind == :text && tokens.first.char == paragraph.token.char
                 Text.parse(paragraph, tokens.shift)
               end
               nodes.push paragraph # Leave paragraph on stack so we can detect code blocks
             end
 
           when :brief
-            Brief.parse(nodes.top, token)
+            parent = nodes.top.is_a?(Paragraph) ? nodes.top.parent : nodes.top
+            Brief.parse(parent, token)
 
           when :blank
             ; # do nothing
@@ -201,10 +208,6 @@ module ShellOpts
         else
           raise InternalError, "Unexpected token kind: #{token.kind.inspect}"
         end
-
-        # Create default node
-#       elsif token.kind != :blank
-#         nodes.push eval("Grammar::#{token.kind.capitalize}").parse(nodes.top, token)
 
         # Skip blank lines
         tokens.shift_while { |token| token.kind == :blank }
@@ -219,6 +222,7 @@ module ShellOpts
 
   protected
     attr_reader :nodes
+    attr_reader :commands
     def indent() @nodes.top.token.char end
     def err(token, message) raise ParserError, "#{token.pos} #{message}" end
   end

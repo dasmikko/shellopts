@@ -7,6 +7,7 @@ module ShellOpts
 
       def initialize(parent, token)
         constrain parent, Node, nil
+        constrain parent, lambda { |node| ALLOWED_PARENTS[self.class].any? { |klass| node.is_a?(klass) } }
         constrain token, Token
 
         @parent = parent
@@ -24,11 +25,11 @@ module ShellOpts
       end
 
       def dump
-        puts "#{self.class} @ #{token.pos} #{token.source}"
+        puts "#{classname} @ #{token.pos} #{token.source}"
       end
 
       def dump_ast
-        puts "#{self.class} @ #{token.pos} #{token.source}"
+        puts "#{classname} @ #{token.pos} #{token.source}"
         indent { children.each(&:dump_ast) }
       end
 
@@ -45,13 +46,13 @@ module ShellOpts
         }
       end
 
-
-
     protected
       def do_traverse(klasses, &block)
         yield(self) if klasses.any? { |klass| self.is_a?(klass) }
         children.each { |node| node.traverse(klasses, &block) }
       end
+
+      def classname() self.class.to_s.sub(/.*::/, "") end
 
       def err(message)
         raise CompilerError, "#{token.pos} #{message}"
@@ -221,6 +222,9 @@ module ShellOpts
     class Text < DocNode
     end
 
+    class Blank < Text
+    end
+
     class Paragraph < DocNode
     end
 
@@ -232,6 +236,23 @@ module ShellOpts
         end
       end
 
+    end
+
+    class Node
+      ALLOWED_PARENTS = {
+        Program => [NilClass],
+        Command => [Command],
+        OptionGroup => [Command],
+        Option => [OptionGroup],
+        Spec => [Command],
+        Argument => [Spec],
+        Usage => [Command],
+        Brief => [Command, OptionGroup, Spec, Usage],
+        Paragraph => [Command, OptionGroup],
+        Code => [Command, OptionGroup],
+        Text => [Paragraph, Code],
+        Blank => [Code]
+      }
     end
   end
 end
