@@ -22,6 +22,7 @@ require 'new/lexer.rb'
 require 'new/argument_type.rb'
 require 'new/parser.rb'
 require 'new/analyzer.rb'
+require 'new/dump.rb'
 
 require 'indented_io'
 
@@ -73,13 +74,13 @@ module ShellOpts
 #     exit
 
       @grammar = Parser.parse(@tokens)
-      @grammar.dump_ast
-      puts
-      exit
+#     @grammar.dump_ast
+#     puts
+#     exit
 
 
       Analyzer.analyze(@grammar)
-      @grammar.dump
+      @grammar.dump_idr
       puts
       exit
 

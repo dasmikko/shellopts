@@ -1,5 +1,7 @@
 module ShellOpts
   module Grammar
+    # Except for parent, children, and token, all members are initialized by calling
+    # #parse on the object
     class Node
       attr_reader :parent
       attr_reader :children
@@ -13,46 +15,22 @@ module ShellOpts
         @parent = parent
         @children = []
         @token = token
-        @parent.children << self if @parent
+        @parent.send(:attach, self) if @parent
       end
 
       def traverse(*klasses, &block)
         do_traverse(Array(klasses).flatten, &block)
       end
 
-      def render
-        children.each(&:render)
-      end
-
-      def dump
-        puts "#{classname} @ #{token.pos} #{token.source}"
-      end
-
-      def dump_ast
-        puts "#{classname} @ #{token.pos} #{token.source}"
-        indent { children.each(&:dump_ast) }
-      end
-
-      def dump_attrs(*attrs)
-        indent {
-          Array(attrs).flatten.each { |attr|
-            value = self.send(attr)
-            if value.is_a?(DocNode)
-              puts "#{attr}: #{value.to_s}"
-            else
-              puts "#{attr}: #{value.inspect}"
-            end
-          }
-        }
-      end
-
     protected
+      def attach(child)
+        @children << child
+      end
+
       def do_traverse(klasses, &block)
         yield(self) if klasses.any? { |klass| self.is_a?(klass) }
         children.each { |node| node.traverse(klasses, &block) }
       end
-
-      def classname() self.class.to_s.sub(/.*::/, "") end
 
       def err(message)
         raise CompilerError, "#{token.pos} #{message}"
@@ -60,7 +38,11 @@ module ShellOpts
     end
 
     class Option < Node
+      # Command of this object
       def command() parent.parent end # double-parent because options live in option groups
+
+      # Option group of this object
+      def group() parent end
 
       # Symbolic identifier. This is the canonical name of the option with
       # dashes replaced with underscores. It is only defined if it doesn't
@@ -87,7 +69,7 @@ module ShellOpts
       # Value argument_type. An OptionArgument object
       attr_reader :argument_type
 
-      # Brief description (a String)
+      # Brief description (a String). FIXME: This lives on the OptionGroup object
       attr_accessor :brief
 
       def repeatable?() @repeatable end
@@ -101,26 +83,8 @@ module ShellOpts
 
       def match?(value) argument_type.match?(value) end
 
-      def initialize(parent, token)
-        super(parent, token)
-      end
-
-      def name_list
-        (short_names.map { |name| "-#{name}" } + long_names.map { |name| "--#{name}" }).join(", ")
-      end
-
-      def dump
-        super
-#       p parent.class
-#       p parent.parent.class
-#       p parent.parent.name
-#       indent { puts "command: #{command.name || "nil"}" }
-#       exit
-        dump_attrs(
-            :ident, :name, :short_names, :long_names, :argument_name, :brief,
-            :repeatable?, :argument?, :integer?, :float?, :file?, :enum?, :string?, 
-            :optional?)
-      end
+      # List of allowed enum values
+      def enum() @argument_type.values end
     end
 
     class OptionGroup < Node
@@ -133,39 +97,39 @@ module ShellOpts
         super(parent, token)
       end
 
-      def dump
+    protected
+      def attach(child)
         super
-        dump_attrs(:command, :ṗarent)
-        children.each(&:dump)
+        command.options << child if child.is_a?(Option)
       end
     end
 
     class Command < Node
       alias_method :command, :parent
 
-      # Command identifier (incl. the exclamation mark)
+      # Command identifier
       def ident() "#{name}!".to_sym end
 
-      # Name of command without the exclamation mark. String
+      # Name of command without the exclamation mark
       attr_reader :name
 
       # Path of command
       attr_reader :path
 
-      # Array of options in declaration order (initialized by the analyzer)
+      # Brief description of command
+      attr_accessor :brief
+
+      # Array of options in declaration order
       attr_reader :options
 
-      # Array of sub-commands (initialized by the analyzer)
+      # Array of sub-commands
       attr_reader :commands
 
-      # Argument specification object
-      attr_reader :spec
+      # Argument specification objects
+      attr_reader :specs
 
-      # Usage if present
-      attr_reader :usage
-
-      # Brief description of command (a String)
-      attr_accessor :brief
+      # Usage(s) if present
+      attr_reader :usages
 
       def initialize(parent, token)
         super
@@ -173,26 +137,27 @@ module ShellOpts
         @options_hash = {}
         @commands = []
         @commands_hash = {}
-        @arguments = []
+        @specs = []
+        @usages = []
       end
 
       # Maps from any name of an option or command (incl. the '!') to the
-      # associated option. Names can be a Symbol or String objects
-      def [](name) (name.to_s =~ /!$/ ? @commands_hash : @options_hash)[name] end
-      def key?(name) (name.to_s =~ /!$/ ? @commands_hash : @options_hash).key?(name) end
+      # associated option. Names can be a Symbol or String objects. #[] and
+      # #key? can't be used until after the analyze phase
+      def [](name) (name.to_s =~ /!$/ ? @commands_hash : options_hash)[name] end
+      def key?(name) (name.to_s =~ /!$/ ? @commands_hash : options_hash).key?(name) end
 
-      def dump
+    protected
+      def attach(child)
         super
-        indent { puts "command: #{command&.ident || "nil"}" }
-        dump_attrs(:name, :path, :brief)
-        indent { 
-        puts "Options" if !options.empty?
-          indent { options.each(&:dump) }
-          puts "Commands" if !commands.empty?
-          indent { commands.each(&:dump) }
-#         puts "Arguments" if !arguments.empty?
-#         indent { arguments.each(&:dump) }
-        }
+        # Check for duplicates happens in the analyze stage
+        case child
+          # Options are handled by the OptionGroup
+          when Command; commands << child
+          when Spec; specs << child
+          when Usage; usages << child
+          when Brief; @brief = brief
+        end
       end
     end
 
@@ -200,13 +165,23 @@ module ShellOpts
     end
 
     class Spec < Node
+      # List of Argument objects (initialized by the analyzer)
+      alias_method :command, :parent
+
       attr_reader :arguments
+
+      def initialize(parent, token)
+        super
+        @arguments = []
+      end
     end
 
     class Argument < Node
+      alias_method :spec, :parent
     end
 
     class Usage < Node
+      alias_method :command, :parent
     end
 
     class DocNode < Node
@@ -215,6 +190,8 @@ module ShellOpts
     end
 
     class Brief < DocNode
+      alias_method :subject, :parent # Either a command or an option
+
       def parse() @text = token.source.sub(/^#\s*/, "") end
     end
 
@@ -226,6 +203,7 @@ module ShellOpts
     end
 
     class Paragraph < DocNode
+      alias_method :command, :parent
     end
 
     class Code < Paragraph
