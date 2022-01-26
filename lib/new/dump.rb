@@ -29,7 +29,8 @@ module ShellOpts
                   puts "#{attr}: #{value.inspect}"
                 end
             else
-              puts "#{attr}: #{value.inspect}"
+              value = value.inspect if value.nil? || !value.respond_to?(:to_s)
+              puts "#{attr}: #{value}"
             end
           }
         }
@@ -43,8 +44,11 @@ module ShellOpts
       def dump_idr
         puts "#{name}: #{classname}"
         dump_attrs(
-            :ident, :name, :short_names, :long_names, :argument_name, :brief,
-            :repeatable?, :argument?, :integer?, :float?, :file?, :enum?, enum? && :enum, :string?, 
+            :ident, :name, :short_names, :long_names, :brief,
+            :repeatable?, 
+            :argument?, argument? && :argument_name, argument? && :argument_type, 
+            :integer?, :float?, :file?, 
+            :enum?, enum? && :enum, :string?, 
             :optional?)
       end
     end
@@ -53,6 +57,19 @@ module ShellOpts
       def dump_idr
         puts "#{name}: #{classname}"
         dump_attrs :ident, :name, :path, :options, :commands, :specs, :usages, :brief
+      end
+    end
+
+    class Spec < Node
+      def dump_idr
+        super
+        dump_attrs :arguments
+      end
+    end
+
+    class Argument < Node
+      def dump_idr
+        puts "<type>"
       end
     end
   end

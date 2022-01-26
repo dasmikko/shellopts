@@ -54,20 +54,33 @@ module ShellOpts
       # used to compute #ident
       attr_reader :name
 
-      # Short option names
-      attr_reader :short_names
+      # Short option identfiers. This is the short names of the option as
+      # symbols and without the initial '-'
+      attr_reader :short_idents
 
-      # Long option names
-      attr_reader :long_names
+      # Long option identifiers. This is the long names of the option without
+      # the initial '--' and converted to symbols
+      attr_reader :long_idents
 
-      # Names of option. Includes both short and long option names
-      def names() @names = short_names + long_names end
+      # Short option names (with '-')
+      def short_names() @short_name ||= short_idents.map { |ident| "-#{ident}" } end
+
+      # Long option names (with '--')
+      def long_names() @long_name ||= long_idents.map { |ident| "-#{ident}" } end
+
+      # Names of option. Includes both short and long option names. Note that
+      # there is no corresponding #idents method because short and long
+      # identifiers can contain duplicates
+      def names() @names ||= short_names + long_names end
 
       # Name of argument or nil if not present
       attr_reader :argument_name
 
-      # Value argument_type. An OptionArgument object
+      # Type of argument (ArgumentType)
       attr_reader :argument_type
+
+      # Enum values if argument type is an enumerator
+      def argument_enum() @argument_type.values end
 
       # Brief description (a String). FIXME: This lives on the OptionGroup object
       attr_accessor :brief
@@ -82,9 +95,6 @@ module ShellOpts
       def optional?() @optional end
 
       def match?(value) argument_type.match?(value) end
-
-      # List of allowed enum values
-      def enum() @argument_type.values end
     end
 
     class OptionGroup < Node
@@ -174,6 +184,11 @@ module ShellOpts
         super
         @arguments = []
       end
+
+    protected
+      def attach(child)
+        arguments << child if child.is_a?(Argument)
+      end
     end
 
     class Argument < Node
@@ -213,7 +228,6 @@ module ShellOpts
           children.map { |line| " " * (line.token.char - indent) + line.token.source }.join("\n") 
         end
       end
-
     end
 
     class Node
@@ -257,45 +271,3 @@ __END__
               (include_self ? [self] : [])
         end
       end
-
-    class OptionArgument
-      def source() end
-      def to_s() end
-      def convert(value) value end
-    end
-
-    class IntegerArgument < OptionArgument
-      def match?(value) value.is_a?(Integer) end
-      def convert(value) value.to_i end
-    end
-
-    class FloatArgument < OptionArgument
-      def match?(value) value.is_a?(Number) end
-      def convert(value) value.to_f end
-    end
-
-    class FileSystemArgument < OptionArgument
-      attr_reader :kind # :file, :dir, :node, :filepath, :dirpath, :path, :new
-      def initialize(kind) 
-        @kind = kind 
-      end
-      def match?(value)
-        case kind
-          when :file; File.file?(value)
-          when :dir; File.directory?(value)
-          when :node; File.exist?(value)
-          when :filepath; File.file?(value) || File.exist?(File.dirname(value))
-          when :dirpath; File.directory?(value) || File.exist?(File.dirname(value))
-          when :path; File.exist?(value) || File.exist?(File.dirname(value))
-        else
-          raise InternalError, "Illegal kind: #{kind.inspect}"
-        end
-      end
-    end
-
-    class EnumArgument < OptionArgument
-      attr_reader :values
-      def initialize(values) @values = values.dup end
-      def match?(value) values.include?(value) end
-    end
-

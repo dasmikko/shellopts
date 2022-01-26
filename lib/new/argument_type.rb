@@ -1,6 +1,8 @@
 module ShellOpts
   module Grammar
     class ArgumentType
+      def name() self.class.to_s.sub(/.*::/, "").sub(/Argument/, "") end
+      def to_s() name end
       def convert(value) value end
       def match?(value) true end
     end
