@@ -50,7 +50,7 @@ module ShellOpts
       lines.shift_while { |line| line =~ /^(?:#.*)?$/ }
       initial_indent = lines.first&.char
 
-      @tokens = [Token.new(:program, 0, -1, @name)]
+      @tokens = [Token.new(:program, 0, -1, "!#@name")]
       while line = lines.shift
         # Pass-trough blank lines
         if line.to_s == ""

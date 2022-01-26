@@ -9,7 +9,7 @@ module ShellOpts
 
       def initialize(parent, token)
         constrain parent, Node, nil
-        constrain parent, lambda { |node| ALLOWED_PARENTS[self.class].any? { |klass| node.is_a?(klass) } }
+        constrain parent, nil, lambda { |node| ALLOWED_PARENTS[self.class].any? { |klass| node.is_a?(klass) } }
         constrain token, Token
 
         @parent = parent
@@ -37,41 +37,65 @@ module ShellOpts
       end
     end
 
-    class Option < Node
+    class IdrNode < Node
       # Command of this object
+      alias_method :command, :parent
+
+      # Unique identifier of node (String). This is the path elements
+      # concatenated with '.'
+      attr_reader :uid
+
+      # Path from Program object and down to this node. Array of identifiers
+      attr_reader :path
+
+      # Canonical identifier (Symbol) of the object
+      #
+      # For options, this is the canonical name of the objekt without the
+      # initial '-' or '--', for commands it is the command name including the
+      # suffixed exclamation mark. Both option and comamnd have internal dashes
+      # replaced with underscores
+      #
+      # Note that an identifier can't be mapped back to a option name because
+      # '--include-dash' and '--include_dash' both maps to :include_dash
+      attr_reader :ident
+
+      # Canonical name (String) of the object
+      #
+      # This is the name of the object as the user sees it. For options it is
+      # the name of the first long option or the name of the first short option
+      # if there is no long option name. For commands it is the name without
+      # the exclamation mark
+      attr_reader :name
+
+      # The associated attribute (Symbol) in the parent command object. nil if
+      # #ident is a reserved word
+      attr_reader :attr
+    end
+
+    class Option < IdrNode
+      # Redefine command of this object
       def command() parent.parent end # double-parent because options live in option groups
 
       # Option group of this object
       def group() parent end
 
-      # Symbolic identifier. This is the canonical name of the option with
-      # dashes replaced with underscores. It is only defined if it doesn't
-      # clash with the enclosing command's member methods.
-      attr_reader :ident
-
-      # Canonical name. This is the name of the first long option or the name
-      # of the first short option if there is no long option name. It is also
-      # used to compute #ident
-      attr_reader :name
-
-      # Short option identfiers. This is the short names of the option as
-      # symbols and without the initial '-'
+      # Short option identfiers
       attr_reader :short_idents
 
-      # Long option identifiers. This is the long names of the option without
-      # the initial '--' and converted to symbols
+      # Long option identifiers
       attr_reader :long_idents
 
-      # Short option names (with '-')
-      def short_names() @short_name ||= short_idents.map { |ident| "-#{ident}" } end
+      # Short option names (including initial '-')
+      attr_reader :short_names
 
-      # Long option names (with '--')
-      def long_names() @long_name ||= long_idents.map { |ident| "-#{ident}" } end
+      # Long option names (including initial '--')
+      attr_reader :long_names
 
-      # Names of option. Includes both short and long option names. Note that
-      # there is no corresponding #idents method because short and long
-      # identifiers can contain duplicates
-      def names() @names ||= short_names + long_names end
+      # Identifiers of option. Include both short and long identifiers
+      def idents() short_idents + long_idents end
+
+      # Names of option. Includes both short and long option names
+      def names() short_names + long_names end
 
       # Name of argument or nil if not present
       attr_reader :argument_name
@@ -114,18 +138,7 @@ module ShellOpts
       end
     end
 
-    class Command < Node
-      alias_method :command, :parent
-
-      # Command identifier
-      def ident() "#{name}!".to_sym end
-
-      # Name of command without the exclamation mark
-      attr_reader :name
-
-      # Path of command
-      attr_reader :path
-
+    class Command < IdrNode
       # Brief description of command
       attr_accessor :brief
 
@@ -144,18 +157,18 @@ module ShellOpts
       def initialize(parent, token)
         super
         @options = []
-        @options_hash = {}
+        @options_hash = {} # Map from possible multiple option names to option
         @commands = []
         @commands_hash = {}
         @specs = []
         @usages = []
       end
 
-      # Maps from any name of an option or command (incl. the '!') to the
-      # associated option. Names can be a Symbol or String objects. #[] and
-      # #key? can't be used until after the analyze phase
-      def [](name) (name.to_s =~ /!$/ ? @commands_hash : options_hash)[name] end
-      def key?(name) (name.to_s =~ /!$/ ? @commands_hash : options_hash).key?(name) end
+      # Maps from any name or identifier of an option or command (incl. the
+      # '!') to the associated option. #[] and #key? can't be used until after
+      # the analyze phase
+      def [](key) (key.to_s =~ /!$/ ? @commands_hash : @options_hash)[key] end
+      def key?(key) (key.to_s =~ /!$/ ? @commands_hash : @options_hash).key?(key) end
 
     protected
       def attach(child)
@@ -249,25 +262,3 @@ module ShellOpts
   end
 end
 
-__END__
-      # Return list of nodes in preorder or execute block on each node
-      def preorder(include_self: true, &block)
-        if block_given?
-          yield(self) if include_self
-          children.each { |e| e.preorder(include_self: include_self, &block) }
-        else
-          (include_self ? [self] : []) + 
-              children.inject([]) { |a,e| a + e.preorder(include_self: include_self) }
-        end
-      end
-
-      # Return list of nodes in postorder. If block given execute block on each node
-      def postorder(&block)
-        if block_given?
-          children.each { |e| e.postorder(include_self: include_self, &block) }
-          yield(self) if include_self
-        else
-          children.inject([]) { |a,e| a + e.postorder(include_self: include_self) } +
-              (include_self ? [self] : [])
-        end
-      end

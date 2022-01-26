@@ -28,9 +28,11 @@ module ShellOpts
                 else
                   puts "#{attr}: #{value.inspect}"
                 end
+              when ArgumentType
+                puts "#{attr}: #{value}"
             else
-              value = value.inspect if value.nil? || !value.respond_to?(:to_s)
-              puts "#{attr}: #{value}"
+#             value = value.inspect if value.nil? || !value.respond_to?(:to_s)
+              puts "#{attr}: #{value.inspect}"
             end
           }
         }
@@ -40,23 +42,23 @@ module ShellOpts
       def classname() self.class.to_s.sub(/.*::/, "") end
     end
 
-    class Option < Node
+    class Option < IdrNode
       def dump_idr
         puts "#{name}: #{classname}"
         dump_attrs(
-            :ident, :name, :short_names, :long_names, :brief,
+            :uid, :path, :attr, :ident, :name, :idents, :names, :brief,
             :repeatable?, 
             :argument?, argument? && :argument_name, argument? && :argument_type, 
             :integer?, :float?, :file?, 
-            :enum?, enum? && :enum, :string?, 
+            :enum?, enum? && :argument_enum, :string?, 
             :optional?)
       end
     end
 
-    class Command < Node
+    class Command < IdrNode
       def dump_idr
         puts "#{name}: #{classname}"
-        dump_attrs :ident, :name, :path, :options, :commands, :specs, :usages, :brief
+        dump_attrs :uid, :path, :ident, :name, :options, :commands, :specs, :usages, :brief
       end
     end
 

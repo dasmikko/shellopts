@@ -2,64 +2,58 @@
 module ShellOpts
   module Grammar
     class Node
-      def parse
-        ;
-      end
+      def parse() end
 
       def self.parse(parent, token)
         this = self.new(parent, token)
         this.parse
         this
       end
+
+      def parser_error(token, message) raise ParserError, "#{token.pos} #{message}" end
     end
 
-    # Grammar
-    #   [ "+" ] name-list [ "=" [ label ] [ ":" [ "#" | "$" | enum | special-constant ] ] [ "?" ] ]
-    #
-    #   -a=               # Renders as -a=
-    #   -a=#              # Renders as -a=INT
-    #   -b=$              # Renders as -b=NUM
-    #   -c=a,b,c          # Renders as -c=a|b|c
-    #   -d=3..5           # Renders as -d=3..5
-    #   -e=:DIR           # Renders as -e=DIR
-    #   -f=:FILE          # Renders as -f=FILE
-    #
-    #   -o=COUNT          
-    #   -a=COUNT:#
-    #   -b=COUNT:$
-    #   -c=COUNT:a,b,c
-    #   -e=DIR:DIRPATH
-    #   -f=FILE:FILEPATH
-    #
-    # Special constants
-    #
-    #           Exist   Missing   Optional
-    #
-    #   File    FILE    -         FILEPATH
-    #   Dir     DIR     -         DIRPATH
-    #   Node    NODE    NEW       PATH
-    #
-    class Option < Node
+    class IdrNode < Node
+      # Assume @ident and @name has been defined
       def parse
-        token.source =~ /^(-|--|\+|\+\+)([a-zA-Z0-9][a-zA-Z0-9_,-]*)(?:=(.+?)(\?)?)?$/ or 
-            raise ParserError, "Illegal option: #{token.source.inspect}"
+        @attr = ::ShellOpts::Expr::Command::RESERVED_OPTION_NAMES.include?(ident.to_s) ? nil : ident
+        @path = (command&.path || []) + [ident]
+        @uid = @path.join(".")
+      end
+    end
+
+    class Option < IdrNode
+      SHORT_NAME_RE = /[a-zA-Z0-9]/
+      LONG_NAME_RE = /[a-zA-Z0-9][a-zA-Z0-9_-]*/
+      NAME_RE = /(?:#{SHORT_NAME_RE}|#{LONG_NAME_RE})(?:,#{LONG_NAME_RE})*/
+      p NAME_RE.source
+
+      def parse
+        token.source =~ /^(-|--|\+|\+\+)(#{NAME_RE})(?:=(.+?)(\?)?)?$/ or 
+            parser_error token, "Illegal option: #{token.source.inspect}"
         initial = $1
-        names = $2
+        name_list = $2
         arg = $3
         optional = $4
 
         @repeatable = %w(+ ++).include?(initial)
 
-        names = names.split(",").map { |name| name.sub("-", "_") }
+        @short_idents = []
         @short_names = []
-        if %(- +).include?(initial)
+        names = name_list.split(",")
+        if %w(+ -).include?(initial)
           while names.first&.size == 1
-            @short_names << names.shift
+            name = names.shift
+            @short_names << "-#{name}"
+            @short_idents << name.to_sym
           end
         end
-        @long_names = names
+        @long_names = names.map { |name| "--#{name}" }
+        @long_idents = names.map { |name| name.tr("-", "_").to_sym }
+
         @name = @long_names.first || @short_names.first
-        @ident = ::ShellOpts::Expr::Command::RESERVED_OPTION_NAMES.include?(name) ? nil : name.to_sym
+        @ident = @long_idents.first || @short_idents.first
+
         @argument = !arg.nil?
 
         named = true
@@ -90,7 +84,7 @@ module ShellOpts
               @argument_name ||= arg
               @argument_type = EnumArgument.new(arg.split(","))
             else
-              named && @argument_name.nil? or raise ParserError, "Illegal type expression: #{arg.inspect}"
+              named && @argument_name.nil? or parser_error token, "Illegal type expression: #{arg.inspect}"
               @argument_name = arg
               @argument_type = ArgumentType.new
           end
@@ -98,13 +92,18 @@ module ShellOpts
         else
           @argument_type = ArgumentType.new
         end
+        super
       end
+
+    private
+      def basename2ident(s) s.tr("-", "_").to_sym end
     end
 
-    class Command < Node
+    class Command < IdrNode
       def parse
-        @path = token.to_s.sub("!", "")
-        @name = @path.split(".").last
+        @name = token.source.split(".").last.sub(/^!/, "")
+        @ident = "#{@name}!".to_sym
+        super
       end
     end
 
@@ -134,17 +133,15 @@ module ShellOpts
 
     def initialize(tokens)
       @tokens = tokens.dup
-      @nodes = [] # Stack of Nodes. Follows the indentation of the source
-      @commands = [] # Stack of commands
     end
 
     def parse()
       @program = Program.parse(tokens.shift)
-      nodes.push @program
-      commands.push @program
+      nodes = [@program] # Stack of Nodes. Follows the indentation of the source
+      commands = [@program] # Stack of commands. Used to keep track of the curren command
 
       while token = tokens.shift
-        while token.char <= indent
+        while token.char <= nodes.top.token.char
           node = nodes.pop
           commands.pop if commands.top == node
           !nodes.empty? or err(token, "Illegal indent")
@@ -219,12 +216,6 @@ module ShellOpts
     def self.parse(tokens)
       self.new(tokens).parse
     end
-
-  protected
-    attr_reader :nodes
-    attr_reader :commands
-    def indent() @nodes.top.token.char end
-    def err(token, message) raise ParserError, "#{token.pos} #{message}" end
   end
 end
 

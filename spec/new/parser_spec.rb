@@ -6,8 +6,9 @@ end
 
 describe "Option#parse" do
   def opt(source, method = nil)
-    token = Token.new(:option, 1, 1, source)
-    option = Grammar::Option.parse(nil, token)
+    tokens = Lexer.lex("main", source)
+    program = Parser.parse(tokens)
+    option = program.options.first
     method ? option.send(method) : option
   end
 
@@ -28,27 +29,38 @@ describe "Option#parse" do
     expect { opt "++l,long" }.not_to raise_error
   end
 
-  it "sets ident" # TODO
+  context "sets ident" do
+    context "to the name of the option" do
+      it "without initial '-' and '--'" do
+        expect(opt "-l", :ident).to eq :l
+        expect(opt "--long", :ident).to eq :long
+      end
+      it "with internal '-' replaced with '_'" do
+        expect(opt "--with-separator", :ident).to eq :with_separator
+        expect(opt "--with_separator", :ident).to eq :with_separator
+      end
+    end
+  end
 
   context "sets name" do
     it "to the name of the first long option if present" do
-      expect(opt "-s,long,more", :name).to eq "long"
+      expect(opt "-s,long,more", :name).to eq "--long"
     end
     it "and otherwise to the name of the first short option" do
-      expect(opt "-s,t", :name).to eq "s"
+      expect(opt "-s,t", :name).to eq "-s"
     end
   end
 
   it "sets short_names" do
     expect(opt "--long", :short_names).to eq []
-    expect(opt "-a,b", :short_names).to eq %w(a b)
-    expect(opt "-a,b,long", :short_names).to eq %w(a b)
+    expect(opt "-a,b", :short_names).to eq %w(-a -b)
+    expect(opt "-a,b,long", :short_names).to eq %w(-a -b)
   end
 
   it "sets long_names" do
     expect(opt "-a", :long_names).to eq []
-    expect(opt "--long,more", :long_names).to eq %w(long more)
-    expect(opt "-a,long,more", :long_names).to eq %w(long more)
+    expect(opt "--long,more", :long_names).to eq %w(--long --more)
+    expect(opt "-a,long,more", :long_names).to eq %w(--long --more)
   end
 
   it "sets repeatable?" do
