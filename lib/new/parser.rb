@@ -26,7 +26,6 @@ module ShellOpts
       SHORT_NAME_RE = /[a-zA-Z0-9]/
       LONG_NAME_RE = /[a-zA-Z0-9][a-zA-Z0-9_-]*/
       NAME_RE = /(?:#{SHORT_NAME_RE}|#{LONG_NAME_RE})(?:,#{LONG_NAME_RE})*/
-      p NAME_RE.source
 
       def parse
         token.source =~ /^(-|--|\+|\+\+)(#{NAME_RE})(?:=(.+?)(\?)?)?$/ or 
@@ -70,7 +69,7 @@ module ShellOpts
           case arg
             when "", nil
               @argument_name ||= "VAL"
-              @argument_type = ArgumentType.new
+              @argument_type = StringType.new
             when "#"
               @argument_name ||= "INT"
               @argument_type = IntegerArgument.new
@@ -86,11 +85,11 @@ module ShellOpts
             else
               named && @argument_name.nil? or parser_error token, "Illegal type expression: #{arg.inspect}"
               @argument_name = arg
-              @argument_type = ArgumentType.new
+              @argument_type = StringType.new
           end
           @optional = !optional.nil?
         else
-          @argument_type = ArgumentType.new
+          @argument_type = StringType.new
         end
         super
       end

@@ -6,8 +6,8 @@ module ShellOpts
         indent { children.each(&:dump_ast) }
       end
 
-      def dump_idr
-        puts "#{classname}"
+      def dump_idr(short = false)
+        puts "#{classname}" if !short
       end
 
       def dump_attrs(*attrs)
@@ -43,36 +43,60 @@ module ShellOpts
     end
 
     class Option < IdrNode
-      def dump_idr
-        puts "#{name}: #{classname}"
-        dump_attrs(
-            :uid, :path, :attr, :ident, :name, :idents, :names, :brief,
-            :repeatable?, 
-            :argument?, argument? && :argument_name, argument? && :argument_type, 
-            :integer?, :float?, :file?, 
-            :enum?, enum? && :argument_enum, :string?, 
-            :optional?)
+      def dump_idr(short = false)
+        if short
+          s = [
+              name, 
+              argument? ? argument_type.name : nil, 
+              optional? ? "?" : nil, 
+              repeatable? ? "*" : nil
+          ].compact.join(" ")
+          puts s
+        else
+          puts "#{name}: #{classname}"
+          dump_attrs(
+              :uid, :path, :attr, :ident, :name, :idents, :names, :brief,
+              :repeatable?, 
+              :argument?, argument? && :argument_name, argument? && :argument_type, 
+              :enum?, enum? && :argument_enum, 
+              :optional?)
+        end
       end
     end
 
     class Command < IdrNode
-      def dump_idr
-        puts "#{name}: #{classname}"
-        dump_attrs :uid, :path, :ident, :name, :options, :commands, :specs, :usages, :brief
+      def dump_idr(short = false)
+        if short
+          puts "#{name}"
+          indent { 
+            options.each { |option| option.dump_idr(short) }
+            commands.each { |command| command.dump_idr(short) }
+          } 
+        else
+          puts "#{name}: #{classname}"
+          dump_attrs :uid, :path, :ident, :name, :options, :commands, :specs, :usages, :brief
+        end
       end
     end
 
     class Spec < Node
-      def dump_idr
+      def dump_idr(short = false)
         super
         dump_attrs :arguments
       end
     end
 
     class Argument < Node
-      def dump_idr
+      def dump_idr(short = false)
         puts "<type>"
       end
     end
   end
+
+# module Expr
+#   class Command
+#     def self.dump(expr)
+#     end
+#   end
+# end
 end

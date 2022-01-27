@@ -21,10 +21,17 @@ module ShellOpts
           singleton_method_added singleton_method_removed
           singleton_method_undefined)
 
-      def initialize(grammar)
+      def self.new(grammar)
+        object = super()
+        object.__initialize__(grammar)
+        object
+      end
+
+      def __initialize__(grammar)
+        ::Kernel.p :BING
         @__grammar__ = grammar
         @__options__ = [] 
-        @__options_arguments__ = []
+        @__options_arguments__ = {}
         @__command__ = nil
       end
 
@@ -78,6 +85,14 @@ module ShellOpts
       def __command__() @__command__&.ident end
       def __command__!() @__command__ end
 
+      def __dump__(argv = [])
+        ::Kernel.puts __name__
+        ::Kernel.indent {
+          __options__.each { |option| option.__dump__ }
+          ::Kernel.puts argv.map(&:inspect).join(" ") if !argv.empty?
+        }
+      end
+
       # Class-level accessor methods. Note: Also defined in ShellOpts::ShellOpts
       def self.ident(command) command.__ident__ end
       def self.name(command) command.__name__ end
@@ -86,24 +101,27 @@ module ShellOpts
       def self.command(command) command.__commmand__ end
       def self.command!(command) command.__command__! end
 
+      def self.dump(expr, argv = []) expr.__dump__(argv) end
+
     private
       # Canonical name (identifier, actually)
       def __identifier__(name)
-        @grammar[name]&.ident or 
+        @__grammar__[name]&.ident or 
             raise InterpreterError, "Unknown option name: #{name.inspect}"
       end
 
       def __add_option__(option)
+        ident = option.grammar.ident
         @__options__ << option
         if option.repeatable?
           if option.argument?
-            (@__options_arguments__[option.ident] ||= []) << option.argument
+            (@__options_arguments__[ident] ||= []) << option.argument
           else
-            @__options_arguments__[option.ident] ||= 0
-            @__options_arguments__[option.ident] += 1
+            @__options_arguments__[ident] ||= 0
+            @__options_arguments__[ident] += 1
           end
         else
-          @__options_arguments__[option.ident] = option.argument
+          @__options_arguments__[ident] = option.argument
         end
       end
 
@@ -111,8 +129,8 @@ module ShellOpts
         @__command__ = command
       end
 
-      def self.add_option(command, option) command.send(:__add_option__, option) end
-      def self.add_command(command, cmd) command.send(:__add_comman__, cmd) end
+      def self.add_option(command, option) command.__send__(:__add_option__, option) end
+      def self.add_command(command, cmd) command.__send__(:__add_command__, cmd) end
     end
 
     class Option < BasicObject
@@ -130,8 +148,18 @@ module ShellOpts
           :repeatable?, :argument?, :integer?, :float?,
           :file?, :enum?, :string?, :optional?
 
-      def initialize(grammar, name, argument)
+      def __initialize__(grammar, name, argument)
         @grammar, @name, @argument = grammar, name, argument
+      end
+
+      def self.new(grammar, name, argument)
+        object = super()
+        object.__initialize__(grammar, name, argument)
+        object
+      end
+
+      def __dump__
+        ::Kernel.puts [name, argument].compact.join(" ")
       end
     end
   end

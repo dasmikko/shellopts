@@ -49,8 +49,8 @@ module ShellOpts
         command.collect_options 
         command.collect_commands
       }
-      
       @grammar.traverse { |node| node.remove_brief_nodes }
+      @grammar
     end
 
     def Analyzer.analyze(source) self.new(source).analyze end

@@ -4,6 +4,8 @@ $verb = nil
 $debug = nil
 $shellopts = nil
 
+require 'indented_io'
+
 #$LOAD_PATH.unshift "../constrain/lib"
 require 'constrain'
 include Constrain
@@ -22,9 +24,8 @@ require 'new/lexer.rb'
 require 'new/argument_type.rb'
 require 'new/parser.rb'
 require 'new/analyzer.rb'
+require 'new/compiler.rb'
 require 'new/dump.rb'
-
-require 'indented_io'
 
 # There are three interfaces for the reporting methods:
 #   o On a shellopts object
@@ -59,9 +60,9 @@ module ShellOpts
 
     # TODO Move to Compiler
     attr_reader :tokens
-    attr_reader :grammar
-    attr_reader :program
-    attr_reader :arguments
+    def grammar() @idr end
+    def program() @expr end
+    attr_reader :args
 
     def initialize(spec, argv, name: nil, exception: false)
       @name = name || File.basename($PROGRAM_NAME)
@@ -73,15 +74,20 @@ module ShellOpts
 #     puts
 #     exit
 
-      @grammar = Parser.parse(@tokens)
+      @ast = Parser.parse(@tokens)
 #     @grammar.dump_ast
 #     puts
 #     exit
 
 
-      Analyzer.analyze(@grammar)
-      @grammar.dump_idr
+      @idr = Analyzer.analyze(@ast) # @idr and @ast refer to the same object
+      @idr.dump_idr(true)
       puts
+#     exit
+
+      @expr, @args = Compiler.compile(@idr, @argv)
+      Expr::Command.dump(@expr, @args)
+      puts 
       exit
 
 #     grammar = Parser.parse(@spec)
