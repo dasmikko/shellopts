@@ -32,13 +32,4 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec", "~> 3.0"
   spec.add_development_dependency "indented_io"
   spec.add_development_dependency "simplecov"
-
-  # In development mode override load paths for gems whose source are located
-  # as siblings of this project directory. Only for fox-project. TODO Remove
-# if File.directory?("#{__dir__}/.git")
-#   local_projects = Dir["../*"].select { |path| 
-#     File.directory?(path) && File.exist?("#{path}/Gemfile")
-#   }.map { |relpath| "#{File.absolute_path(relpath)}/lib" }
-#   $LOAD_PATH.unshift *local_projects
-# end
 end
