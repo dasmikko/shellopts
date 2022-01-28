@@ -1,19 +1,9 @@
 
-o Fix that it is near unsable when the user doens't do 'include ShellOpts'
-o Subcommands can be parsed as well: 
-    opts, args = Shellopts.process(OPTIONS, ARGV)
-    ...
-    opts, command = opts.process
-    case command
-      when ...
-    end
+o Rename Expr -> ?
+o Find clean(er) procedural object model
+
+KEPT
 o Allow assignment to options (this makes practical stuff easier)
-o Parse and check enumeration arguments ('--debug=tokens|ast|idr|...')
-o Somehow escape comments where a line starts with an option name
-o 'help' should list commands in declaration order
-o 'help' should use all levels by default
-o 'help' should always include top-level options (try setting levels: 10 and
-  see top-level options are gone
 o Special handling of --help arguments so that '--help command' is possible
 o Support for paging of help:
     begin 
@@ -24,5 +14,23 @@ o Support for paging of help:
     ensure 
       file.close 
     end 
+
+OLD
+
+o Fix that it is near unsable when the user doesn't do 'include ShellOpts'
+o Subcommands can be parsed as well: 
+    opts, args = Shellopts.process(OPTIONS, ARGV)
+    ...
+    opts, command = opts.process
+    case command
+      when ...
+    end
+o 'help' should list commands in declaration order
+o 'help' should use all levels by default
+o 'help' should always include top-level options (try setting levels: 10 and
+  see top-level options are gone
 o A ShellOpts#shift command that makes it possible for Array#expect to emit
   relevant error messages
+
++ Somehow escape comments where a line starts with an option name
++ Parse and check enumeration arguments ('--debug=tokens|ast|idr|...')

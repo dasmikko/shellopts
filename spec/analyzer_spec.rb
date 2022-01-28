@@ -7,4 +7,10 @@ describe "ShellOpts" do
       end
     end
   end
+
+  describe "Analyzer" do
+    describe "#analyze" do
+      it "rejects duplicate options"
+    end
+  end
 end

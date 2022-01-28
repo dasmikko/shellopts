@@ -2,6 +2,24 @@
 include ShellOpts
 
 describe "Parser" do
+  def prog(source)
+    tokens = Lexer.lex("main", source)
+    program = Parser.parse(tokens)
+  end
+  describe "::parse" do
+    it "accepts !cmd" do
+      expect { prog "!cmd" }.not_to raise_error
+    end
+    it "accepts -a !cmd" do
+      expect { prog "-a !cmd" }.not_to raise_error
+    end
+    it "accepts -a !cmd -b" do
+      expect { prog "-a !cmd -b" }.not_to raise_error
+    end
+    it "accepts -a !cmd -a" do
+      expect { prog "-a !cmd -b" }.not_to raise_error
+    end
+  end
 end
 
 describe "Option#parse" do

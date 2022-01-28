@@ -98,7 +98,7 @@ module ShellOpts
       def __dump__(argv = [])
         ::Kernel.puts __name__
         ::Kernel.indent {
-          __options__.each { |option| option.dump }
+          __options__.each { |ident, value| ::Kernel.puts "#{ident}: #{value.inspect}" }
           __command__!&.__dump__
           ::Kernel.puts argv.map(&:inspect).join(" ") if !argv.empty?
         }
@@ -115,6 +115,4 @@ module ShellOpts
     end
   end
 end
-
-
 

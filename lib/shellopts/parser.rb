@@ -154,7 +154,7 @@ module ShellOpts
             Grammar::Option.parse(nodes.top, token)
 
           when :command
-            command = Command.parse(nodes.top, token)
+            command = Command.parse(commands.top, token)
             nodes.push command
             commands.push command
 
