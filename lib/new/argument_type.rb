@@ -49,35 +49,70 @@ module ShellOpts
     end
 
     class FileArgument < ArgumentType
-      attr_reader :kind # :file, :dir, :node, :filepath, :dirpath, :path, :new
+      attr_reader :kind # :file, :dir, :path, :efile, :edir, :epath, :nfile, :ndir, :npath
 
-      def initialize(kind) 
+      def initialize(kind)
+        constrain kind, :file, :dir, :path, :efile, :edir, :epath, :nfile, :ndir, :npath
         @kind = kind 
       end
 
       def match?(name, value)
-        puts "#{kind} matching against #{value.inspect}"
         case kind
-          when :file; match_path(name, value, "regular file", :file?, false)
-          when :dir; match_path(name, value, "directory", :file?, false)
-          when :node; match_path(name, value, nil, :exist?, false)
-          when :filepath; match_path(name, value, "regular file", :file?, true)
-          when :dirpath; match_path(name, value, "directory", :directory?, true)
-          when :path; match_path(name, value, nil, :exist?, true)
+          when :file; match_path(name, value, kind, :file?, :default)
+          when :dir; match_path(name, value, kind, :directory?, :default)
+          when :path; match_path(name, value, kind, :exist?, :default)
+
+          when :efile; match_path(name, value, kind, :file?, :exist)
+          when :edir; match_path(name, value, kind, :directory?, :exist)
+          when :epath; match_path(name, value, kind, :exist?, :exist)
+
+          when :nfile; match_path(name, value, kind, :file?, :new)
+          when :ndir; match_path(name, value, kind, :directory?, :new)
+          when :npath; match_path(name, value, kind, :exist?, :new)
         else
           raise InternalError, "Illegal kind: #{kind.inspect}"
         end
       end
 
-      def match_path(name, value, subject, method, use_path)
-        if File.send(method, value)
-          true
-        elsif File.exist?(value)
-          set_message "Expected #{subject} as #{name} argument: #{value}"
-        elsif File.exist?(File.dirname(value))
-          use_path or set_message "Error in #{name} argument: Can't find #{value}"
-        else
-          set_message "Illegal path in #{name}: #{value}"
+    protected
+      def match_path(name, value, kind, method, mode)
+        subject = 
+            case kind
+              when :file, :efile, :nfile; "regular file"
+              when :dir, :edir, :ndir; "directory"
+              when :path, :epath, :npath; "path"
+            else
+              raise ArgumentError
+            end
+
+        if File.send(method, value) # exists?
+          if mode == :new
+            set_message "#{subject.capitalize} already exists"
+          elsif kind == :path || kind == :epath
+            if File.file?(value) || File.directory?(value)
+              true
+            else
+              set_message "Expected regular file or directory as #{name} argument: #{value}"
+            end
+          else
+            true
+          end
+        elsif File.exist?(value) # exists but not the right type
+          if mode == :new
+            set_message "#{subject.capitalize} already exists"
+          else
+            set_message "Expected #{subject} as #{name} argument: #{value}"
+          end
+        else # does not exist
+          if [:default, :new].include? mode
+            if File.exist?(File.dirname(value))
+              true
+            else
+              set_message "Illegal path in #{name}: #{value}"
+            end
+          else
+            set_message "Error in #{name} argument: Can't find #{value}"
+          end
         end
       end
     end

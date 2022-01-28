@@ -27,3 +27,5 @@ tt.*
 s
 s.*
 
+# Ignore temporary directory
+/spec/tmpdir/
