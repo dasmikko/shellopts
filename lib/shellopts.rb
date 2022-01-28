@@ -16,16 +16,16 @@ include ForwardTo
 
 require 'shellopts/version.rb'
 
-require 'new/stack.rb'
-require 'new/token.rb'
-require 'new/grammar.rb'
-require 'new/expr.rb'
-require 'new/lexer.rb'
-require 'new/argument_type.rb'
-require 'new/parser.rb'
-require 'new/analyzer.rb'
-require 'new/compiler.rb'
-require 'new/dump.rb'
+require 'shellopts/stack.rb'
+require 'shellopts/token.rb'
+require 'shellopts/grammar.rb'
+require 'shellopts/expr.rb'
+require 'shellopts/lexer.rb'
+require 'shellopts/argument_type.rb'
+require 'shellopts/parser.rb'
+require 'shellopts/analyzer.rb'
+require 'shellopts/compiler.rb'
+require 'shellopts/dump.rb'
 
 # There are three interfaces for the reporting methods:
 #   o On a shellopts object
