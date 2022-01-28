@@ -1,6 +1,9 @@
 
 module ShellOpts
   module Expr
+    # Command represents a program or a subcommand. It is derived from
+    # BasicObject to have only a minimum of built in member methods
+    #
     # TODO
     # In addition to the methods defined below the following methods are
     # created dynamically for each declared option with an identifier (options
@@ -66,6 +69,8 @@ module ShellOpts
       # Note: Can be overridden by an option, in that case use
       # #__user_options__ or ::options instead. #options is usually not
       # necessary when processing the command line
+      #
+      # TODO: Rename option_list
       def user_options() __user_options__ end
 
       # The sub-command identifier (a Symbol incl. the exclamation mark) or nil
@@ -121,6 +126,50 @@ module ShellOpts
         @__user_options__ = [] 
         @__options__ = {}
         @__command__ = nil
+
+        __define_option_methods__
+      end
+
+      def __define_option_methods__
+        @__grammar__.options.each { |opt|
+          if opt.argument? || opt.repeatable?
+            if opt.optional?
+              self.instance_eval %(
+                def #{opt.ident}(default = nil)
+                  if @__options__.key?(:#{opt.ident}) 
+                    @__options__[:#{opt.ident}] || default
+                  else
+                    nil
+                  end
+                end
+              )
+            elsif !opt.argument?
+              self.instance_eval %(
+                def #{opt.ident}(default = nil) 
+                  if @__options__.key?(:#{opt.ident})
+                    value = @__options__[:#{opt.ident}] 
+                    value == 0 ? default : value
+                  else
+                    nil
+                  end
+                end
+              )
+            else
+              self.instance_eval("def #{opt.ident}() @__options__[:#{opt.ident}] end")
+            end
+            self.instance_eval("def #{opt.ident}=(value) @__options__[:#{opt.ident}] = value end")
+            @__options__[opt.ident] = 0 if !opt.argument?
+          end
+          self.instance_eval("def #{opt.ident}?() @__options__.key?(:#{opt.ident}) end")
+        }
+
+        @__grammar__.commands.each { |cmd|
+          self.instance_eval %(
+            def #{cmd.ident}() 
+              :#{cmd.ident} == __command__ ? __command__! : nil
+            end
+          )
+        }
       end
 
       # Canonical name (identifier, actually)
@@ -151,6 +200,9 @@ module ShellOpts
 
       def self.add_option(command, option) command.__send__(:__add_option__, option) end
       def self.add_command(command, cmd) command.__send__(:__add_command__, cmd) end
+    end
+
+    class Program < Command
     end
 
     # This models an option as given by the user on the command line. Compiled

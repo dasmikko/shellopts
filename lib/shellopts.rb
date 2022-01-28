@@ -88,7 +88,12 @@ module ShellOpts
       @expr, @args = Compiler.compile(@idr, @argv)
       Expr::Command.dump(@expr, @args)
       puts 
-      exit
+#     exit
+    end
+
+    def self.parse(spec, argv, **opts)
+      shellopts = ShellOpts.new(spec, argv, **opts)
+      [shellopts.program, shellopts.args]
     end
 
     def result() [program, arguments] end
@@ -141,7 +146,9 @@ module ShellOpts
     # Expr::Command and they're defined in ShellOpts class to for cosmetic
     # reasons (you don't have to type eg. `Expr::Command.options(command)` but
     # "just" `ShellOpts.options(command)`
+    # TODO Better explanation
     forward_self_to ::ShellOpts::Expr::Command, :ident, :name, :grammar, :options, :command, :command!
+
 #   def self.ident(command) ::ShellOpts::Expr::Command.ident(command) end
 #   def self.name(command) ::ShellOpts::Expr::Command.name(command) end
 #   def self.grammar(command) ::ShellOpts::Expr::Command.grammar(command) end

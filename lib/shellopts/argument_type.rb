@@ -87,7 +87,7 @@ module ShellOpts
 
         if File.send(method, value) # exists?
           if mode == :new
-            set_message "#{subject.capitalize} already exists"
+            set_message "#{subject.capitalize} already exists in #{name}: #{value}"
           elsif kind == :path || kind == :epath
             if File.file?(value) || File.directory?(value)
               true
@@ -120,7 +120,7 @@ module ShellOpts
     class EnumArgument < ArgumentType
       attr_reader :values
       def initialize(values) @values = values.dup end
-      def match?(value) values.include?(value) or set_message "Illegal value: '#{value}'" end
+      def match?(name, value) values.include?(value) or set_message "Illegal value in #{name}: '#{value}'" end
     end
   end
 end

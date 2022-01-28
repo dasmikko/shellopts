@@ -12,7 +12,7 @@ module ShellOpts
     end
 
     def compile
-      @expr = command = Expr::Command.new(@grammar)
+      @expr = command = Expr::Program.new(@grammar)
       @seen = {} # Set of seen options by UID (using UID is needed when float is true)
       @args = []
 
@@ -85,7 +85,7 @@ module ShellOpts
     end
 
     def compile_option_value(option, name, value)
-      type = option.valueument_type
+      type = option.argument_type
       if type.match?(name, value)
         type.convert(value)
       elsif value == ""
