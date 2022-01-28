@@ -10,18 +10,19 @@ module ShellOpts
       @grammar, @argv = grammar, argv
     end
 
+    # TODO: Floating options. Should be part of the analyzer to check for collisions
     def compile
       @expr = command = Expr::Command.new(grammar)
       @seen = {} # Seen options (every command resets the seen option)
       @args = @argv.dup
+
       while arg = @args.shift
         if arg == "--"
           break
         elsif arg.start_with?("-")
           compile_option(command, arg)
-        elsif cmd = command["#{key}!"]
-          Expr::Command.add_command(command, cmd)
-          command = cmd
+        elsif sub_grammar = command.__grammar__[:"#{arg}!"]
+          command = Expr::Command.add_command(command, Expr::Command.new(sub_grammar))
         else
           @args.unshift arg
           break

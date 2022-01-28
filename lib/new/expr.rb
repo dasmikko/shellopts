@@ -1,6 +1,7 @@
 
 module ShellOpts
   module Expr
+    # TODO
     # In addition to the methods defined below the following methods are
     # created dynamically for each declared option with an identifier (options
     # without an identifier can still be accessed using #[] or the #options
@@ -23,16 +24,8 @@ module ShellOpts
 
       def self.new(grammar)
         object = super()
-        object.__initialize__(grammar)
+        object.__send__(:__initialize__, grammar)
         object
-      end
-
-      def __initialize__(grammar)
-        ::Kernel.p :BING
-        @__grammar__ = grammar
-        @__options__ = [] 
-        @__options_arguments__ = {}
-        @__command__ = nil
       end
 
       # Return the associated option argument or nil if not present. The name can
@@ -56,10 +49,12 @@ module ShellOpts
       # declared as an option
       def key?(name) @__options_arguments__.key?(__identifier__(name)) end
 
-      # List of Expr::Option objects in the same order as given by the user
+      # List of Expr::Option objects in the same order as given by the user.
+      # Repeated options are not collapsed
       #
       # Note: Can be overridden if a "--options" option is defined, in that case
-      # use #__options__() or ::options to get the original value
+      # use #__options__() or ::options to get the original value. #options is
+      # usually not necessary when processing the command line
       def options() __options__ end
 
       # The sub-command identifier (a Symbol incl. the exclamation mark) or nil
@@ -67,7 +62,9 @@ module ShellOpts
       # "#<identifier>!" method to get the actual command object
       #
       # Note: Can be overridden if a "--command" option is defined, in that case
-      # use #__command__() or ::command to get the original value
+      # use #__command__() or ::command to get the original value. #command is
+      # often used in case statement to branch out to code that handles the
+      # given command
       def command() __command__ end
 
       # The actual sub-command object or nil if not present
@@ -82,16 +79,8 @@ module ShellOpts
       def __name__() @__grammar__.name end
       attr_reader :__grammar__
       attr_reader :__options__
-      def __command__() @__command__&.ident end
+      def __command__() @__command__&.__ident__ end
       def __command__!() @__command__ end
-
-      def __dump__(argv = [])
-        ::Kernel.puts __name__
-        ::Kernel.indent {
-          __options__.each { |option| option.__dump__ }
-          ::Kernel.puts argv.map(&:inspect).join(" ") if !argv.empty?
-        }
-      end
 
       # Class-level accessor methods. Note: Also defined in ShellOpts::ShellOpts
       def self.ident(command) command.__ident__ end
@@ -101,9 +90,14 @@ module ShellOpts
       def self.command(command) command.__commmand__ end
       def self.command!(command) command.__command__! end
 
-      def self.dump(expr, argv = []) expr.__dump__(argv) end
-
     private
+      def __initialize__(grammar)
+        @__grammar__ = grammar
+        @__options__ = [] 
+        @__options_arguments__ = {}
+        @__command__ = nil
+      end
+
       # Canonical name (identifier, actually)
       def __identifier__(name)
         @__grammar__[name]&.ident or 
@@ -133,33 +127,24 @@ module ShellOpts
       def self.add_command(command, cmd) command.__send__(:__add_command__, cmd) end
     end
 
-    class Option < BasicObject
+    class Option
       # Associated Grammar::Option object
       attr_reader :grammar
 
       # The actual name used on the command line (String)
       attr_reader :name 
 
-      # Argument or nil if not present. The value is a String, Integer, or
-      # Float depending the on the type of the option
-      attr_accessor :argument 
+      # Argument value or nil if not present. The value is a String, Integer,
+      # or Float depending the on the type of the option
+      attr_accessor :argument
 
       forward_to :grammar, 
           :repeatable?, :argument?, :integer?, :float?,
-          :file?, :enum?, :string?, :optional?
+          :file?, :enum?, :string?, :optional?,
+          :argument_name, :argument_type, :argument_enum
 
-      def __initialize__(grammar, name, argument)
+      def initialize(grammar, name, argument)
         @grammar, @name, @argument = grammar, name, argument
-      end
-
-      def self.new(grammar, name, argument)
-        object = super()
-        object.__initialize__(grammar, name, argument)
-        object
-      end
-
-      def __dump__
-        ::Kernel.puts [name, argument].compact.join(" ")
       end
     end
   end

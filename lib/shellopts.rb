@@ -89,22 +89,6 @@ module ShellOpts
       Expr::Command.dump(@expr, @args)
       puts 
       exit
-
-#     grammar = Parser.parse(@spec)
-
-
-#     tokens = Lexer.new(@spec)
-
-#     exprs = Grammar::Lexer.lex(@spec)
-#     commands = Grammar::Parser.parse(@name, exprs)
-#     @grammar = Grammar::Analyzer.analyze(commands)
-#
-#     begin
-#       @program, @arguments = Ast::Parser.parse(@grammar, @argv)
-#     rescue Error => ex
-#       raise if exception
-#       error(ex.subject, ex.message)
-#     end
     end
 
     def result() [program, arguments] end

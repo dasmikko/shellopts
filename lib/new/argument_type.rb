@@ -85,7 +85,8 @@ module ShellOpts
     class EnumArgument < ArgumentType
       attr_reader :values
       def initialize(values) @values = values.dup end
-      def match?(value) values.include?(value) or set_message "Illegal value: '#{value}'" end
+      def match?(name, value) 
+        values.include?(value) or set_message "Illegal argument for #{name}: '#{value}'" end
     end
   end
 end

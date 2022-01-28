@@ -67,7 +67,7 @@ module ShellOpts
     class Command < IdrNode
       def dump_idr(short = false)
         if short
-          puts "#{name}"
+          puts name
           indent { 
             options.each { |option| option.dump_idr(short) }
             commands.each { |command| command.dump_idr(short) }
@@ -93,10 +93,28 @@ module ShellOpts
     end
   end
 
-# module Expr
-#   class Command
-#     def self.dump(expr)
-#     end
-#   end
-# end
+  module Expr
+    class Command
+      def __dump__(argv = [])
+        ::Kernel.puts __name__
+        ::Kernel.indent {
+          __options__.each { |option| option.dump }
+          __command__!&.__dump__
+          ::Kernel.puts argv.map(&:inspect).join(" ") if !argv.empty?
+        }
+      end
+
+      # Class-level accessor methods
+      def self.dump(expr, argv = []) expr.__dump__(argv) end
+    end
+
+    class Option
+      def dump
+        ::Kernel.puts [name, argument].compact.join(" ")
+      end
+    end
+  end
 end
+
+
+
