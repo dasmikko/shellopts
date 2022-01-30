@@ -99,7 +99,7 @@ module ShellOpts
         ::Kernel.puts __name__
         ::Kernel.indent {
           __options__.each { |ident, value| ::Kernel.puts "#{ident}: #{value.inspect}" }
-          __command__!&.__dump__
+          __subcommand__!&.__dump__
           ::Kernel.puts argv.map(&:inspect).join(" ") if !argv.empty?
         }
       end

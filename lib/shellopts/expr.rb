@@ -1,23 +1,36 @@
 
 module ShellOpts
   module Expr
-    # Command represents a program or a subcommand. It is derived from
-    # BasicObject to have only a minimum of built in member methods
+    # Command represents a program or a (sub-)command. It is derived from
+    # BasicObject to have only a minimum of built-in member methods. Other
+    # member methods are using the '__<identifier>__' naming convention that
+    # doesn't collide with option or subcommand names or are accessible through
+    # a class method class method is with the same name that takes the command
+    # as argument and return the corresponding value:
     #
-    # TODO
-    # In addition to the methods defined below the following methods are
-    # created dynamically for each declared option with an identifier (options
-    # without an identifier can still be accessed using #[] or the #options
-    # array):
+    #   def ShellOpts.<identifier>(command) command.__<identifier>__ end
+    #
+    # The names of built-in methods can't be used as options or commands. They
+    # are initialize, instance_eval, instance_exec method_missing,
+    # singleton_method_added, singleton_method_removed, and
+    # singleton_method_undefined
+    #
+    # The methods #subcommand and #subcommand! are also defined in Command but
+    # can be overshadowed by an option or a command declaration. Their values
+    # can still be accessed using the dashed name, though
+    #
+    # The following methods are created dynamically for each declared option
+    # with an identifier (options without an identifier can still be accessed
+    # using #[] or the #options array):
     #
     #   def <identifier>(default = nil) self["<identifier>"] || default end
     #   def <identifier>=(value) self["<identifier>"] = value end
     #   def <identifier>?() self.key?("<identifier>") end
     #
-    # And for each declared command:
+    # And for each subcommand:
     #
-    #   # Return the sub-command object or nil if not present
-    #   def <identifier>!() command == "identifier" ? @__command__ : nil end
+    #   # Return the subcommand object or nil if not present
+    #   def <identifier>!() subcommand == :<identifier> ? @__subcommand__ : nil end
     #
     class Command < BasicObject
       RESERVED_OPTION_NAMES = %w(
@@ -44,7 +57,7 @@ module ShellOpts
 
       # Assign a value to an existing option. This can be used to implement
       # default values. #[]= doesn't currently check the type of the given value
-      # so take care. Note that the corresponding option(s) in #user_options is not
+      # so take care. Note that the corresponding option(s) in #option_list is not
       # updated
       def []=(name, value) @__options__[__identifier__(name)] = value end
 
@@ -52,80 +65,87 @@ module ShellOpts
       # declared as an option
       def key?(name) @__options__.key?(__identifier__(name)) end
 
+      # Subcommand identifier or nil if not present. #subcommand is often used in
+      # case statement to branch out to code that handles the given subcommand:
+      #
+      #   prog, args = ShellOpts.parse("!do_this !do_that", ARGV)
+      #   case prog.subcommand
+      #     when :do_this!; prog.do_this.operation
+      #     when :do_that!; prog.do_that.operation
+      #   end
+      #
+      # Note: Can be overridden by option, in that case use #__subcommand__ or
+      # ShellOpts.subcommand(object) instead
+      def subcommand() __subcommand__ end
+
+      # The subcommand object or nil if not present. Per-subcommand methods
+      # (#<identifier>!) are often used instead of #subcommand! to get the
+      # subcommand
+      #
+      # Note: Can be overridden by a subcommand (but not an option), in that case
+      # use #__subcommand__! or ShellOpts.subcommand!(object) instead
+      #
+      def subcommand!() __subcommand__! end
+
+      # "Hidden" methods
+      #
+
+      # Accessor methods that won't conflict with option names because options
+      # can't start with an underscore
+
+      # The parent command or nil. Initialized by #add_command
+      attr_accessor :__supercommand__
+
+      # UID of command/program
+      def __uid__() @__grammar__.uid end
+
+      # Identfier including the exclamation mark (Symbol)
+      def __ident__() @__grammar__.ident end
+
+      # Name of command/program without the exclamation mark (String)
+      def __name__() @__grammar__.name end
+
+      # Grammar object
+      attr_reader :__grammar__
+
       # Hash from identifier to value. Can be Integer, Float, or String
       # depending on the option's type. Repeated options options without
       # arguments have the number of occurences as the value, with arguments
       # the value is an array of the given values
-      #
-      # Note: Can be overriden by an option, in that case use #__options__
-      # instead
-      def options() @__options__ end
+      attr_reader :__options__
 
-      # List of Expr::UserOption objects for the command in the same order as
+      # List of Expr::UserOption objects for the subcommand in the same order as
       # given by the user but note that options are reordered to come after
       # their associated subcommand if float is true. Repeated options are not
       # collapsed
-      #
-      # Note: Can be overridden by an option, in that case use
-      # #__user_options__ or ::options instead. #options is usually not
-      # necessary when processing the command line
-      #
-      # TODO: Rename option_list
-      def user_options() __user_options__ end
+      attr_reader :__option_list__
+      
+      # The subcommand identifier (a Symbol incl. the exclamation mark) or nil
+      # if not present. Use #subcommand!, or the dynamically generated
+      # '#<identifier>!' method to get the actual subcommand object
+      def __subcommand__() @__subcommand__&.__ident__ end
 
-      # The sub-command identifier (a Symbol incl. the exclamation mark) or nil
-      # if not present. Use #command!, or the dynamically generated
-      # '#<identifier>!' method to get the actual command object
-      #
-      # Can be overridden by an option, in that case use #__command__()
-      # or ::command instead. #command is often used in case statement to
-      # branch out to code that handles the given command:
-      #
-      #   prog, args = ShellOpts.parse("do_this! do_that!", ARGV)
-      #   case prog.command
-      #     when :do_this!; prog.do_this.handle
-      #     when :do_that!; ...
-      #   end
-      #
-      def command() __command__ end
+      # The actual subcommand object or nil if not present
+      def __subcommand__!() @__subcommand__ end
 
-      # The actual sub-command object or nil if not present
-      #
-      # Note: Can be overridden if a command named "command" is defined, in
-      # that case use `Command.command(object)` to get the sub-command
-      #
-      def command!() __command__! end
-
-      # Accessor methods that won't conflict with option names because options
-      # can't start with an underscore
-      attr_accessor :__supercommand__ # Initialized by add_command
-      def __uid__() @__grammar__.uid end
-      def __ident__() @__grammar__.ident end
-      def __name__() @__grammar__.name end
-      attr_reader :__grammar__
-      attr_reader :__options__
-      attr_reader :__user_options__
-      def __command__() @__command__&.__ident__ end
-      def __command__!() @__command__ end
-
-      # Class-level accessor methods. Note: Also defined in ShellOpts::ShellOpts
-      def self.supercommand(command) command.__supercommand__ end
-      def self.uid(command) command.__uid__ end
-      def self.ident(command) command.__ident__ end
-      def self.name(command) command.__name__ end
-      def self.grammar(command) command.__grammar__ end
-      def self.options(command) command.__options__ end
-      def self.user_options(command) command.__user_options__ end
-      def self.command(command) command.__commmand__ end
-      def self.command!(command) command.__command__! end
+      # Class-level accessor methods. Note: Also defined in ShellOpts::ShellOpts. FIXME What?
+      def self.supercommand(subcommand) subcommand.__supercommand__ end
+      def self.uid(subcommand) subcommand.__uid__ end
+      def self.ident(subcommand) subcommand.__ident__ end
+      def self.name(subcommand) subcommand.__name__ end
+      def self.grammar(subcommand) subcommand.__grammar__ end
+      def self.options(subcommand) subcommand.__options__ end
+      def self.option_list(subcommand) subcommand.__option_list__ end
+      def self.subcommand(subcommand) subcommand.__commmand__ end
+      def self.subcommand!(subcommand) subcommand.__subcommand__! end
 
     private
       def __initialize__(grammar)
         @__grammar__ = grammar
         @__options__ = {}
-        @__user_options__ = [] 
+        @__option_list__ = [] 
         @__options__ = {}
-        @__command__ = nil
+        @__subcommand__ = nil
 
         __define_option_methods__
       end
@@ -166,7 +186,7 @@ module ShellOpts
         @__grammar__.commands.each { |cmd|
           self.instance_eval %(
             def #{cmd.ident}() 
-              :#{cmd.ident} == __command__ ? __command__! : nil
+              :#{cmd.ident} == __subcommand__ ? __subcommand__! : nil
             end
           )
         }
@@ -180,7 +200,7 @@ module ShellOpts
 
       def __add_option__(option)
         ident = option.grammar.ident
-        @__user_options__ << option
+        @__option_list__ << option
         if option.repeatable?
           if option.argument?
             (@__options__[ident] ||= []) << option.argument
@@ -193,26 +213,26 @@ module ShellOpts
         end
       end
 
-      def __add_command__(command)
-        command.__supercommand__ = self
-        @__command__ = command
+      def __add_command__(subcommand)
+        subcommand.__supercommand__ = self
+        @__subcommand__ = subcommand
       end
 
-      def self.add_option(command, option) command.__send__(:__add_option__, option) end
-      def self.add_command(command, cmd) command.__send__(:__add_command__, cmd) end
+      def self.add_option(subcommand, option) subcommand.__send__(:__add_option__, option) end
+      def self.add_command(subcommand, cmd) subcommand.__send__(:__add_command__, cmd) end
     end
 
     class Program < Command
     end
 
-    # This models an option as given by the user on the command line. Compiled
-    # options (and possibly aggregated) options are stored in the
+    # UserOption models an option as given by the user on the subcommand line.
+    # Compiled options (and possibly aggregated) options are stored in the
     # Command#__options__ array
     class UserOption
       # Associated Grammar::Option object
       attr_reader :grammar
 
-      # The actual name used on the command line (String)
+      # The actual name used on the shell command-line (String)
       attr_reader :name 
 
       # Argument value or nil if not present. The value is a String, Integer,

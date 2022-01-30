@@ -29,8 +29,8 @@ describe "Compiler" do
   def render_command(command)
     [
       Expr::Command.name(command),
-      command.options.map { |ident, value| render_option(command, ident, value) },
-      command.command && render_command(command.command!)
+      command.__options__.map { |ident, value| render_option(command, ident, value) },
+      command.subcommand && render_command(command.subcommand!)
     ].flatten.compact.join(" ")
   end
 

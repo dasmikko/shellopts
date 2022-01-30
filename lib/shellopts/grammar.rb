@@ -1,6 +1,6 @@
 module ShellOpts
   module Grammar
-    # Except for parent, children, and token, all members are initialized by calling
+    # Except for #parent, #children, and #token, all members are initialized by calling
     # #parse on the object
     class Node
       attr_reader :parent
@@ -105,9 +105,6 @@ module ShellOpts
 
       # Enum values if argument type is an enumerator
       def argument_enum() @argument_type.values end
-
-      # Brief description (a String). FIXME: This lives on the OptionGroup object
-      attr_accessor :brief
 
       def repeatable?() @repeatable end
       def argument?() @argument end
