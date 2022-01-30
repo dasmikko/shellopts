@@ -16,7 +16,7 @@ module ShellOpts
     class IdrNode < Node
       # Assume @ident and @name has been defined
       def parse
-        @attr = ::ShellOpts::Expr::Command::RESERVED_OPTION_NAMES.include?(ident.to_s) ? nil : ident
+        @attr = ::ShellOpts::Command::RESERVED_OPTION_NAMES.include?(ident.to_s) ? nil : ident
         @path = (command&.path || []) + [ident]
         @uid = @path.join(".")
       end
@@ -120,7 +120,7 @@ module ShellOpts
   end
 
   class Parser
-    include Grammar
+#   include Grammar
     using Stack
     using Ext::Array::ShiftWhile
 
@@ -135,7 +135,7 @@ module ShellOpts
     end
 
     def parse()
-      @program = Program.parse(tokens.shift)
+      @program = Grammar::Program.parse(tokens.shift)
       nodes = [@program] # Stack of Nodes. Follows the indentation of the source
       commands = [@program] # Stack of commands. Used to keep track of the curren command
 
@@ -148,35 +148,36 @@ module ShellOpts
 
         case token.kind
           when :option
-            if !nodes.top.is_a?(OptionGroup) # Ensure a token group at the top of the stack
-              nodes.push OptionGroup.new(commands.top, token)
+            if !nodes.top.is_a?(Grammar::OptionGroup) # Ensure a token group at the top of the stack
+              nodes.push Grammar::OptionGroup.new(commands.top, token)
             end
             Grammar::Option.parse(nodes.top, token)
 
           when :command
-            command = Command.parse(commands.top, token)
+            command = Grammar::Command.parse(commands.top, token)
             nodes.push command
             commands.push command
 
           when :spec
-            nodes.push Spec.parse(commands.top, token)
+            nodes.push Grammar::Spec.parse(commands.top, token)
 
           when :argument
-            Argument.parse(nodes.top, token)
+            Grammar::Argument.parse(nodes.top, token)
 
           when :usage
-            nodes.push Usage.parse(commands.top, token)
+            nodes.push Grammar::Usage.parse(commands.top, token)
 
           when :text
             # Detect indented comment groups (code)
-            if nodes.top.is_a?(Paragraph)
-              code = Code.parse(nodes.top.parent, token) # Using parent of paragraph
+            if nodes.top.is_a?(Grammar::Paragraph)
+              code = Grammar::Code.parse(nodes.top.parent, token) # Using parent of paragraph
               tokens.unshift token
               while token = tokens.shift
                 if token.kind == :text && token.char >= code.token.char
-                  Text.parse(code, token)
+                  Grammar::Text.parse(code, token)
                 elsif token.kind == :blank
-                  Text.parse(code, token) if tokens.first.kind == :text && tokens.first.char >= code.token.char
+                  Grammar::Text.parse(code, token) \
+                      if tokens.first.kind == :text && tokens.first.char >= code.token.char
                 else
                   tokens.unshift token
                   break
@@ -185,18 +186,22 @@ module ShellOpts
 
             # Detect comment groups (paragraphs)
             else
-              parent = nodes.top.is_a?(Command) || nodes.top.is_a?(OptionGroup) ? nodes.top : nodes.top.parent
-              paragraph = Paragraph.parse(parent, token)
+              if nodes.top.is_a?(Grammar::Command) || nodes.top.is_a?(Grammar::OptionGroup)
+                parent = nodes.top 
+              else
+                parent = nodes.top.parent
+              end
+              paragraph = Grammar::Paragraph.parse(parent, token)
               tokens.unshift token
               while tokens.first && tokens.first.kind == :text && tokens.first.char == paragraph.token.char
-                Text.parse(paragraph, tokens.shift)
+                Grammar::Text.parse(paragraph, tokens.shift)
               end
               nodes.push paragraph # Leave paragraph on stack so we can detect code blocks
             end
 
           when :brief
-            parent = nodes.top.is_a?(Paragraph) ? nodes.top.parent : nodes.top
-            Brief.parse(parent, token)
+            parent = nodes.top.is_a?(Grammar::Paragraph) ? nodes.top.parent : nodes.top
+            Grammar::Brief.parse(parent, token)
 
           when :blank
             ; # do nothing

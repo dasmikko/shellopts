@@ -12,7 +12,7 @@ module ShellOpts
     end
 
     def compile
-      @expr = command = Expr::Program.new(@grammar)
+      @expr = command = Program.new(@grammar)
       @seen = {} # Set of seen options by UID (using UID is needed when float is true)
       @args = []
 
@@ -22,7 +22,7 @@ module ShellOpts
         elsif arg.start_with?("-")
           compile_option(command, arg)
         elsif @args.empty? && subcommand_grammar = command.__grammar__[:"#{arg}!"]
-          command = Expr::Command.add_command(command, Expr::Command.new(subcommand_grammar))
+          command = Command.add_command(command, Command.new(subcommand_grammar))
         else
           if @float
             @args << arg # This also signals that no more commands are accepted
@@ -81,7 +81,7 @@ module ShellOpts
         error "No argument allowed for option '#{opt_name}'"
       end
       
-      Expr::Command.add_option(option_command, Expr::UserOption.new(option, name, value))
+      Command.add_option(option_command, Option.new(option, name, value))
     end
 
     def compile_option_value(option, name, value)

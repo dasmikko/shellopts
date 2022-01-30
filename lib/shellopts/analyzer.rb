@@ -45,7 +45,7 @@ module ShellOpts
     end
 
     def analyze()
-      @grammar.traverse(Command) { |command| 
+      @grammar.traverse(Grammar::Command) { |command| 
         command.collect_options 
         command.collect_commands
       }

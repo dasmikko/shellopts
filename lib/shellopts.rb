@@ -19,7 +19,7 @@ require 'shellopts/version.rb'
 require 'shellopts/stack.rb'
 require 'shellopts/token.rb'
 require 'shellopts/grammar.rb'
-require 'shellopts/expr.rb'
+require 'shellopts/program.rb'
 require 'shellopts/lexer.rb'
 require 'shellopts/argument_type.rb'
 require 'shellopts/parser.rb'
@@ -79,7 +79,7 @@ module ShellOpts
       # Process msgopts options
 
       idr.dump_idr(true)
-      Expr::Command.dump(@program, @args)
+      Command.dump(@program, @args)
       puts 
       [@program, @args]
     end
@@ -131,7 +131,7 @@ module ShellOpts
     def find_subject(obj)
       case obj
         when String; lookup(obj)
-        when Ast::Command; Command.grammar(obj)
+        when Ast::Command; Command.grammar(obj) # FIXME
         when Grammar::Command; obj
         when NilClass; grammar
       else

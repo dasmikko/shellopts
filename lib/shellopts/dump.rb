@@ -93,25 +93,23 @@ module ShellOpts
     end
   end
 
-  module Expr
-    class Command
-      def __dump__(argv = [])
-        ::Kernel.puts __name__
-        ::Kernel.indent {
-          __options__.each { |ident, value| ::Kernel.puts "#{ident}: #{value.inspect}" }
-          __subcommand__!&.__dump__
-          ::Kernel.puts argv.map(&:inspect).join(" ") if !argv.empty?
-        }
-      end
-
-      # Class-level accessor methods
-      def self.dump(expr, argv = []) expr.__dump__(argv) end
+  class Command
+    def __dump__(argv = [])
+      ::Kernel.puts __name__
+      ::Kernel.indent {
+        __options__.each { |ident, value| ::Kernel.puts "#{ident}: #{value.inspect}" }
+        __subcommand__!&.__dump__
+        ::Kernel.puts argv.map(&:inspect).join(" ") if !argv.empty?
+      }
     end
 
-    class Option
-      def dump
-        ::Kernel.puts [name, argument].compact.join(" ")
-      end
+    # Class-level accessor methods
+    def self.dump(expr, argv = []) expr.__dump__(argv) end
+  end
+
+  class Option
+    def dump
+      ::Kernel.puts [name, argument].compact.join(" ")
     end
   end
 end
