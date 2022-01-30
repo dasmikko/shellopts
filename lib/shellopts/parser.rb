@@ -168,7 +168,7 @@ module ShellOpts
             nodes.push Usage.parse(commands.top, token)
 
           when :text
-            # Detect nested comment groups (code)
+            # Detect indented comment groups (code)
             if nodes.top.is_a?(Paragraph)
               code = Code.parse(nodes.top.parent, token) # Using parent of paragraph
               tokens.unshift token

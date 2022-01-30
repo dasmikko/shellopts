@@ -52,11 +52,11 @@ module ShellOpts
       #
       # For options, this is the canonical name of the objekt without the
       # initial '-' or '--', for commands it is the command name including the
-      # suffixed exclamation mark. Both option and comamnd have internal dashes
+      # suffixed exclamation mark. Both options and commands have internal dashes
       # replaced with underscores
       #
       # Note that an identifier can't be mapped back to a option name because
-      # '--include-dash' and '--include_dash' both maps to :include_dash
+      # '--with-separator' and '--with_separator' both maps to :with_separator
       attr_reader :ident
 
       # Canonical name (String) of the object
@@ -108,14 +108,18 @@ module ShellOpts
 
       def repeatable?() @repeatable end
       def argument?() @argument end
+      def optional?() @optional end
+
       def integer?() @argument_type.is_a? IntegerArgument end
       def float?() @argument_type.is_a? FloatArgument end
       def file?() @argument_type.is_a? FileArgument end
       def enum?() @argument_type.is_a? EnumArgument end
       def string?() argument? && !integer? && !float? && !file? && !enum? end
-      def optional?() @optional end
 
-      def match?(value) argument_type.match?(value) end
+      def match?(literal) argument_type.match?(literal) end
+
+      # Return true if the option can be assigned the given value
+#     def value?(value) ... end
     end
 
     class OptionGroup < Node
@@ -154,9 +158,9 @@ module ShellOpts
       def initialize(parent, token)
         super
         @options = []
-        @options_hash = {} # Map from possible multiple option names to option
+        @options_hash = {} # Initialized by the analyzer
         @commands = []
-        @commands_hash = {}
+        @commands_hash = {} # Initialized by the analyzer
         @specs = []
         @usages = []
       end
@@ -164,8 +168,8 @@ module ShellOpts
       # Maps from any name or identifier of an option or command (incl. the
       # '!') to the associated option. #[] and #key? can't be used until after
       # the analyze phase
-      def [](key) (key.to_s =~ /!$/ ? @commands_hash : @options_hash)[key] end
-      def key?(key) (key.to_s =~ /!$/ ? @commands_hash : @options_hash).key?(key) end
+      def [](key) @commands_hash[key] || @options_hash[key] end
+      def key?(key) @commands_hash.key?(key) || @options_hash.key?(key) end
 
     protected
       def attach(child)

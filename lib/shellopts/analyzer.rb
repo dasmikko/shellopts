@@ -28,8 +28,8 @@ module ShellOpts
           # Check for dash-collision
           !@commands_hash.key?(command.name) or 
               analyzer_error command.token, "Duplicate command name: #{command.name}"
+          @commands_hash[command.name] = command
           @commands_hash[command.ident] = command
-          @commands_hash[command.ident.to_s] = command
         }
       end
     end

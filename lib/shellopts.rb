@@ -91,6 +91,9 @@ module ShellOpts
 #     exit
     end
 
+    def self.process(spec, argv, float: true, stdopts: true, msgopts: false, exception: false)
+    end
+
     def self.parse(spec, argv, **opts)
       shellopts = ShellOpts.new(spec, argv, **opts)
       [shellopts.program, shellopts.args]
