@@ -14,7 +14,8 @@ module ShellOpts
       # safe for concurrent processing
       attr_reader :message
 
-      # Return true if .value is an "instance" of self (not used atm. See Command#[])
+      # Return true if .value is an "instance" of self (not used atm. See
+      # Command#[] and Grammar::Option#value?)
       def value?(value) true end
 
       # Convert value to Ruby type
@@ -56,7 +57,7 @@ module ShellOpts
     end
 
     class FileArgument < ArgumentType
-      attr_reader :kind # :file, :dir, :path, :efile, :edir, :epath, :nfile, :ndir, :npath
+      attr_reader :kind
 
       def initialize(kind)
         constrain kind, :file, :dir, :path, :efile, :edir, :epath, :nfile, :ndir, :npath
@@ -81,7 +82,7 @@ module ShellOpts
         end
       end
 
-      # Note: No checks done. Consider it a feature
+      # Note: No checks done, not sure if it is a feature or a bug
       def value?(value) value.is_a?(String) end
 
     protected

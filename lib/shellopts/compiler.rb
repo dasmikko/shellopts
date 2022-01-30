@@ -4,11 +4,11 @@ module ShellOpts
     attr_reader :expr
     attr_reader :args
 
-    def initialize(grammar, argv, float: true)
+    def initialize(grammar, argv, float: true, exception: false)
       constrain grammar, Grammar::Program
       constrain argv, [String]
       @grammar, @argv = grammar, argv.dup
-      @float = float
+      @float, @exception = float, exception
     end
 
     def compile
@@ -35,8 +35,8 @@ module ShellOpts
       [@expr, @args += @argv]
     end
 
-    def self.compile(grammar, argv)
-      self.new(grammar, argv).compile
+    def self.compile(grammar, argv, **opts)
+      self.new(grammar, argv, **opts).compile
     end
 
   protected

@@ -45,61 +45,51 @@ module ShellOpts
   class InternalError < Error; end
 
   class ShellOpts
-    attr_reader :name # Name of program. Defaults to the name of the executable
-    attr_reader :spec # Specification. String
-    attr_reader :argv # Array of arguments
+    # Name of program. Defaults to the name of the executable
+    attr_reader :name
 
-    def quiet!(quiet = true) @quiet = quiet end
-    def quiet?() @quiet end
+    # Specification. String
+    attr_reader :spec
 
-    def verbose!(verbose = true) @verbose = verbose.is_a?(Integer) ? verbose : (verbose ? 1 : 0) end
-    def verbose?() @verbose > 0 end
+    # Array of arguments
+    attr_reader :argv 
 
-    def debug!(debug = true) @debug = debug end
-    def debug?() @debug end
+    # Resulting ShellOpts::Program object containing options and subcommand if present
+    def program() @program end
 
-    # TODO Move to Compiler
-    attr_reader :tokens
-    def grammar() @idr end
-    def program() @expr end
+    # Array of remaining arguments
     attr_reader :args
 
-    def initialize(spec, argv, name: nil, exception: false)
+    def initialize(spec, argv, name: nil)
       @name = name || File.basename($PROGRAM_NAME)
       @spec, @argv = spec, argv.dup
-      @quiet, @verbose, @debug = false, 0, false
+    end
 
-      @tokens = Lexer.lex(@name, @spec)
-#     @tokens.each(&:dump)
-#     puts
-#     exit
+    def process(float: true, stdopts: true, msgopts: false, exception: false)
+      tokens = Lexer.lex(name, spec)
+      ast = Parser.parse(tokens)
+      idr = Analyzer.analyze(ast) # @idr and @ast refer to the same object
 
-      @ast = Parser.parse(@tokens)
-#     @grammar.dump_ast
-#     puts
-#     exit
+      # ... add stdopts options ...
+      # ... add msgopts options ...
 
+      @program, @args = Compiler.compile(idr, argv, float: float, exception: exception)
 
-      @idr = Analyzer.analyze(@ast) # @idr and @ast refer to the same object
-      @idr.dump_idr(true)
-      puts
-#     exit
+      # Process stdopts options
+      # Process msgopts options
 
-      @expr, @args = Compiler.compile(@idr, @argv)
-      Expr::Command.dump(@expr, @args)
+      idr.dump_idr(true)
+      Expr::Command.dump(@program, @args)
       puts 
-#     exit
+      [@program, @args]
     end
 
-    def self.process(spec, argv, float: true, stdopts: true, msgopts: false, exception: false)
+    # Create a ShellOpts object and sets the global instance if not defined
+    def self.process(spec, argv, name: nil, **opts)
+      shellopts = ShellOpts.new(spec, argv, name: name)
+      ::ShellOpts.instance = shellopts if !::ShellOpts.instance?
+      shellopts.process(**opts)
     end
-
-    def self.parse(spec, argv, **opts)
-      shellopts = ShellOpts.new(spec, argv, **opts)
-      [shellopts.program, shellopts.args]
-    end
-
-    def result() [program, arguments] end
 
     def error(subject = nil, message)
       $stderr.puts "#{name}: #{message}"
@@ -118,22 +108,6 @@ module ShellOpts
 #     exit 1
 #   end
 
-    def notice(message)
-      $stderr.puts "#{name}: #{message}" if !quiet?
-    end
-
-    def mesg(message)
-      $stdout.puts message if !quiet?
-    end
-
-    def verb(level = 1, message)
-      $stdout.puts message if level <= @verbose
-    end
-
-    def dbg(message)
-      $stdout.puts message if debug?
-    end
-
     def usage(subject = nil, device: $stdout, levels: 1, margin: "")
       subject = find_subject(subject)
       device.puts Formatter.usage_string(subject, levels: levels, margin: margin)
@@ -143,21 +117,6 @@ module ShellOpts
       subject = find_subject(subject)
       device.puts Formatter.help_string(subject, levels: levels, margin: margin, tab: tab)
     end
-
-    # Accessor methods to the given command object. The methods are class
-    # methods because they can be overridden by options or sub-commands in
-    # Expr::Command and they're defined in ShellOpts class to for cosmetic
-    # reasons (you don't have to type eg. `Expr::Command.options(command)` but
-    # "just" `ShellOpts.options(command)`
-    # TODO Better explanation
-    forward_self_to ::ShellOpts::Expr::Command, :ident, :name, :grammar, :options, :command, :command!
-
-#   def self.ident(command) ::ShellOpts::Expr::Command.ident(command) end
-#   def self.name(command) ::ShellOpts::Expr::Command.name(command) end
-#   def self.grammar(command) ::ShellOpts::Expr::Command.grammar(command) end
-#   def self.options(command) ::ShellOpts::Expr::Command.options(command) end
-#   def self.command(command) ::ShellOpts::Expr::Command.command(command) end
-#   def self.command!(command) ::ShellOpts::Expr::Command.command!(command) end
 
   private
     def lookup(name)
@@ -181,35 +140,43 @@ module ShellOpts
     end
   end
 
+  def self.process(spec, argv, msgopts: false, **opts)
+    msgopts ||= Messages.is_included?
+    ShellOpts.process(spec, argv, msgopts: msgopts, **opts)
+  end
+
   @instance = nil
   def self.instance?() !@instance.nil? end
   def self.instance() @instance or raise Error, "ShellOpts is not initialized" end
   def self.instance=(instance) @instance = instance end
 
-  # Sets the global ShellOpts object
-  def self.make(spec, argv, name: nil, exception: false)
-    self.instance = ShellOpts.new(spec, argv, name: name, exception: exception)
-    [instance.program, instance.arguments]
-  end
-
-  forward_self_to :instance, 
-      :quiet?, :quiet!,
-      :verbose?, :verbose!,
-      :debug?, :debug!,
-      :error, :failure, :notice,
-      :mesg, :verb, :debug,
-      :usage, :help
+  forward_self_to :instance, :error, :failure
 
   # The Include module brings the reporting methods into the namespace when
   # included
   module Messages
-    forward_to :"ShellOpts.instance",
-      :quiet?, :quiet!,
-      :verbose?, :verbose!,
-      :debug?, :debug!,
-      :error, :failure, :notice,
-      :mesg, :verb, :debug,
-      :usage, :help
+    @is_included = false
+    def self.is_included?() @is_included end
+    def self.include(...)
+      @is_included = true
+      super
+    end
+
+    def notice(message)
+      $stderr.puts "#{name}: #{message}" if !quiet?
+    end
+
+    def mesg(message)
+      $stdout.puts message if !quiet?
+    end
+
+    def verb(level = 1, message)
+      $stdout.puts message if level <= @verbose
+    end
+
+    def debug(message)
+      $stdout.puts message if debug?
+    end
   end
 
   module ErrorHandling
