@@ -61,8 +61,8 @@ describe "Lexer" do
 
     it "creates usage tokens" do
       src = "-- ARG1 ARG2"
-      expect(make src, fields: :kind).to eq [:usage]
-      expect(make src, fields: :source).to eq [src]
+      expect(make src, fields: :kind).to eq [:usage, :usage_string]
+      expect(make src, fields: :source).to eq ["--", "ARG1 ARG2"]
     end
 
     it "creates brief tokens" do

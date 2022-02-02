@@ -17,8 +17,8 @@ module ShellOpts
       # Assume @ident and @name has been defined
       def parse
         @attr = ::ShellOpts::Command::RESERVED_OPTION_NAMES.include?(ident.to_s) ? nil : ident
-        @path = (command&.path || []) + [ident]
-        @uid = @path.join(".")
+        @path = command ? command.path + [ident] : []
+        @uid = command && @path.join(".")
       end
     end
 
@@ -47,6 +47,12 @@ module ShellOpts
             @short_idents << name.to_sym
           end
         end
+
+        names.each { |name| 
+          name.size > 1 or 
+              parser_error token, "Long names should be at least two characters long: '#{name}'"
+        }
+
         @long_names = names.map { |name| "--#{name}" }
         @long_idents = names.map { |name| name.tr("-", "_").to_sym }
 
@@ -130,42 +136,78 @@ module ShellOpts
     # AST root node
     attr_reader :program
 
+    # Commands by UID
+    attr_reader :commands
+
     def initialize(tokens)
       @tokens = tokens.dup
+      @nodes = {}
     end
 
     def parse()
       @program = Grammar::Program.parse(tokens.shift)
       nodes = [@program] # Stack of Nodes. Follows the indentation of the source
-      commands = [@program] # Stack of commands. Used to keep track of the curren command
+      cmds = [@program] # Stack of cmds. Used to keep track of the current command
+      uid2cmd = {}
 
       while token = tokens.shift
         while token.char <= nodes.top.token.char
           node = nodes.pop
-          commands.pop if commands.top == node
+          cmds.pop if cmds.top == node
           !nodes.empty? or err(token, "Illegal indent")
         end
 
         case token.kind
           when :option
             if !nodes.top.is_a?(Grammar::OptionGroup) # Ensure a token group at the top of the stack
-              nodes.push Grammar::OptionGroup.new(commands.top, token)
+              nodes.push Grammar::OptionGroup.new(cmds.top, token)
             end
             Grammar::Option.parse(nodes.top, token)
 
           when :command
-            command = Grammar::Command.parse(commands.top, token)
+            parent = nil # Required by #indent
+
+            token.source =~ /^!(?:(.*)\.)?([^.]+)$/
+            parent_id = $1
+            ident = "#$2!".to_sym
+
+            parent_uid = parent_id && parent_id.sub(".", "!.") + "!"
+
+            if parent_uid
+              # Clear stack except for the top-level Program object and then
+              # push command objects in the parent path
+              cmds = cmds[0..0]
+              for ident in parent_uid.split(".").map(&:to_sym)
+                cmds.push cmds.top.commands.find { |c| c.ident == ident } or
+                    parse_error token, "Unknown command: #{ident.sub(/!/, "")}"
+              end
+              parent = cmds.top
+            else
+              # Don't nest cmds if they are declared on the same line (as it
+              # often happens with one-line declarations). Program is special
+              # cased as its virtual token is on line 0
+              parent = cmds.top
+              if !cmds.top.is_a?(Grammar::Program) && token.line == cmds.top.token.line
+                parent = cmds.pop.parent
+              end
+            end
+
+            command = Grammar::Command.parse(parent, token)
+            uid2cmd[command.uid] = command
             nodes.push command
-            commands.push command
+            cmds.push command
 
           when :spec
-            nodes.push Grammar::Spec.parse(commands.top, token)
+            nodes.push Grammar::Spec.parse(cmds.top, token)
 
           when :argument
             Grammar::Argument.parse(nodes.top, token)
 
           when :usage
-            nodes.push Grammar::Usage.parse(commands.top, token)
+            ; # Do nothing
+
+          when :usage_string
+            nodes.push Grammar::Usage.parse(cmds.top, token)
 
           when :text
             # Detect indented comment groups (code)
@@ -216,6 +258,8 @@ module ShellOpts
 
       @program
     end
+
+    # Find parent command of a dotted-command expression
 
     def self.parse(tokens)
       self.new(tokens).parse

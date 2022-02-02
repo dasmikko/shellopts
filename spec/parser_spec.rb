@@ -1,24 +1,157 @@
 
 include ShellOpts
 
+def undent(s)
+  lines = s.split("\n")
+  lines.shift while !lines.empty? && lines.first !~ /^(\s*)(\S+)$/
+  return "" if lines.empty?
+  indent = $1.size
+  r = []
+  while line = lines.shift
+    r << (line[indent..-1] || "")
+  end
+  while !r.empty? && r.last =~ /^\s*$/
+    r.pop
+  end
+  r.join("\n") + "\n"
+end
+
 describe "Parser" do
   def prog(source)
+    Parser.parse(Lexer.lex("main", source))
+  end
+
+  def struct(source)
+    prog(source).render_structure
+  end
+
+  describe "::parse" do
+    it "parses !cmd" do
+      s = "!cmd"
+      expect(struct s).to eq undent %(
+        main!
+          cmd!
+      )
+    end
+    it "parses -a !cmd" do
+      s = "-a !cmd"
+      expect(struct s).to eq undent %(
+        main!
+          -a
+          cmd!
+      )
+    end
+    it "parses -a !cmd -b" do
+      s = "-a !cmd -b"
+      expect(struct s).to eq undent %(
+        main!
+          -a
+          cmd!
+            -b
+      )
+    end
+    it "parses -a !cmd -a" do
+      s = "-a !cmd -a"
+      expect(struct s).to eq undent %(
+        main!
+          -a
+          cmd!
+            -a
+      )
+    end
+    it "parses -a !cmd1 -b !cmd2 -c" do
+      s = "-a !cmd1 -b !cmd2 -c"
+      expect(struct s).to eq undent %(
+        main!
+          -a
+          cmd1!
+            -b
+          cmd2!
+            -c
+      )
+    end
+    it "parses -a !cmd1 -b !cmd1.cmd2 -c" do
+      s = "-a !cmd1 -b !cmd1.cmd2 -c"
+      expect(struct s).to eq undent %(
+        main!
+          -a
+          cmd1!
+            -b
+            cmd2!
+              -c
+      )
+    end
+    it "parses -a !cmd1 -b !cmd1.cmd2 -c !cmd1.cmd2.cmd3 -d" do
+      s = "-a !cmd1 -b !cmd1.cmd2 -c !cmd1.cmd2.cmd3 -d"
+      expect(struct s).to eq undent %(
+        main!
+          -a
+          cmd1!
+            -b
+            cmd2!
+              -c
+              cmd3!
+                -d
+
+      )
+    end
+    it "parses -- ARG" do
+      s = "-- ARG"
+      expect(struct s).to eq undent %(
+        main!
+          ARG
+      )
+    end
+    it "parses -a -- ARG" do
+      s = "-a -- ARG"
+      expect(struct s).to eq undent %(
+        main!
+          -a
+          ARG
+      )
+    end
+    it "parses -a -- ARG0 !cmd1 -b -- ARG1" do
+      s = "-a -- ARG0 !cmd1 -b -- ARG1"
+      expect(struct s).to eq undent %(
+        main!
+          -a
+          cmd1!
+            -b
+            ARG1
+          ARG0
+      )
+    end
+    it "parses -a -- ARG0 !cmd1 -b -- ARG1 !cmd2 -c -- ARG2" do
+      s = "-a -- ARG0 !cmd1 -b -- ARG1 !cmd2 -c -- ARG2"
+      expect(struct s).to eq undent %(
+        main!
+          -a
+          cmd1!
+            -b
+            ARG1
+          cmd2!
+            -c
+            ARG2
+          ARG0
+      )
+    end
+  end
+
+#     spec = "-a -b=something -- ARG1 !cmd -- ARG2" # TODO: Make it possible to say "-a -b ARG1 !cmd ARG2"
+#     spec = "-a -b -- ARG1 ARG2 ARG3 ARG4 !cmd1 !cmd2 !cmd3 !cmd4" # FIXME
+
+end
+
+describe "Command#parse" do
+  it "sets uid" do
+    source = "!cmd1"
     tokens = Lexer.lex("main", source)
     program = Parser.parse(tokens)
-  end
-  describe "::parse" do
-    it "accepts !cmd" do
-      expect { prog "!cmd" }.not_to raise_error
-    end
-    it "accepts -a !cmd" do
-      expect { prog "-a !cmd" }.not_to raise_error
-    end
-    it "accepts -a !cmd -b" do
-      expect { prog "-a !cmd -b" }.not_to raise_error
-    end
-    it "accepts -a !cmd -a" do
-      expect { prog "-a !cmd -b" }.not_to raise_error
-    end
+    expect(program.uid).to eq nil
+    expect(program.path).to eq []
+    command = program.commands.first
+    expect(command.uid).to eq "cmd1!"
+    expect(command.path).to eq [:cmd1!]
   end
 end
 
@@ -42,9 +175,12 @@ describe "Option#parse" do
     expect { opt "-s,long" }.not_to raise_error
     expect { opt "+s,long" }.not_to raise_error
   end
-  it "accepts --l,long and ++l,long" do
-    expect { opt "--l,long" }.not_to raise_error
-    expect { opt "++l,long" }.not_to raise_error
+  it "accepts --long,more and ++long,more" do
+    expect { opt "--long,more" }.not_to raise_error
+    expect { opt "++long,more" }.not_to raise_error
+  end
+  it "rejects --l" do
+    expect { opt "--l" }.to raise_error ParserError
   end
 
   context "sets ident" do

@@ -25,6 +25,7 @@ require 'shellopts/argument_type.rb'
 require 'shellopts/parser.rb'
 require 'shellopts/analyzer.rb'
 require 'shellopts/compiler.rb'
+require 'shellopts/formatter.rb'
 require 'shellopts/dump.rb'
 
 # There are three interfaces for the reporting methods:
@@ -81,6 +82,7 @@ module ShellOpts
       idr.dump_idr(true)
       Command.dump(@program, @args)
       puts 
+      puts usage
       [@program, @args]
     end
 
@@ -108,10 +110,14 @@ module ShellOpts
 #     exit 1
 #   end
 
-    def usage(subject = nil, device: $stdout, levels: 1, margin: "")
-      subject = find_subject(subject)
-      device.puts Formatter.usage_string(subject, levels: levels, margin: margin)
+    def usage
+      puts "Usage: #{Formatter.usage_string(program)}"
     end
+
+#   def usage(subject = nil, device: $stdout, levels: 1, margin: "")
+#     subject = find_subject(subject)
+#     device.puts Formatter.usage_string(subject, levels: levels, margin: margin)
+#   end
 
     def help(subject = nil, device: $stdout, levels: 10, margin: "", tab: "  ")
       subject = find_subject(subject)

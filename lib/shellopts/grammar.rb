@@ -41,17 +41,19 @@ module ShellOpts
       # Command of this object
       alias_method :command, :parent
 
-      # Unique identifier of node (String). This is the path elements
-      # concatenated with '.'
+      # Unique identifier of node (String) within the context of a program. nil
+      # for the Program object. It is the list of path elements concatenated
+      # with '.'. Initialized by the parser
       attr_reader :uid
 
-      # Path from Program object and down to this node. Array of identifiers
+      # Path from Program object and down to this node. Array of identifiers.
+      # Empty for the Program object. Initialized by the parser
       attr_reader :path
 
       # Canonical identifier (Symbol) of the object
       #
       # For options, this is the canonical name of the objekt without the
-      # initial '-' or '--', for commands it is the command name including the
+      # initial '-' or '--'. For commands it is the command name including the
       # suffixed exclamation mark. Both options and commands have internal dashes
       # replaced with underscores
       #
@@ -152,7 +154,7 @@ module ShellOpts
       # Argument specification objects
       attr_reader :specs
 
-      # Usage(s) if present
+      # Usage(s) if present. FIXME: Rename to arguments
       attr_reader :usages
 
       def initialize(parent, token)
@@ -188,7 +190,7 @@ module ShellOpts
     class Program < Command
     end
 
-    class Spec < Node
+    class Spec < Node # FIXME: Rename to ArgSpec
       # List of Argument objects (initialized by the analyzer)
       alias_method :command, :parent
 
@@ -205,12 +207,13 @@ module ShellOpts
       end
     end
 
-    class Argument < Node
+    class Argument < Node # FIXME Rename to Arg else to avoid confusion with Arguments
       alias_method :spec, :parent
     end
 
-    class Usage < Node
+    class Usage < Node # FIXME Rename to Arguments
       alias_method :command, :parent
+      def source() token.source end
     end
 
     class DocNode < Node

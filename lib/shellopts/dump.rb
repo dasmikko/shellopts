@@ -1,5 +1,24 @@
 module ShellOpts
   module Grammar
+    class Command
+      def render_structure
+        io = StringIO.new
+        dump_structure(io)
+        io.string
+      end
+
+      def dump_structure(device = $stdout)
+        device.puts ident
+        device.indent { |dev|
+          options.each { |option| dev.puts option.name }
+          commands.each { |command| command.dump_structure(dev) }
+          usages.each { |usage| dev.puts usage.source }
+        }
+      end
+    end
+  end
+
+  module Grammar
     class Node
       def dump_ast
         puts "#{classname} @ #{token.pos} #{token.source}"
@@ -55,7 +74,7 @@ module ShellOpts
         else
           puts "#{name}: #{classname}"
           dump_attrs(
-              :uid, :path, :attr, :ident, :name, :idents, :names, :brief,
+              :uid, :path, :attr, :ident, :name, :idents, :names,
               :repeatable?, 
               :argument?, argument? && :argument_name, argument? && :argument_type, 
               :enum?, enum? && :argument_enum, 
@@ -71,11 +90,19 @@ module ShellOpts
           indent { 
             options.each { |option| option.dump_idr(short) }
             commands.each { |command| command.dump_idr(short) }
+            usages.each { |usage| usage.dump_idr(short) }
           } 
         else
           puts "#{name}: #{classname}"
           dump_attrs :uid, :path, :ident, :name, :options, :commands, :specs, :usages, :brief
         end
+      end
+    end
+
+    class Usage < Node
+      def dump_idr(short = false)
+        super
+        puts token.to_s
       end
     end
 
@@ -93,7 +120,7 @@ module ShellOpts
     end
   end
 
-  class Command
+class Command
     def __dump__(argv = [])
       ::Kernel.puts __name__
       ::Kernel.indent {

@@ -73,8 +73,10 @@ module ShellOpts
                 source = words.shift_while { true }.map(&:last).join(" ")
                 @tokens << Token.new(:brief, line.line, char, source)
               when "--"
-                source = (["--"] + words.shift_while { |_,w| w !~ DECL_RE }.map(&:last)).join(" ")
-                @tokens << Token.new(:usage, line.line, char, source)
+#               source = (["--"] + words.shift_while { |_,w| w !~ DECL_RE }.map(&:last)).join(" ")
+                @tokens << Token.new(:usage, line.line, char, "--")
+                source = words.shift_while { |_,w| w !~ DECL_RE }.map(&:last).join(" ")
+                @tokens << Token.new(:usage_string, line.line, char, source)
               when "++"
                 @tokens << Token.new(:spec, line.line, char, "++")
                 words.shift_while { |c,w| w !~ DECL_RE && @tokens << Token.new(:argument, line.line, c, w) }

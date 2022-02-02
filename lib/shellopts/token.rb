@@ -2,7 +2,7 @@
 module ShellOpts
   class Token
     # Each kind should have a corresponding Grammar class with the same name
-    KINDS = [:program, :option, :command, :spec, :argument, :usage, :brief, :text, :blank]
+    KINDS = [:program, :option, :command, :spec, :argument, :usage, :usage_string, :brief, :text, :blank]
 
     # Kind of token
     attr_reader :kind
@@ -25,6 +25,8 @@ module ShellOpts
     forward_to :source, :to_s, :empty?
 
     def pos() "#{line+1}:#{char+1}" end
+
+    def to_s() source end
 
     def inspect() 
       "<#{self.class.to_s.sub(/.*::/, "")} #{pos} #{kind.inspect}" + 
