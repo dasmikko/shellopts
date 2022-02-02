@@ -35,7 +35,7 @@ describe "Formatter" do
     end
 
     it "returns a short-form usage string for the program" do
-      s = "-a -b -- ARG1 ARG2 ARG3 !cmd1 !cmd2 !cmd3"
+      s = "-a -b -- ARG1 ARG2 ARG3 cmd1! cmd2! cmd3!"
       expect(usage(s)).to eq "Usage: main -a -b [cmd1|cmd2|cmd3] ARG1 ARG2 ARG3\n"
     end
     it "wraps options" do
@@ -47,19 +47,19 @@ describe "Formatter" do
       )
     end
     it "brackets commands" do
-      s = "!cmd1 !cmd2" 
+      s = "cmd1! cmd2!" 
       expect(usage(s)).to eq undent %(
         Usage: main [cmd1|cmd2]
       )
     end
     it "uses the '<commands>' if commands overflows the line" do
-      s = "!cmd1 !cmd2" 
+      s = "cmd1! cmd2!" 
       expect(usage(s, width: 17)).to eq undent %(
         Usage: main <commands>
       )
     end
     it "wraps splits on options/command-or-arguments boundary" do
-      s = "-a -b -c !cmd"
+      s = "-a -b -c cmd!"
       expect(usage(s, width: 17)).to eq undent %(
         Usage: main -a -b
                     -c

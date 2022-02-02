@@ -28,7 +28,8 @@ module ShellOpts
   end
 
   class Lexer
-    DECL_RE = /^(?:-|--|\+|\+\+|!|#)/
+    COMMAND_RE = /[a-z][a-z._-]*!/
+    DECL_RE = /^(?:-|--|\+|\+\+|#|(?:\S*!(?:\s|$)))/
 
     using Ext::Array::ShiftWhile
 
@@ -50,7 +51,7 @@ module ShellOpts
       lines.shift_while { |line| line =~ /^(?:#.*)?$/ }
       initial_indent = lines.first&.char
 
-      @tokens = [Token.new(:program, 0, -1, "!#@name")]
+      @tokens = [Token.new(:program, 0, -1, "#{@name}!")]
       while line = lines.shift
         # Pass-trough blank lines
         if line.to_s == ""
@@ -74,7 +75,6 @@ module ShellOpts
                 source = words.shift_while { true }.map(&:last).join(" ")
                 @tokens << Token.new(:brief, line.line, char, source)
               when "--"
-#               source = (["--"] + words.shift_while { |_,w| w !~ DECL_RE }.map(&:last)).join(" ")
                 @tokens << Token.new(:usage, line.line, char, "--")
                 source = words.shift_while { |_,w| w !~ DECL_RE }.map(&:last).join(" ")
                 @tokens << Token.new(:usage_string, line.line, char, source)
@@ -83,7 +83,7 @@ module ShellOpts
                 words.shift_while { |c,w| w !~ DECL_RE && @tokens << Token.new(:argument, line.line, c, w) }
               when /^-|\+/
                 @tokens << Token.new(:option, line.line, char, word)
-              when /^!/
+              when /!$/
                 @tokens << Token.new(:command, line.line, char, word)
             else
               error_token = Token.new(:text, line.line, char, source)

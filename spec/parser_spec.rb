@@ -11,23 +11,23 @@ describe "Parser" do
   end
 
   describe "::parse" do
-    it "parses !cmd" do
-      s = "!cmd"
+    it "parses cmd!" do
+      s = "cmd!"
       expect(struct s).to eq undent %(
         main!
           cmd!
       )
     end
-    it "parses -a !cmd" do
-      s = "-a !cmd"
+    it "parses -a cmd!" do
+      s = "-a cmd!"
       expect(struct s).to eq undent %(
         main!
           -a
           cmd!
       )
     end
-    it "parses -a !cmd -b" do
-      s = "-a !cmd -b"
+    it "parses -a cmd! -b" do
+      s = "-a cmd! -b"
       expect(struct s).to eq undent %(
         main!
           -a
@@ -35,8 +35,8 @@ describe "Parser" do
             -b
       )
     end
-    it "parses -a !cmd -a" do
-      s = "-a !cmd -a"
+    it "parses -a cmd! -a" do
+      s = "-a cmd! -a"
       expect(struct s).to eq undent %(
         main!
           -a
@@ -44,8 +44,8 @@ describe "Parser" do
             -a
       )
     end
-    it "parses -a !cmd1 -b !cmd2 -c" do
-      s = "-a !cmd1 -b !cmd2 -c"
+    it "parses -a cmd1! -b cmd2! -c" do
+      s = "-a cmd1! -b cmd2! -c"
       expect(struct s).to eq undent %(
         main!
           -a
@@ -55,8 +55,8 @@ describe "Parser" do
             -c
       )
     end
-    it "parses -a !cmd1 -b !cmd1.cmd2 -c" do
-      s = "-a !cmd1 -b !cmd1.cmd2 -c"
+    it "parses -a cmd1! -b cmd1.cmd2! -c" do
+      s = "-a cmd1! -b cmd1.cmd2! -c"
       expect(struct s).to eq undent %(
         main!
           -a
@@ -66,8 +66,8 @@ describe "Parser" do
               -c
       )
     end
-    it "parses -a !cmd1 -b !cmd1.cmd2 -c !cmd1.cmd2.cmd3 -d" do
-      s = "-a !cmd1 -b !cmd1.cmd2 -c !cmd1.cmd2.cmd3 -d"
+    it "parses -a cmd1! -b cmd1.cmd2! -c cmd1.cmd2.cmd3! -d" do
+      s = "-a cmd1! -b cmd1.cmd2! -c cmd1.cmd2.cmd3! -d"
       expect(struct s).to eq undent %(
         main!
           -a
@@ -94,8 +94,8 @@ describe "Parser" do
       expect(para.to_s).to eq "ARG"
     end
 
-    it "rejects !cmd ARG" do
-      s = "!cmd ARG"
+    it "rejects cmd! ARG" do
+      s = "cmd! ARG"
       expect { prog(s) }.to raise_error LexerError
     end
 
@@ -112,8 +112,8 @@ describe "Parser" do
           ARG
       )
     end
-    it "parses -a -- ARG0 !cmd1 -b -- ARG1" do
-      s = "-a -- ARG0 !cmd1 -b -- ARG1"
+    it "parses -a -- ARG0 cmd1! -b -- ARG1" do
+      s = "-a -- ARG0 cmd1! -b -- ARG1"
       expect(struct s).to eq undent %(
         main!
           -a
@@ -123,8 +123,8 @@ describe "Parser" do
           ARG0
       )
     end
-    it "parses -a -- ARG0 !cmd1 -b -- ARG1 !cmd2 -c -- ARG2" do
-      s = "-a -- ARG0 !cmd1 -b -- ARG1 !cmd2 -c -- ARG2"
+    it "parses -a -- ARG0 cmd1! -b -- ARG1 cmd2! -c -- ARG2" do
+      s = "-a -- ARG0 cmd1! -b -- ARG1 cmd2! -c -- ARG2"
       expect(struct s).to eq undent %(
         main!
           -a
@@ -139,14 +139,14 @@ describe "Parser" do
     end
   end
 
-#     spec = "-a -b=something -- ARG1 !cmd -- ARG2" # TODO: Make it possible to say "-a -b ARG1 !cmd ARG2"
-#     spec = "-a -b -- ARG1 ARG2 ARG3 ARG4 !cmd1 !cmd2 !cmd3 !cmd4" # FIXME
+#     spec = "-a -b=something -- ARG1 cmd! -- ARG2" # TODO: Make it possible to say "-a -b ARG1 cmd! ARG2"
+#     spec = "-a -b -- ARG1 ARG2 ARG3 ARG4 cmd1! cmd2! cmd3! cmd4!" # FIXME
 
 end
 
 describe "Command#parse" do
   it "sets uid" do
-    source = "!cmd1"
+    source = "cmd1!"
     tokens = Lexer.lex("main", source)
     program = Parser.parse(tokens)
     expect(program.uid).to eq nil

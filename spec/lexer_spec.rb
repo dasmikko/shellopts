@@ -6,7 +6,7 @@ describe "Lexer" do
     # Doesn't include the initial program token
     def make(src, fields: nil)
       fields = Array(fields).flatten
-      tokens = ::ShellOpts::Lexer.new("rspec", src).lex[1..-1]
+      tokens = ::ShellOpts::Lexer.new("main", src).lex[1..-1]
       tokens.pop while tokens.last&.kind == :blank
       if fields
         if fields.size == 1
@@ -22,13 +22,13 @@ describe "Lexer" do
     end
 
     it "accepts an empty source" do
-      tokens = ::ShellOpts::Lexer.lex("rspec", "")[1..-1]
+      tokens = ::ShellOpts::Lexer.lex("main", "")[1..-1]
       expect(tokens).to be_empty
     end
 
     it "creates a program token as the first token" do
       src = %()
-      tokens = ::ShellOpts::Lexer.lex("rspec", src)
+      tokens = ::ShellOpts::Lexer.lex("main", src)
       expect(tokens.map(&:kind)).to eq [:program]
     end
 
@@ -44,11 +44,11 @@ describe "Lexer" do
 
     it "creates command tokens" do
       src = %(
-        !cmd
-        !cmd.cmd2
+        cmd!
+        cmd.cmd2!
       )
       expect(make src, fields: :kind).to eq [:command, :command]
-      expect(make src, fields: :source).to eq %w(!cmd !cmd.cmd2)
+      expect(make src, fields: :source).to eq %w(cmd! cmd.cmd2!)
     end
 
     it "creates spec and argument tokens" do
@@ -57,6 +57,16 @@ describe "Lexer" do
       )
       expect(make src, fields: :kind).to eq [:option, :spec, :argument, :argument]
       expect(make src, fields: :source).to eq %w(-a ++ ARG1 ARG2)
+    end
+
+    it "rejects text in command definitions" do
+      src = "cmd! ARG"
+      expect { ::ShellOpts::Lexer.lex("main", src) }.to raise_error LexerError
+    end
+
+    it "rejects text in option definitions" do
+      src = "-a ARG"
+      expect { ::ShellOpts::Lexer.lex("main", src) }.to raise_error LexerError
     end
 
     it "creates usage tokens" do

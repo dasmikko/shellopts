@@ -98,7 +98,7 @@ module ShellOpts
     # Subcommand identifier or nil if not present. #subcommand is often used in
     # case statement to branch out to code that handles the given subcommand:
     #
-    #   prog, args = ShellOpts.parse("!do_this !do_that", ARGV)
+    #   prog, args = ShellOpts.parse("do_this! do_that!", ARGV)
     #   case prog.subcommand
     #     when :do_this!; prog.do_this.operation # or prog[:subcommand!] or prog.subcommand!
     #     when :do_that!; prog.do_that.operation

@@ -106,8 +106,9 @@ module ShellOpts
 
     class Command < IdrNode
       def parse
-        @name = token.source.split(".").last.sub(/^!/, "")
-        @ident = "#{@name}!".to_sym
+        word = token.source.split(".").last
+        @name = word[0..-2]
+        @ident = word.to_sym
         super
       end
     end
@@ -126,7 +127,6 @@ module ShellOpts
   end
 
   class Parser
-#   include Grammar
     using Stack
     using Ext::Array::ShiftWhile
 
@@ -168,9 +168,9 @@ module ShellOpts
           when :command
             parent = nil # Required by #indent
 
-            token.source =~ /^!(?:(.*)\.)?([^.]+)$/
+            token.source =~ /^(?:(.*)\.)?([^.]+)$/
             parent_id = $1
-            ident = "#$2!".to_sym
+            ident = $2.to_sym
 
             parent_uid = parent_id && parent_id.sub(".", "!.") + "!"
 

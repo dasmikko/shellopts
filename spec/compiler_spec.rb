@@ -35,7 +35,7 @@ describe "Compiler" do
   end
 
   def compile(spec, argv)
-    tokens = Lexer.lex("rspec", spec)
+    tokens = Lexer.lex("main", spec)
     ast = Parser.parse(tokens)
     idr = Analyzer.analyze(ast) # @idr and @ast refer to the same object
     expr, args = Compiler.compile(idr, argv)
@@ -44,16 +44,16 @@ describe "Compiler" do
   end
 
   it "splits coalesced short options" do
-    expect(compile "+a", %w(-aa)).to eq "rspec -a*2"
-    expect(compile "-a -b", %w(-ab)).to eq "rspec -a -b"
+    expect(compile "+a", %w(-aa)).to eq "main -a*2"
+    expect(compile "-a -b", %w(-ab)).to eq "main -a -b"
   end
 
   context "when float is true" do
     it "allows options everywhere" do
-      expect(compile "-a !cmd -b", %w(cmd -a -b)).to eq "rspec -a cmd -b"
+      expect(compile "-a cmd! -b", %w(cmd -a -b)).to eq "main -a cmd -b"
     end
     it "sub-commands can override outer options" do
-      expect(compile "-a !cmd +a", %w(-a cmd -a -a)).to eq "rspec -a cmd -a*2"
+      expect(compile "-a cmd! +a", %w(-a cmd -a -a)).to eq "main -a cmd -a*2"
     end
   end
 end
