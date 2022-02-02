@@ -30,3 +30,4 @@ end
 
 RSpec::Core::Formatters::DocumentationFormatter.prepend FormatterOverrides
 
+require "text_helper.rb"
