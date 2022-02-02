@@ -217,18 +217,20 @@ module ShellOpts
     end
 
     class DocNode < Node
-      def text() @text ||= children.map { |line| line.source }.join(" ") end
-      def to_s() @text end
+      # May be initialized in #parse
+      def text() @text ||= children.map { |child| child.text }.join(" ") end
+      def to_s() text end
     end
 
     class Brief < DocNode
       alias_method :subject, :parent # Either a command or an option
 
-      def parse() @text = token.source.sub(/^#\s*/, "") end
+      def text() @text ||= token.source.sub(/^#\s*/, "") end
     end
 
     # Aka. "a line"
     class Text < DocNode
+      def text() @text ||= token.source end
     end
 
     class Blank < Text

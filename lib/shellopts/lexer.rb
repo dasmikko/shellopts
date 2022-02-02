@@ -61,7 +61,8 @@ module ShellOpts
         # Ignore meta comments
         if line.char < initial_indent
           next if line =~ /^#/
-          raise LexerError, "Illegal indent in line #{line.line+1}"
+          error_token = Token.new(:text, line.line, 0, "")
+          lexer_error error_token, "Illegal indentation"
         end
 
         # Options, commands, usage, arguments, and briefs
@@ -85,7 +86,8 @@ module ShellOpts
               when /^!/
                 @tokens << Token.new(:command, line.line, char, word)
             else
-              raise InternalError, "Illegal expression in line #{line.line+1}: #{word.inspect}"
+              error_token = Token.new(:text, line.line, char, source)
+              lexer_error error_token, "Illegal expression: #{word.inspect}"
             end
           end
         else # Comments
@@ -99,6 +101,8 @@ module ShellOpts
     def self.lex(name, source)
       Lexer.new(name, source).lex
     end
+
+    def lexer_error(token, message) raise LexerError, "#{token.pos} #{message}" end
   end
 end
 

@@ -149,6 +149,7 @@ module ShellOpts
       nodes = [@program] # Stack of Nodes. Follows the indentation of the source
       cmds = [@program] # Stack of cmds. Used to keep track of the current command
       uid2cmd = {}
+      last_idr_node = nil # Used to reject text after commands or options
 
       while token = tokens.shift
         while token.char <= nodes.top.token.char
@@ -162,7 +163,7 @@ module ShellOpts
             if !nodes.top.is_a?(Grammar::OptionGroup) # Ensure a token group at the top of the stack
               nodes.push Grammar::OptionGroup.new(cmds.top, token)
             end
-            Grammar::Option.parse(nodes.top, token)
+            last_idr_node = Grammar::Option.parse(nodes.top, token)
 
           when :command
             parent = nil # Required by #indent
@@ -192,7 +193,7 @@ module ShellOpts
               end
             end
 
-            command = Grammar::Command.parse(parent, token)
+            command = last_idr_node = Grammar::Command.parse(parent, token)
             uid2cmd[command.uid] = command
             nodes.push command
             cmds.push command
@@ -210,6 +211,10 @@ module ShellOpts
             nodes.push Grammar::Usage.parse(cmds.top, token)
 
           when :text
+            # Text is not allowed on the same line as a command or an option
+            last_idr_node&.token&.line || -1 != token.line or
+                parse_error token, "Illegal text: #{token.source}"
+
             # Detect indented comment groups (code)
             if nodes.top.is_a?(Grammar::Paragraph)
               code = Grammar::Code.parse(nodes.top.parent, token) # Using parent of paragraph

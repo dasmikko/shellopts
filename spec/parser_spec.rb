@@ -102,6 +102,23 @@ describe "Parser" do
           ARG
       )
     end
+    it "parses ARG as text" do
+      s = "ARG"
+      para = prog(s).children.first
+      expect(para).to be_a Grammar::Paragraph
+      expect(para.to_s).to eq "ARG"
+    end
+
+    it "rejects !cmd ARG" do
+      s = "!cmd ARG"
+      expect { prog(s) }.to raise_error LexerError
+    end
+
+    it "rejects -a ARG" do
+      s = "-a ARG"
+      expect { prog(s) }.to raise_error LexerError
+    end
+
     it "parses -a -- ARG" do
       s = "-a -- ARG"
       expect(struct s).to eq undent %(
