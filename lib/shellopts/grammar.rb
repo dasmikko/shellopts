@@ -211,36 +211,33 @@ module ShellOpts
       alias_method :spec, :parent
     end
 
-    class Usage < Node # FIXME Rename to Arguments
+    class Usage < Node # FIXME Rename to Arguments or ArgDescr
       alias_method :command, :parent
       def source() token.source end
     end
 
+    # DocNode object has no children
     class DocNode < Node
       # May be initialized in #parse
-      def text() @text ||= children.map { |child| child.text }.join(" ") end
+      def text() raise end
       def to_s() text end
     end
 
-    class Brief < DocNode
+    class Line < DocNode
+      def text() @text ||= token.source.split(" ") end
+    end
+
+    class Brief < Line
       alias_method :subject, :parent # Either a command or an option
-
-      def text() @text ||= token.source.sub(/^#\s*/, "") end
-    end
-
-    # Aka. "a line"
-    class Text < DocNode
-      def text() @text ||= token.source end
-    end
-
-    class Blank < Text
     end
 
     class Paragraph < DocNode
-      alias_method :command, :parent
+      alias_method :subject, :parent
+      def words() children.map(&:text).flatten end
+      def text() @text ||= words.join(" ") end
     end
 
-    class Code < Paragraph
+    class Code < DocNode
       def text()
         @text ||= begin
           indent = token.char
@@ -261,8 +258,7 @@ module ShellOpts
         Brief => [Command, OptionGroup, Spec, Usage],
         Paragraph => [Command, OptionGroup],
         Code => [Command, OptionGroup],
-        Text => [Paragraph, Code],
-        Blank => [Code]
+        Line => [Paragraph, Code]
       }
     end
   end

@@ -13,7 +13,7 @@ module ShellOpts
       def parser_error(token, message) raise ParserError, "#{token.pos} #{message}" end
     end
 
-    class IdrNode < Node
+    class IdrNode
       # Assume @ident and @name has been defined
       def parse
         @attr = ::ShellOpts::Command::RESERVED_OPTION_NAMES.include?(ident.to_s) ? nil : ident
@@ -22,7 +22,7 @@ module ShellOpts
       end
     end
 
-    class Option < IdrNode
+    class Option
       SHORT_NAME_RE = /[a-zA-Z0-9]/
       LONG_NAME_RE = /[a-zA-Z0-9][a-zA-Z0-9_-]*/
       NAME_RE = /(?:#{SHORT_NAME_RE}|#{LONG_NAME_RE})(?:,#{LONG_NAME_RE})*/
@@ -104,7 +104,7 @@ module ShellOpts
       def basename2ident(s) s.tr("-", "_").to_sym end
     end
 
-    class Command < IdrNode
+    class Command
       def parse
         word = token.source.split(".").last
         @name = word[0..-2]
@@ -113,13 +113,13 @@ module ShellOpts
       end
     end
 
-    class Program < Command
+    class Program
       def self.parse(token)
         super(nil, token)
       end
     end
 
-    class Spec < Node
+    class Spec
       def parse # TODO
         super
       end
@@ -211,7 +211,7 @@ module ShellOpts
             nodes.push Grammar::Usage.parse(cmds.top, token)
 
           when :text
-            # Text is not allowed on the same line as a command or an option
+            # Line is not allowed on the same line as a command or an option
             last_idr_node&.token&.line || -1 != token.line or
                 parse_error token, "Illegal text: #{token.source}"
 
@@ -221,9 +221,9 @@ module ShellOpts
               tokens.unshift token
               while token = tokens.shift
                 if token.kind == :text && token.char >= code.token.char
-                  Grammar::Text.parse(code, token)
+                  Grammar::Line.parse(code, token)
                 elsif token.kind == :blank
-                  Grammar::Text.parse(code, token) \
+                  Grammar::Line.parse(code, token) \
                       if tokens.first.kind == :text && tokens.first.char >= code.token.char
                 else
                   tokens.unshift token
@@ -241,7 +241,7 @@ module ShellOpts
               paragraph = Grammar::Paragraph.parse(parent, token)
               tokens.unshift token
               while tokens.first && tokens.first.kind == :text && tokens.first.char == paragraph.token.char
-                Grammar::Text.parse(paragraph, tokens.shift)
+                Grammar::Line.parse(paragraph, tokens.shift)
               end
               nodes.push paragraph # Leave paragraph on stack so we can detect code blocks
             end
