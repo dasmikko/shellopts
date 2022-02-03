@@ -155,7 +155,7 @@ module ShellOpts
       attr_reader :specs
 
       # ArgDescr(s) if present. FIXME: Rename to arguments
-      attr_reader :usages
+      attr_reader :descrs
 
       def initialize(parent, token)
         super
@@ -164,7 +164,7 @@ module ShellOpts
         @commands = []
         @commands_hash = {} # Initialized by the analyzer
         @specs = []
-        @usages = []
+        @descrs = []
       end
 
       # Maps from any name or identifier of an option or command (incl. the
@@ -181,7 +181,7 @@ module ShellOpts
           # Options are handled by the OptionGroup
           when Command; commands << child
           when ArgSpec; specs << child
-          when ArgDescr; usages << child
+          when ArgDescr; descrs << child
           when Brief; @brief = brief
         end
       end

@@ -9,7 +9,7 @@ module ShellOpts
     class Command
       def literal() name end
 #     def format() 
-#       "#{name} " + (options + commands + usages).map(&:format).join(" ")
+#       "#{name} " + (options + commands + descrs).map(&:format).join(" ")
 #     end
     end
 
@@ -77,7 +77,7 @@ module ShellOpts
     #
     # TODO: Check no-options, no-command, and no-args case(s)
     def self.usage_string(command, width: WIDTH, indent: 0, initial: DEFAULT_INITIAL)
-      if command.usages.size <= 1
+      if command.descrs.size <= 1
         name = command.literal
         name_size = 1 + name.size
 
@@ -96,7 +96,7 @@ module ShellOpts
         commands_long_str = commands && "["+ commands_list.join("|") + "]"
         commands_long_size = commands ? 1 + commands_long_str.size : 0
 
-        arguments = command.usages.empty? ? nil : command.usages[0..0].map(&:literal) # FIXME
+        arguments = command.descrs.empty? ? nil : command.descrs[0..0].map(&:literal) # FIXME
         arguments_list = arguments
         arguments_size = arguments ? 1 + arguments_list.first.size : 0
 
@@ -124,7 +124,7 @@ module ShellOpts
           [str, rest_str].compact.join("\n#{indent_str}")
         end
       else
-        usages.join("FIXME")
+        descrs.join("FIXME")
       end
     end
 
