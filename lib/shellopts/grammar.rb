@@ -218,13 +218,14 @@ module ShellOpts
 
     # DocNode object has no children
     class DocNode < Node
-      # May be initialized in #parse
-      def text() raise end
+      def words() raise end # Not defined for Code
+      def text() @text ||= words.join(" ") end
       def to_s() text end
     end
 
     class Line < DocNode
-      def text() @text ||= token.source.split(" ") end
+      def words() @words ||= token.source.split(" ") end
+      def text() @text ||= words.join(" ") end
     end
 
     class Brief < Line
@@ -233,8 +234,7 @@ module ShellOpts
 
     class Paragraph < DocNode
       alias_method :subject, :parent
-      def words() children.map(&:text).flatten end
-      def text() @text ||= words.join(" ") end
+      def words() @words ||= children.map(&:text).flatten end
     end
 
     class Code < DocNode
