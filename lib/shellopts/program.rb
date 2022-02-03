@@ -56,6 +56,10 @@ module ShellOpts
     # arguments have the number of occurences as the value
     #
     def [](key)
+      ::Kernel.puts
+      ::Kernel.p key
+      ::Kernel.p __grammar__[key].class
+
       case object = __grammar__[key]
         when ::ShellOpts::Grammar::Command
           object.ident == __subcommand__!.__ident__ ? __subcommand__! : nil

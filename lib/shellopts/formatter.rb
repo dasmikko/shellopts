@@ -13,7 +13,7 @@ module ShellOpts
 #     end
     end
 
-    class Usage
+    class ArgDescr
       def literal() token.to_s end
 #     def format()
 #       token
@@ -127,5 +127,56 @@ module ShellOpts
         usages.join("FIXME")
       end
     end
+
+    # main -a -b -c <command> <ARGS>
+    #      cmd -e -f -g <ARGS>
+    #      cmd -h -i -j <ARGS>
+    #
+    def self.usage_lines(command, width: WIDTH, indent: 0, initial: DEFAULT_INITIAL)
+      if commands.commands.size <= 1
+        usage_string(command, width: WIDTH, indent: 0, initial: DEFAULT_INITIAL)
+      else
+        "TODO"
+      end
+    end
+
+    # Formats
+    #   short - on one line no matter what
+    #   brief - on multiple lines, options and commands are separate
+    #   long - everything
+    #   doc - everything
+    def render_command_short(width: WIDTH, indent: 0, initial: 0)
+      
+      
+      
+    end
+
+
+    # TODO TODO TODO
+    def self.option_help(command, width: WIDTH, indent: 0)
+      lines = []
+      command.__grammar__.options.map { |option|
+        lines << option.name
+        words = option.children.map(&:text).join(" ").split(" ")
+        p option.children.size
+        p words
+        lines << wrap_indent(words, indent: 3)
+      }
+      lines.join("\n")
+    end
+
+    def self.option_brief(command, width: WIDTH, indent: 0)
+      
+    end
   end
 end
+
+
+
+
+
+
+
+
+
+

@@ -102,7 +102,7 @@ module ShellOpts
       # Name of argument or nil if not present
       attr_reader :argument_name
 
-      # Type of argument (ArgumentType)
+      # Type of argument (ArgType)
       attr_reader :argument_type
 
       # Enum values if argument type is an enumerator
@@ -112,10 +112,10 @@ module ShellOpts
       def argument?() @argument end
       def optional?() @optional end
 
-      def integer?() @argument_type.is_a? IntegerArgument end
-      def float?() @argument_type.is_a? FloatArgument end
-      def file?() @argument_type.is_a? FileArgument end
-      def enum?() @argument_type.is_a? EnumArgument end
+      def integer?() @argument_type.is_a? IntegerArg end
+      def float?() @argument_type.is_a? FloatArg end
+      def file?() @argument_type.is_a? FileArg end
+      def enum?() @argument_type.is_a? EnumArg end
       def string?() argument? && !integer? && !float? && !file? && !enum? end
 
       def match?(literal) argument_type.match?(literal) end
@@ -151,10 +151,10 @@ module ShellOpts
       # Array of sub-commands
       attr_reader :commands
 
-      # Argument specification objects
+      # Arg specification objects
       attr_reader :specs
 
-      # Usage(s) if present. FIXME: Rename to arguments
+      # ArgDescr(s) if present. FIXME: Rename to arguments
       attr_reader :usages
 
       def initialize(parent, token)
@@ -180,8 +180,8 @@ module ShellOpts
         case child
           # Options are handled by the OptionGroup
           when Command; commands << child
-          when Spec; specs << child
-          when Usage; usages << child
+          when ArgSpec; specs << child
+          when ArgDescr; usages << child
           when Brief; @brief = brief
         end
       end
@@ -190,8 +190,8 @@ module ShellOpts
     class Program < Command
     end
 
-    class Spec < Node # FIXME: Rename to ArgSpec
-      # List of Argument objects (initialized by the analyzer)
+    class ArgSpec < Node # FIXME: Rename to ArgArgSpec
+      # List of Arg objects (initialized by the analyzer)
       alias_method :command, :parent
 
       attr_reader :arguments
@@ -203,15 +203,15 @@ module ShellOpts
 
     protected
       def attach(child)
-        arguments << child if child.is_a?(Argument)
+        arguments << child if child.is_a?(Arg)
       end
     end
 
-    class Argument < Node # FIXME Rename to Arg else to avoid confusion with Arguments
+    class Arg < Node
       alias_method :spec, :parent
     end
 
-    class Usage < Node # FIXME Rename to Arguments or ArgDescr
+    class ArgDescr < Node
       alias_method :command, :parent
       def source() token.source end
     end
@@ -252,10 +252,10 @@ module ShellOpts
         Command => [Command],
         OptionGroup => [Command],
         Option => [OptionGroup],
-        Spec => [Command],
-        Argument => [Spec],
-        Usage => [Command],
-        Brief => [Command, OptionGroup, Spec, Usage],
+        ArgSpec => [Command],
+        Arg => [ArgSpec],
+        ArgDescr => [Command],
+        Brief => [Command, OptionGroup, ArgSpec, ArgDescr],
         Paragraph => [Command, OptionGroup],
         Code => [Command, OptionGroup],
         Line => [Paragraph, Code]

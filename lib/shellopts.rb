@@ -79,10 +79,10 @@ module ShellOpts
       # Process stdopts options
       # Process msgopts options
 
-      idr.dump_idr(true)
-      Command.dump(@program, @args)
-      puts 
-      puts usage
+#     idr.dump_idr(true)
+#     Command.dump(@program, @args)
+#     puts 
+#     puts usage
       [@program, @args]
     end
 
@@ -95,7 +95,7 @@ module ShellOpts
 
     def error(subject = nil, message)
       $stderr.puts "#{name}: #{message}"
-      usage(subject, device: $stderr)
+      $stderr.puts "Usage: #{Formatter.usage_string(program)}"
       exit 1
     end
 
@@ -109,10 +109,6 @@ module ShellOpts
 #     $stderr.puts message
 #     exit 1
 #   end
-
-    def usage
-      puts "Usage: #{Formatter.usage_string(program)}"
-    end
 
 #   def usage(subject = nil, device: $stdout, levels: 1, margin: "")
 #     subject = find_subject(subject)

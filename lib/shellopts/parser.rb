@@ -119,7 +119,7 @@ module ShellOpts
       end
     end
 
-    class Spec
+    class ArgSpec
       def parse # TODO
         super
       end
@@ -199,16 +199,16 @@ module ShellOpts
             cmds.push command
 
           when :spec
-            nodes.push Grammar::Spec.parse(cmds.top, token)
+            nodes.push Grammar::ArgSpec.parse(cmds.top, token)
 
           when :argument
-            Grammar::Argument.parse(nodes.top, token)
+            Grammar::Arg.parse(nodes.top, token)
 
           when :usage
             ; # Do nothing
 
           when :usage_string
-            nodes.push Grammar::Usage.parse(cmds.top, token)
+            nodes.push Grammar::ArgDescr.parse(cmds.top, token)
 
           when :text
             # Line is not allowed on the same line as a command or an option

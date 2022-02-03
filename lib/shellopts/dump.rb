@@ -61,7 +61,7 @@ module ShellOpts
       def classname() self.class.to_s.sub(/.*::/, "") end
     end
 
-    class Option < IdrNode
+    class Option
       def dump_idr(short = false)
         if short
           s = [
@@ -83,7 +83,7 @@ module ShellOpts
       end
     end
 
-    class Command < IdrNode
+    class Command
       def dump_idr(short = false)
         if short
           puts name
@@ -99,21 +99,21 @@ module ShellOpts
       end
     end
 
-    class Usage < Node
+    class ArgDescr
       def dump_idr(short = false)
         super
         puts token.to_s
       end
     end
 
-    class Spec < Node
+    class ArgSpec < Node
       def dump_idr(short = false)
         super
         dump_attrs :arguments
       end
     end
 
-    class Argument < Node
+    class Arg < Node
       def dump_idr(short = false)
         puts "<type>"
       end
