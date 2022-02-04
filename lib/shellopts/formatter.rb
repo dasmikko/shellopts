@@ -128,10 +128,113 @@ module ShellOpts
       end
     end
 
-    # main -a -b -c <command> <ARGS>
-    #      cmd -e -f -g <ARGS>
-    #      cmd -h -i -j <ARGS>
+    # brief_format:
+    #   brief_name
+    #   brief_usage
+    #   for each option
+    #     brief_option
+    #   end
+    #   for each command
+    #     brief_command
+    #   end
+
+    # One-line format in prioritized order
+    # ------------------------------------
     #
+    #   cmd -a -b -c [CMD|CMD] ARGS
+    #   cmd -a -b -c <command> ARGS
+    #   cmd <options> [CMD|CMD] <ARGS>
+    #   cmd <options> <command> <ARGS>
+    #
+    # Multiline format
+    # ----------------
+    #
+    #   cmd -a -b -c [CMD|CMD] ARGS   # <- only if no subcommand options or arguments
+    #
+    #   cmd -a -b -c <command> ARGS
+    #       subcmd -e -f -g ARGS
+    #       subcmd -h -i -j ARGS
+    #
+    #   cmd -a -b -c 
+    #       -d -e
+    #       [CMD|CMD] ARGS
+    #
+    #   cmd -a -b -c 
+    #       -d -e
+    #       <command> ARGS
+    #
+    # Brief format
+    # ------------
+    #
+    #   Name - Brief
+    #
+    #   Usage: 
+    #     cmd -a -b -c [CMD|CMD] ARGS
+    #
+    #   Options:
+    #     -a                    Brief
+    #     -b                    Brief
+    #     -c                    Brief
+    #
+    #   Commands:
+    #     CMD --opts ARGS       Brief
+    #     CMD --opts ARGS_THAT_TAKES_UP_A_LOT_OF_SPACE       
+    #                           Brief
+    #
+    # Brief Command
+    #     CMD --opts ARGS       Brief
+    #     CMD --opts ARGS_THAT_TAKES_UP_A_LOT_OF_SPACE       
+    #                           Brief
+    #
+    # Brief Option
+    #   -a            Brief
+    #   -b=a_very_long_option
+    #                 Brief
+    #    
+    #
+    # Doc format
+    # ----------
+    #
+    #   Name
+    #     Name - Brief
+    #
+    #   Usage:
+    #     cmd -a -b -c [CMD|CMD] ARGS
+    #
+    #   Description
+    #     Descr
+    #
+    #   Options:
+    #     -a
+    #       Descr
+    #     -b
+    #       Descr
+    #     -c
+    #       Descr
+    #
+    #   Commands:
+    #     CMD -d -e -f ARGS
+    #       Descr
+    #
+    #       -d
+    #         Descr
+    #       -e
+    #         Descr
+    #       -f 
+    #         Descr
+    #
+    #     CMD -g -h -i ARGS
+    #       Descr
+    #
+    #       -g
+    #         Descr
+    #       -h
+    #         Descr
+    #       -i 
+    #         Descr
+    #
+    
+    
     def self.usage_lines(command, width: WIDTH, indent: 0, initial: DEFAULT_INITIAL)
       if commands.commands.size <= 1
         usage_string(command, width: WIDTH, indent: 0, initial: DEFAULT_INITIAL)
@@ -145,11 +248,11 @@ module ShellOpts
     #   brief - on multiple lines, options and commands are separate
     #   long - everything
     #   doc - everything
-    def render_command_short(width: WIDTH, indent: 0, initial: 0)
-      
-      
-      
-    end
+#   def render_command_short(width: WIDTH, indent: 0, initial: 0)
+#     
+#     
+#     
+#   end
 
 
     # TODO TODO TODO
@@ -169,6 +272,22 @@ module ShellOpts
       
     end
   end
+
+# def self.command_short
+#   
+# end
+
+# # Format can be :enum, :brief, :long
+# def self.render_option(option, format)
+#   case format
+#     when :enum; "#{name}" + (argument? ? "=#{argument_name}" : "") 
+#     when :brief; [render_option(option, :enum), option.brief]
+#     when :long;
+#   end
+#
+#
+# end
+
 end
 
 

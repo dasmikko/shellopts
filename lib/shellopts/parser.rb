@@ -148,10 +148,8 @@ module ShellOpts
       @program = Grammar::Program.parse(tokens.shift)
       nodes = [@program] # Stack of Nodes. Follows the indentation of the source
       cmds = [@program] # Stack of cmds. Used to keep track of the current command
-      uid2cmd = {}
-      last_idr_node = nil # Used to reject text after commands or options
-
       while token = tokens.shift
+        # Options with the same indentation level are collected into groups
         while token.char <= nodes.top.token.char
           node = nodes.pop
           cmds.pop if cmds.top == node
@@ -160,18 +158,19 @@ module ShellOpts
 
         case token.kind
           when :option
-            if !nodes.top.is_a?(Grammar::OptionGroup) # Ensure a token group at the top of the stack
-              nodes.push Grammar::OptionGroup.new(cmds.top, token)
-            end
-            last_idr_node = Grammar::Option.parse(nodes.top, token)
+            # Collect options into option groups if one the same line
+            options = [token] + tokens.shift_while { |follow| 
+              follow.kind == :option && follow.line == token.line
+            }
+            group = Grammar::OptionGroup.new(cmds.top, token)
+            options.each { |option| Grammar::Option.parse(group, option) }
+            nodes.push group
 
           when :command
             parent = nil # Required by #indent
-
             token.source =~ /^(?:(.*)\.)?([^.]+)$/
             parent_id = $1
             ident = $2.to_sym
-
             parent_uid = parent_id && parent_id.sub(".", "!.") + "!"
 
             if parent_uid
@@ -193,8 +192,7 @@ module ShellOpts
               end
             end
 
-            command = last_idr_node = Grammar::Command.parse(parent, token)
-            uid2cmd[command.uid] = command
+            command = Grammar::Command.parse(parent, token)
             nodes.push command
             cmds.push command
 
@@ -211,9 +209,8 @@ module ShellOpts
             nodes.push Grammar::ArgDescr.parse(cmds.top, token)
 
           when :text
-            # Line is not allowed on the same line as a command or an option
-            last_idr_node&.token&.line || -1 != token.line or
-                parse_error token, "Illegal text: #{token.source}"
+            # Text is only allowed on new lines
+            token.line > nodes.top.token.line
 
             # Detect indented comment groups (code)
             if nodes.top.is_a?(Grammar::Paragraph)

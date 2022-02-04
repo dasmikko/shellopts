@@ -137,6 +137,31 @@ describe "Parser" do
           ARG0
       )
     end
+
+    context "handles multiline source" do
+      it "with commands" do
+        s = %(
+          cmd1!
+          cmd2!
+          cmd3!
+        )
+        expect(struct s).to eq undent %(
+          main!
+            cmd1!
+            cmd2!
+            cmd3!
+        )
+      end
+
+      it "with option groups" do
+        s = %(
+          -a
+          -b -c
+        )
+        expect(prog(s).children).to all(be_a OptionGroup)
+        expect(prog(s).options.map { |option| option.group.token.source }).to eq %w(-a -b -b)
+      end
+    end
   end
 
 #     spec = "-a -b=something -- ARG1 cmd! -- ARG2" # TODO: Make it possible to say "-a -b ARG1 cmd! ARG2"
@@ -156,6 +181,7 @@ describe "Command#parse" do
     expect(command.path).to eq [:cmd1!]
   end
 end
+
 
 describe "Option#parse" do
   def opt(source, method = nil)

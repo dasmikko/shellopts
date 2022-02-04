@@ -1,6 +1,8 @@
 
 include ShellOpts
 
+__END__
+
 describe "Formatter" do
   describe "::wrap_indent" do
     it "returns a tuple of string and length of last line" do
