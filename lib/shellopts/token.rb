@@ -11,7 +11,7 @@ module ShellOpts
     attr_reader :line
 
     # Char number. Zero based. The lexer may adjust the char number (eg. for
-    # blank lines)
+    # blank lines). TODO: Rename 'col'
     attr_accessor :char
 
     # Source of the token

@@ -26,6 +26,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "forward_to"
   spec.add_dependency "constrain"
+  spec.add_dependency "ruby-terminfo"
 
   spec.add_development_dependency "bundler", "~> 2.2.10"
   spec.add_development_dependency "rake", ">= 12.3.3"

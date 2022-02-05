@@ -128,22 +128,28 @@ module ShellOpts
 
     class OptionGroup < Node
       alias_method :command, :parent
-      alias_method :options, :children
+
+      # Array of options in declaration order. Assigned by #attach
+      attr_reader :options
 
       attr_reader :brief
       attr_reader :description
 
       def initialize(parent, token)
         super(parent, token)
-        parent.option_groups << self
+        @options = []
+#       parent.option_groups << self # FIXME: Done twice? See Command#attach
       end
 
     protected
       def attach(child)
         super
         case child
-          when Option; command.options << child
-          when Brief; @brief = child
+          when Option
+            @options << child
+            command.options << child
+          when Brief
+            @brief = child
           # when Description
         end
       end
@@ -158,7 +164,7 @@ module ShellOpts
       attr_reader :option_groups
 
       # Array of options in declaration order. Assigned to by
-      # OptionGroup#attach
+      # OptionGroup#attach. FIXME: Or what? See OptionGroup#initialize and Command#attach
       attr_reader :options
 
       # Array of sub-commands. Assigned to by #attach

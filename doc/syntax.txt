@@ -1,0 +1,10 @@
+
+One-line syntax:
+
+  <options> <commands> <spec|descr> # <brief>
+  
+Grammar
+
+  <program> ::= <options-spec> <commands-spec> 
+    
+

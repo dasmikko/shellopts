@@ -11,6 +11,8 @@ module ShellOpts
 
     forward_to :@text, :=~
 
+    # Split on whitespace while keeping track of character position. Returns
+    # array of char, word tuples
     def words
       return @words if @words
       @words = []
