@@ -69,7 +69,7 @@
     #       Descr
     #     -b
     #       Descr
-    #     -c
+    #     -c, --aliases
     #       Descr
     #
     #   Commands:

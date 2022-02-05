@@ -37,7 +37,6 @@ module ShellOpts
     attr_reader :source
     attr_reader :tokens
 
-
     def initialize(name, source)
       @name = name
       @source = source

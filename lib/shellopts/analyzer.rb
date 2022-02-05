@@ -9,7 +9,7 @@ module ShellOpts
       def analyzer_error(token, message) raise AnalyzerError, "#{token.pos} #{message}" end
     end
 
-    class Command < IdrNode
+    class Command
       def collect_options
         options.each { |option|
           option.idents.zip(option.names).each { |ident, name|

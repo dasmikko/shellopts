@@ -182,7 +182,6 @@ describe "Command#parse" do
   end
 end
 
-
 describe "Option#parse" do
   def opt(source, method = nil)
     tokens = Lexer.lex("main", source)

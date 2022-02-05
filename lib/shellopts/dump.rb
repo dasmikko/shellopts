@@ -12,7 +12,7 @@ module ShellOpts
         device.indent { |dev|
           options.each { |option| dev.puts option.name }
           commands.each { |command| command.dump_structure(dev) }
-          descrs.each { |usage| dev.puts usage.source }
+          descrs.each { |descr| dev.puts descr.text }
         }
       end
     end
@@ -90,7 +90,7 @@ module ShellOpts
           indent { 
             options.each { |option| option.dump_idr(short) }
             commands.each { |command| command.dump_idr(short) }
-            descrs.each { |usage| usage.dump_idr(short) }
+            descrs.each { |descr| descr.dump_idr(short) }
           } 
         else
           puts "#{name}: #{classname}"

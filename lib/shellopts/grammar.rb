@@ -97,6 +97,8 @@ module ShellOpts
       def idents() short_idents + long_idents end
 
       # Names of option. Includes both short and long option names
+      #
+      # TODO: Should be in declaration order
       def names() short_names + long_names end
 
       # Name of argument or nil if not present
@@ -126,39 +128,51 @@ module ShellOpts
 
     class OptionGroup < Node
       alias_method :command, :parent
+      alias_method :options, :children
 
       attr_reader :brief
       attr_reader :description
 
       def initialize(parent, token)
         super(parent, token)
+        parent.option_groups << self
       end
 
     protected
       def attach(child)
         super
-        command.options << child if child.is_a?(Option)
+        case child
+          when Option; command.options << child
+          when Brief; @brief = child
+          # when Description
+        end
       end
     end
 
     class Command < IdrNode
-      # Brief description of command
+      # Brief description of command. Assigned to by #attach
       attr_accessor :brief
 
-      # Array of options in declaration order
+      # Array of option groups in declaration order. Assigned to by
+      # #attach. TODO: Rename 'groups'
+      attr_reader :option_groups
+
+      # Array of options in declaration order. Assigned to by
+      # OptionGroup#attach
       attr_reader :options
 
-      # Array of sub-commands
+      # Array of sub-commands. Assigned to by #attach
       attr_reader :commands
 
-      # Arg specification objects
+      # Arg specification objects. Assigned to by #attach
       attr_reader :specs
 
-      # ArgDescr(s) if present. FIXME: Rename to arguments
+      # ArgDescr(s) if present. Assigned to by #attach
       attr_reader :descrs
 
       def initialize(parent, token)
         super
+        @option_groups = []
         @options = []
         @options_hash = {} # Initialized by the analyzer
         @commands = []
@@ -177,12 +191,15 @@ module ShellOpts
       def attach(child)
         super
         # Check for duplicates happens in the analyze stage
+        #
+        # FIXME: Need better separation or work between analyzer and #attach
         case child
           # Options are handled by the OptionGroup
+          when OptionGroup; option_groups << child
           when Command; commands << child
           when ArgSpec; specs << child
           when ArgDescr; descrs << child
-          when Brief; @brief = brief
+          when Brief; @brief = child
         end
       end
     end
@@ -190,7 +207,7 @@ module ShellOpts
     class Program < Command
     end
 
-    class ArgSpec < Node # FIXME: Rename to ArgArgSpec
+    class ArgSpec < Node
       # List of Arg objects (initialized by the analyzer)
       alias_method :command, :parent
 
@@ -211,38 +228,41 @@ module ShellOpts
       alias_method :spec, :parent
     end
 
-    class ArgDescr < Node
-      alias_method :command, :parent
-      def source() token.source end
-    end
-
-    # DocNode object has no children
+    # DocNode object has no children but lines
     class DocNode < Node
-      def words() raise end # Not defined for Code
-      def text() @text ||= words.join(" ") end
-      def to_s() text end
+      attr_reader :tokens # :text tokens
+
+      def text() @text ||= tokens.map(&:source).join(" ") end
+
+      def to_s() text end # FIXME
+
+      def initialize(parent, token)
+        super
+        @tokens = [token]
+      end
     end
 
-    class Line < DocNode
-      def words() @words ||= token.source.split(" ") end
-      def text() @text ||= words.join(" ") end
+    class ArgDescr < DocNode
+      alias_method :command, :parent
     end
 
-    class Brief < Line
+    module Wrap
+      def words() @words ||= text.split(" ") end
+    end
+
+    class Brief < DocNode
+      include Wrap
       alias_method :subject, :parent # Either a command or an option
     end
 
     class Paragraph < DocNode
-      alias_method :subject, :parent
-      def words() @words ||= children.map(&:text).flatten end
+      include Wrap
+      alias_method :subject, :parent # Either a command or an option
     end
 
     class Code < DocNode
       def text()
-        @text ||= begin
-          indent = token.char
-          children.map { |line| " " * (line.token.char - indent) + line.token.source }.join("\n") 
-        end
+        @text ||= tokens.map { |t| " " * (t.char - token.char) + t.source }.join("\n")
       end
     end
 
@@ -257,8 +277,7 @@ module ShellOpts
         ArgDescr => [Command],
         Brief => [Command, OptionGroup, ArgSpec, ArgDescr],
         Paragraph => [Command, OptionGroup],
-        Code => [Command, OptionGroup],
-        Line => [Paragraph, Code]
+        Code => [Command, OptionGroup]
       }
     end
   end
