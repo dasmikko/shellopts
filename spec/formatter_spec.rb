@@ -1,7 +1,6 @@
 
-include ShellOpts
-
 __END__
+include ShellOpts
 
 describe "Formatter" do
   describe "::wrap_indent" do

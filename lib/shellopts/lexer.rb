@@ -48,12 +48,14 @@ module ShellOpts
     def lex
       lines = source[0..-2].split("\n").map.with_index { |line,i| Line.new(i, line) }
 
-      # Skip initial comments and blank lines
-      lines.shift_while { |line| line =~ /^(?:#.*)?$/ }
+      # Skip initial comments and blank lines and compute indent level
+      lines.shift_while { |line| line.text == "" || line.text.start_with?("#") && line.char == 0 }
       initial_indent = lines.first&.char
 
-      @tokens = [Token.new(:program, 0, -1, "#{@name}!")]
+      # Create program token
       @tokens = [Token.new(:program, -1, -1, "#{@name}!")]
+
+      # Process lines
       while line = lines.shift
         # Pass-trough blank lines
         if line.to_s == ""

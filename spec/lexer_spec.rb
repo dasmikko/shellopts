@@ -6,7 +6,8 @@ describe "Lexer" do
     # Doesn't include the initial program token
     def make(src, fields: nil)
       fields = Array(fields).flatten
-      tokens = ::ShellOpts::Lexer.new("main", src).lex[1..-1]
+      tokens = ::ShellOpts::Lexer.new("main", src).lex
+      tokens.shift if tokens.first&.kind == :program
       tokens.pop while tokens.last&.kind == :blank
       if fields
         if fields.size == 1
@@ -30,6 +31,14 @@ describe "Lexer" do
       src = %()
       tokens = ::ShellOpts::Lexer.lex("main", src)
       expect(tokens.map(&:kind)).to eq [:program]
+    end
+
+    it "creates a program brief token if present" do
+      src = %(
+        # program brief
+      )
+      tokens = ::ShellOpts::Lexer.new("main", src).lex[1..-1]
+      expect(tokens.first.kind).to eq :brief
     end
 
     it "creates options tokens" do
