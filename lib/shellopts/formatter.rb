@@ -112,7 +112,6 @@ module ShellOpts
 
       # Wrap command but compact multiple descriptions
       def render_multi(width)
-        width = 79
         long_options = options.map { |option| option.render(:long) }
         short_options = options.map { |option| option.render(:short) }
         compact_options = [OPTIONS_ABBR]
@@ -126,7 +125,7 @@ module ShellOpts
         return [words.join(" ")] if pass?(words, width)
 
         indent = name.size + 1
-        lines = Formatter.wrap(width, indent, long_options)
+        lines = Formatter.wrap(width - indent, long_options)
         lines = ["#{name} " + lines[0]] + Formatter.indent_lines(indent, lines[1..-1])
 
         commands = pass?(short_commands + args, width - indent) ? short_commands : compact_commands
@@ -168,8 +167,19 @@ module ShellOpts
     # Minimum width of second column in option and command lists
     SECOND_MIN_WIDTH = 50
 
-    def self.brief(program, width = TermInfo.screen_size.last - 3)
-      command_width = [width - INDENT, USAGE_MAX_WIDTH].min
+    # String for 'Usage' in error messages
+    USAGE_STRING = "Usage:"
+
+    # Usage string in error messages
+    def self.usage(program, width = TermInfo.screen_columns - 3)
+      optcmd_width = [width - USAGE_STRING.size - 1, USAGE_MAX_WIDTH].min
+      lines = program.render(:multi, optcmd_width)
+      ["Usage: #{lines[0]}"] + indent_lines(USAGE_STRING.size + 1, lines[1..-1])
+    end
+
+    # Brief descripion of command (when the user specifies '-h')
+    def self.brief(program, width = TermInfo.screen_columns - 3)
+      command_width = [width - INDENT - program.name.size - 1, USAGE_MAX_WIDTH].min
       option_briefs = program.option_groups.map { |group| [group.render(:enum), group.brief&.words] }
       command_briefs = program.commands.map { |command| [command.render(:single, width), command.brief&.words] }
       widths = compute_column_widths(width, option_briefs + command_briefs)
