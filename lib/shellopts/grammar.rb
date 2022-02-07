@@ -133,12 +133,12 @@ module ShellOpts
       attr_reader :options
 
       attr_reader :brief
-      attr_reader :description
+      attr_reader :description # Array of Paragraph or Code objects
 
       def initialize(parent, token)
         super(parent, token)
         @options = []
-#       parent.option_groups << self # FIXME: Done twice? See Command#attach
+        @description = []
       end
 
     protected
@@ -150,7 +150,8 @@ module ShellOpts
             command.options << child
           when Brief
             @brief = child
-          # when Description
+          when Paragraph, Code
+            @description << child
         end
       end
     end
@@ -267,9 +268,8 @@ module ShellOpts
     end
 
     class Code < DocNode
-      def text()
-        @text ||= tokens.map { |t| " " * (t.char - token.char) + t.source }.join("\n")
-      end
+      def text() @text ||= lines.join("\n") end
+      def lines() @lines ||= tokens.map { |t| " " * (t.char - token.char) + t.source } end
     end
 
     class Node

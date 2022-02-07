@@ -210,6 +210,54 @@ module ShellOpts
       l
     end
 
+    def self.help(program, width = TermInfo.screen_columns - 3)
+      command_width = [width - INDENT - program.name.size - 1, USAGE_MAX_WIDTH].min
+      option_briefs = program.option_groups.map { |group| [group.render(:enum), group.brief&.words] }
+      command_briefs = program.commands.map { |command| [command.render(:single, width), command.brief&.words] }
+      widths = compute_column_widths(width, option_briefs + command_briefs)
+
+      l = []
+
+      if program.brief
+        l << "Name:" << "#{indent}#{program.name} - #{program.brief.text}" << ""
+      end
+
+      l << "Usage:"
+      if program.descrs.size == 1
+        l.concat indent_lines(2, program.render(:multi, command_width))
+      else
+        l.concat indent_lines(2, program.render(:enum, command_width))
+      end
+
+      if !program.options.empty?
+        l << "" << "Options:"
+        for group in program.option_groups
+          l.concat indent_lines(2, [group.render(:enum)])
+          if !group.description.empty?
+            group.description.each { |descr|
+              case descr
+                when Grammar::Paragraph
+                  l.concat indent_lines(4, wrap(width - 4, descr.words))
+                when Grammar::Code
+                  l.concat indent_lines(6, descr.lines)
+              end
+            }
+          elsif group.brief
+            l.concat indent_lines(4, wrap(width - 4, group.brief.words))
+          end
+          l << ""
+        end
+      end
+
+      if !program.commands.empty?
+        l << "" << "Commands:"
+        l.concat indent_lines(2, columnize(widths, command_briefs))
+      end
+
+      l
+      
+    end
+
     def self.wrap(width, curr = 0, words)
       lines = [[]] # Array of lines of array of words
       words.each { |word|
