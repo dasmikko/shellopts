@@ -215,7 +215,8 @@ module ShellOpts
             # Detect indented comment groups (code)
             if nodes.top.is_a?(Grammar::Paragraph)
               code = Grammar::Code.parse(nodes.top.parent, token) # Using parent of paragraph
-              code.tokens.concat tokens.shift_while { |t|
+#             code.tokens.concat tokens.shift_while { |t|
+              tokens.shift_while { |t|
                 if t.kind == :text && t.char >= token.char
                   code.tokens << t
                 elsif t.kind == :blank && tokens.first&.kind != :blank # Emit last blank line

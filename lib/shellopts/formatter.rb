@@ -176,7 +176,7 @@ module ShellOpts
         widths = Formatter::compute_columns(width, option_briefs + command_briefs)
 
         if brief
-          puts "Name"
+          puts "Name:"
           indent { puts_name }
           puts
         end
@@ -263,7 +263,7 @@ module ShellOpts
     USAGE_INDENT = USAGE_STRING.size
 
     # Width of usage (after usage string)
-    USAGE_MAX_WIDTH = 60
+    USAGE_MAX_WIDTH = 70
 
     # Indent to use in brief output
     BRIEF_INDENT = 2
