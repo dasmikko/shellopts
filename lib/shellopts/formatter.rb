@@ -21,7 +21,6 @@
 #   cmd --all --beta                    # Multi-line formats (:multi)
 #       [cmd1|cmd2] ARGS
 #
-#   
 
 require 'terminfo'
 
@@ -57,13 +56,13 @@ module ShellOpts
       end
 
       # Render on one line. Compcat multiple descriptions
-      def render_single(width)
+      def render_single(width, args: nil)
         long_options = options.map { |option| option.render(:long) }
         short_options = options.map { |option| option.render(:short) }
         compact_options = [OPTIONS_ABBR]
         short_commands = commands.empty? ? [] : ["[#{commands.map(&:name).join("|")}]"]
         compact_commands = [COMMANDS_ABBR]
-        args = descrs.size == 1 ? [descrs.text] : [DESCRS_ABBR]
+        args ||= descrs.size == 1 ? [descrs.text] : [DESCRS_ABBR]
 
         begin # to be able to use 'break' below
           words = [name] + long_options + short_commands + args
@@ -83,30 +82,9 @@ module ShellOpts
 
       # Render one line for each description
       def render_enum(width)
-        long_options = options.map { |option| option.render(:long) }
-        short_options = options.map { |option| option.render(:short) }
-        compact_options = [OPTIONS_ABBR]
-        short_commands = commands.empty? ? [] : ["[#{commands.map(&:name).join("|")}]"]
-        compact_commands = [COMMANDS_ABBR]
         args_texts = self.descrs.empty? ? [DESCRS_ABBR] : descrs.map(&:text)
-
         args_texts.map { |args_text|
-          args = [args_text]
-
-          begin # to be able to use 'break' below
-            words = [name] + long_options + short_commands + args
-            break if pass?(words, width)
-            words = [name] + short_options + short_commands + args
-            break if pass?(words, width)
-            words = [name] + long_options + compact_commands + args
-            break if pass?(words, width)
-            words = [name] + short_options + compact_commands + args
-            break if pass?(words, width)
-            words = [name] + compact_options + short_commands + args
-            break if pass?(words, width)
-            words = [name] + compact_options + compact_commands + args
-          end while false
-          words.join(" ")
+          render_single(width, args: [args_text])
         }
       end
 
@@ -114,7 +92,6 @@ module ShellOpts
       def render_multi(width)
         long_options = options.map { |option| option.render(:long) }
         short_options = options.map { |option| option.render(:short) }
-        compact_options = [OPTIONS_ABBR]
         short_commands = commands.empty? ? [] : ["[#{commands.map(&:name).join("|")}]"]
         compact_commands = [COMMANDS_ABBR]
         args = self.descrs.size != 1 ? [DESCRS_ABBR] : descrs.map(&:text)
@@ -155,8 +132,11 @@ module ShellOpts
   end
 
   module Formatter
-    # Number of spaces to use for indentation
+    # Number of spaces to use for indentation in usage and brief formats
     INDENT = 2
+
+    # Number of spaces to use for indentation in help format
+    HELP_INDENT = 4
 
     # Maximum width of Command :multi format
     USAGE_MAX_WIDTH = 79 - INDENT 
@@ -219,43 +199,42 @@ module ShellOpts
       l = []
 
       if program.brief
-        l << "Name:" << "#{indent}#{program.name} - #{program.brief.text}" << ""
+        l << "NAME" << "#{indent}#{program.name} - #{program.brief.text}"
       end
 
-      l << "Usage:"
+      l << "" << "USAGE"
       if program.descrs.size == 1
-        l.concat indent_lines(2, program.render(:multi, command_width))
+        l.concat indent_lines(r, program.render(:multi, command_width))
       else
-        l.concat indent_lines(2, program.render(:enum, command_width))
+        l.concat indent_lines(HELP_INDENT, program.render(:enum, command_width))
+      end
+
+      if !program.description.empty?
+        l << "" << "DESCRIPTION"
+        l.concat write_description(HELP_INDENT, width - HELP_INDENT, program.description)
       end
 
       if !program.options.empty?
-        l << "" << "Options:"
+        l << "" << "OPTIONS"
         for group in program.option_groups
-          l.concat indent_lines(2, [group.render(:enum)])
+          l.concat indent_lines(HELP_INDENT, [group.render(:enum)])
+          indent = 2 * HELP_INDENT
           if !group.description.empty?
-            group.description.each { |descr|
-              case descr
-                when Grammar::Paragraph
-                  l.concat indent_lines(4, wrap(width - 4, descr.words))
-                when Grammar::Code
-                  l.concat indent_lines(6, descr.lines)
-              end
-            }
+            l.concat write_description(indent, width - indent, group.description)
           elsif group.brief
-            l.concat indent_lines(4, wrap(width - 4, group.brief.words))
+            l.concat indent_lines(indent, wrap(width - indent, group.brief.words))
           end
           l << ""
         end
+        l.pop # get rid of last newline
       end
 
       if !program.commands.empty?
-        l << "" << "Commands:"
+        l << "" << "COMMANDS"
         l.concat indent_lines(2, columnize(widths, command_briefs))
       end
 
       l
-      
     end
 
     def self.wrap(width, curr = 0, words)
@@ -277,6 +256,19 @@ module ShellOpts
     end
 
   private
+    def self.write_description(indent, width, description)
+      l = []
+      description.each { |descr|
+        case descr
+          when Grammar::Paragraph
+            l.concat indent_lines(indent, wrap(width - indent, descr.words))
+          when Grammar::Code
+            l.concat indent_lines(indent + 2, descr.lines)
+        end
+      }
+      l
+    end
+
     def self.indent() ' ' * INDENT end
 
     def self.compute_column_widths(width, fields)

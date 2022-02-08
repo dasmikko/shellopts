@@ -11,6 +11,10 @@ module ShellOpts
 
     class Command
       def collect_options
+        @options = option_groups.map(&:options).flatten
+      end
+
+      def compute_option_hashes
         options.each { |option|
           option.idents.zip(option.names).each { |ident, name|
             !@options_hash.key?(name) or 
@@ -23,7 +27,7 @@ module ShellOpts
         }
       end
 
-      def collect_commands
+      def compute_command_hashes
         commands.each { |command|
           # Check for dash-collision
           !@commands_hash.key?(command.name) or 
@@ -46,8 +50,9 @@ module ShellOpts
 
     def analyze()
       @grammar.traverse(Grammar::Command) { |command| 
-        command.collect_options 
-        command.collect_commands
+        command.collect_options
+        command.compute_option_hashes
+        command.compute_command_hashes
       }
       @grammar.traverse { |node| node.remove_brief_nodes }
       @grammar

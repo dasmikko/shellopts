@@ -74,6 +74,11 @@ module ShellOpts
       attr_reader :attr
     end
 
+    # Note that options are children of Command object but are attached to
+    # OptionGroup objects that in turn are attached to the command. This is
+    # done to be able to handle multiple options with common brief or
+    # descriptions
+    #
     class Option < IdrNode
       # Redefine command of this object
       def command() parent.parent end # double-parent because options live in option groups
@@ -97,9 +102,7 @@ module ShellOpts
       def idents() short_idents + long_idents end
 
       # Names of option. Includes both short and long option names
-      #
-      # TODO: Should be in declaration order
-      def names() short_names + long_names end
+      def names() short_names + long_names end # TODO: Should be in declaration order
 
       # Name of argument or nil if not present
       attr_reader :argument_name
@@ -132,12 +135,17 @@ module ShellOpts
       # Array of options in declaration order. Assigned by #attach
       attr_reader :options
 
+      # Brief description of option(s). Assigned by #attach
       attr_reader :brief
-      attr_reader :description # Array of Paragraph or Code objects
+
+      # Description of option(s). Array of Paragraph or Code objects. Assigned
+      # by #attach
+      attr_reader :description
 
       def initialize(parent, token)
         super(parent, token)
         @options = []
+        @brief = nil
         @description = []
       end
 
@@ -145,13 +153,9 @@ module ShellOpts
       def attach(child)
         super
         case child
-          when Option
-            @options << child
-            command.options << child
-          when Brief
-            @brief = child
-          when Paragraph, Code
-            @description << child
+          when Option; @options << child
+          when Brief; @brief = child
+          when Paragraph, Code; @description << child
         end
       end
     end
@@ -160,12 +164,15 @@ module ShellOpts
       # Brief description of command. Assigned to by #attach
       attr_accessor :brief
 
+      # Description of command. Array of Paragraph or Code objects. Assigned by
+      # #attach
+      attr_reader :description
+
       # Array of option groups in declaration order. Assigned to by
       # #attach. TODO: Rename 'groups'
       attr_reader :option_groups
 
-      # Array of options in declaration order. Assigned to by
-      # OptionGroup#attach. FIXME: Or what? See OptionGroup#initialize and Command#attach
+      # Array of options in declaration order. Assigned to by the analyzer
       attr_reader :options
 
       # Array of sub-commands. Assigned to by #attach
@@ -179,6 +186,8 @@ module ShellOpts
 
       def initialize(parent, token)
         super
+        @brief = nil
+        @description = []
         @option_groups = []
         @options = []
         @options_hash = {} # Initialized by the analyzer
@@ -197,16 +206,13 @@ module ShellOpts
     protected
       def attach(child)
         super
-        # Check for duplicates happens in the analyze stage
-        #
-        # FIXME: Need better separation or work between analyzer and #attach
         case child
-          # Options are handled by the OptionGroup
-          when OptionGroup; option_groups << child
-          when Command; commands << child
-          when ArgSpec; specs << child
-          when ArgDescr; descrs << child
+          when OptionGroup; @option_groups << child
+          when Command; @commands << child
+          when ArgSpec; @specs << child
+          when ArgDescr; @descrs << child
           when Brief; @brief = child
+          when Paragraph, Code; @description << child
         end
       end
     end
