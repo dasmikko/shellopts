@@ -33,7 +33,10 @@ module ShellOpts
   #   def <identifier>!() subcommand == :<identifier> ? @__subcommand__ : nil end
   #
   class Command < BasicObject
+    define_method(:is_a?, ::Kernel.method(:is_a?))
+
     RESERVED_OPTION_NAMES = %w(
+        is_a
         instance_eval instance_exec method_missing singleton_method_added
         singleton_method_removed singleton_method_undefined)
 

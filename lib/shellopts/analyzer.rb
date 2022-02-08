@@ -6,12 +6,26 @@ module ShellOpts
         children.delete_if { |node| node.is_a?(Brief) }
       end
 
+      def remove_arg_descr_nodes
+        children.delete_if { |node| node.is_a?(ArgDescr) }
+      end
+
       def analyzer_error(token, message) raise AnalyzerError, "#{token.pos} #{message}" end
     end
 
     class Command
       def collect_options
         @options = option_groups.map(&:options).flatten
+      end
+
+      # Move options before first command
+      def reorder_options
+        if commands.any?
+          if i = children.find_index { |child| child.is_a?(Command) }
+            options, rest = children[i+1..-1].partition { |child| child.is_a?(OptionGroup) }
+            @children = children[0..i-1] + options + children[i..i] + rest
+          end
+        end
       end
 
       def compute_option_hashes
@@ -49,12 +63,17 @@ module ShellOpts
     end
 
     def analyze()
-      @grammar.traverse(Grammar::Command) { |command| 
+      @grammar.traverse(Grammar::Command) { |command|
+        command.reorder_options
         command.collect_options
         command.compute_option_hashes
         command.compute_command_hashes
       }
-      @grammar.traverse { |node| node.remove_brief_nodes }
+      @grammar.traverse { |node| 
+        node.remove_brief_nodes 
+        node.remove_arg_descr_nodes
+      }
+
       @grammar
     end
 

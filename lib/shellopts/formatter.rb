@@ -1,3 +1,11 @@
+require 'terminfo'
+
+module IndentedIO
+  class IndentedIO
+    attr_reader :levels
+    def margin() combined_indent.size end
+  end
+end
 
 # Option rendering
 #   -a, --all                   # Only used in brief and doc formats (enum)
@@ -13,19 +21,29 @@
 #   -b, --beta
 #
 # Command rendering
+#   cmd --all --beta [cmd1|cmd2] ARG1 ARG2    # Single-line formats (:single)
+#   cmd --all --beta [cmd1|cmd2] ARGS...     
+#   cmd -a -b [cmd1|cmd2] ARG1 ARG2
+#   cmd -a -b [cmd1|cmd2] ARGS...
 #
+#   cmd -a -b [cmd1|cmd2] ARG1 ARG2           # One line for each argument description (:enum)
+#   cmd -a -b [cmd1|cmd2] ARG3 ARG4           # (used in the USAGE section)
+#
+#   cmd --all --beta                          # Multi-line formats (:multi)
+#       [cmd1|cmd2] ARG1 ARG2
+#   cmd --all --beta
+#       <commands> ARGS
 #   
-#   cmd --all --beta [cmd1|cmd2] ARGS   # Single-line formats (:single)
-#   cmd -a -b [cmd1|cmd2] ARGS
-#
-#   cmd --all --beta                    # Multi-line formats (:multi)
-#       [cmd1|cmd2] ARGS
-#
-
-require 'terminfo'
-
 module ShellOpts
+  INDENT = 2
+  HELP_INDENT = 4
+
   module Grammar
+    class Node
+      def puts_help() end
+      def puts_usage() end
+    end
+
     class Option
       def render(format)
         constrain format, :enum, :long, :short
@@ -40,22 +58,44 @@ module ShellOpts
     end
 
     class OptionGroup
+      def puts_help
+        puts render(:enum)
+        indent {
+          if description.any?
+            description.each { |descr|
+              descr.puts_help
+            }
+          elsif brief
+            brief.puts_help
+          else
+            puts
+          end
+        }
+      end
+
       def render(format)
-        options.map { |option| option.render(format) }.join(" ")
+        constrain format, :enum, :long, :short, :multi
+        if format == :multi
+          options.map { |option| option.render(:long) }.join("\n")
+        else
+          options.map { |option| option.render(format) }.join(" ")
+        end
       end
     end
 
     # brief one-line commands should optionally use compact options
     class Command
+      using Ext::Array::Wrap
+
       OPTIONS_ABBR = "<options>"
       COMMANDS_ABBR = "<commands>"
-      DESCRS_ABBR = "ARGS"
+      DESCRS_ABBR = "ARGS..."
 
       def pass?(words, width)
         words.sum(&:size) + words.size - 1 <= width
       end
 
-      # Render on one line. Compcat multiple descriptions
+      # Render on one line. Compact multiple argument descriptions
       def render_single(width, args: nil)
         long_options = options.map { |option| option.render(:long) }
         short_options = options.map { |option| option.render(:short) }
@@ -80,7 +120,7 @@ module ShellOpts
         words.join(" ")
       end
 
-      # Render one line for each description
+      # Render one line for each argument description
       def render_enum(width)
         args_texts = self.descrs.empty? ? [DESCRS_ABBR] : descrs.map(&:text)
         args_texts.map { |args_text|
@@ -88,7 +128,7 @@ module ShellOpts
         }
       end
 
-      # Wrap command but compact multiple descriptions
+      # Wrap options and commands and compact multiple descriptions
       def render_multi(width)
         long_options = options.map { |option| option.render(:long) }
         short_options = options.map { |option| option.render(:short) }
@@ -96,19 +136,17 @@ module ShellOpts
         compact_commands = [COMMANDS_ABBR]
         args = self.descrs.size != 1 ? [DESCRS_ABBR] : descrs.map(&:text)
 
-        words = [name] + long_options + short_commands + args
+        # On one line
+        words = long_options + short_commands + args
         return [words.join(" ")] if pass?(words, width)
-        words = [name] + short_options + short_commands + args
+        words = short_options + short_commands + args
         return [words.join(" ")] if pass?(words, width)
 
-        indent = name.size + 1
-        lines = Formatter.wrap(width - indent, long_options)
-        lines = ["#{name} " + lines[0]] + Formatter.indent_lines(indent, lines[1..-1])
-
-        commands = pass?(short_commands + args, width - indent) ? short_commands : compact_commands
-        lines.concat Formatter.indent_lines(indent, [(commands + args).join(" ")])
-
-        return lines
+        # On multiple lines
+        options = long_options.wrap(width)
+        commands = [[short_commands, args].join(" ")]
+        return options + commands if pass?(commands, width)
+        options + [[compact_commands, args].join(" ")]
       end
 
       def render(format, width)
@@ -121,7 +159,7 @@ module ShellOpts
           when :enum
             render_enum(width)
     
-          # Wrap if needed but compact descriptions
+          # Wrap if needed
           when :multi
             render_multi(width)
         else
@@ -129,34 +167,199 @@ module ShellOpts
         end
       end
     end
-  end
 
-  module Formatter
-    # Number of spaces to use for indentation in usage and brief formats
-    INDENT = 2
+    class Program
+      def puts_brief
+        width = Formatter.rest
+        option_briefs = option_groups.map { |group| [group.render(:enum), group.brief&.words] }
+        command_briefs = commands.map { |command| [command.render(:single, width), command.brief&.words] }
+        widths = Formatter::compute_columns(width, option_briefs + command_briefs)
 
-    # Number of spaces to use for indentation in help format
-    HELP_INDENT = 4
+        if brief
+          puts "Name"
+          indent { puts_name }
+          puts
+        end
 
-    # Maximum width of Command :multi format
-    USAGE_MAX_WIDTH = 79 - INDENT 
+        puts "Usage:"
+        indent { puts_usage }
 
-    # Maximum width of first column in option and command lists
-    FIRST_MAX_WIDTH = 40
+        if options.any?
+          puts
+          puts "Options:"
+          indent { Formatter::puts_columns(widths, option_briefs) }
+        end
 
-    # Minimum width of second column in option and command lists
-    SECOND_MIN_WIDTH = 50
+        if commands.any?
+          puts
+          puts "Commands:"
+          indent { Formatter::puts_columns(widths, command_briefs) }
+        end
+      end
 
-    # String for 'Usage' in error messages
-    USAGE_STRING = "Usage:"
+      def puts_help
+        puts "NAME"
+        indent { puts_name }
+        puts
 
-    # Usage string in error messages
-    def self.usage(program, width = TermInfo.screen_columns - 3)
-      optcmd_width = [width - USAGE_STRING.size - 1, USAGE_MAX_WIDTH].min
-      lines = program.render(:multi, optcmd_width)
-      ["Usage: #{lines[0]}"] + indent_lines(USAGE_STRING.size + 1, lines[1..-1])
+        puts "USAGE"
+        indent { puts_usage }
+        puts
+
+        section = {
+          Paragraph => "DESCRIPTION",
+          OptionGroup => "OPTIONS",
+          Command => "COMMANDS"
+        }
+
+        indent {
+          children.each { |child|
+            if s = section[child.class]
+              indent(-1).puts s
+              section.delete(child.class)
+            end
+            child.puts_help
+          }
+        }
+      end
+
+      def puts_name
+        puts brief ? "#{name} - #{brief}" : name
+      end
+
+      def puts_usage
+        if descrs.size == 1
+          print lead = "#{name} "
+          indent(lead.size, ' ', bol: false) { puts render(:multi, Formatter::USAGE_MAX_WIDTH) }
+        else
+          puts render(:enum, Formatter::USAGE_MAX_WIDTH)
+        end
+      end
     end
 
+    class DocNode
+      def puts_help() puts lines; puts end
+    end
+
+    module WrappedNode
+      def puts_help(width = Formatter.rest) puts lines(width); puts end
+    end
+
+    class Code
+      def puts_help() indent { super } end
+    end
+  end
+
+  class Formatter
+    using Ext::Array::Wrap
+
+    # Right margin
+    MARGIN_RIGHT = 3
+
+    # String for 'Usage' in error messages
+    USAGE_STRING = "Usage"
+
+    # Indent to use in usage output
+    USAGE_INDENT = USAGE_STRING.size
+
+    # Width of usage (after usage string)
+    USAGE_MAX_WIDTH = 60
+
+    # Indent to use in brief output
+    BRIEF_INDENT = 2
+
+    # Number of characters between columns in brief output
+    BRIEF_COL_SEP = 2
+
+    # Maximum width of first column in brief option and command lists
+    BRIEF_COL1_MAX_WIDTH = 40
+
+    # Minimum width of second column in brief option and command lists
+    BRIEF_COL2_MAX_WIDTH = 50
+
+    # Indent to use in help output
+    HELP_INDENT = 4
+
+    # Usage string in error messages
+    def self.usage(program)
+      setup_indent(1) {
+        program = Grammar::Program.program(program)
+        print lead = "#{USAGE_STRING}: "
+        indent(lead.size, ' ', bol: false) {
+          program.puts_usage
+        }
+      }
+    end
+
+    def self.brief(program)
+      program = Grammar::Program.program(program)
+      setup_indent(BRIEF_INDENT) { program.puts_brief }
+    end
+
+    # --puts_help 
+    def self.help(program)
+      program = Grammar::Program.program(program)
+      setup_indent(HELP_INDENT) { program.puts_help }
+    end
+
+    def self.puts_columns(widths, fields)
+      l = []
+      first_width, second_width = *widths
+      second_col = first_width + 2
+
+      for (first, second) in fields
+        if first.size > first_width
+          puts first
+          indent(first_width + BRIEF_COL_SEP, ' ') { puts second.wrap(second_width) } if second
+        elsif second
+          printf "%-#{first_width + BRIEF_COL_SEP}s", first
+          indent(first_width, bol: false) { puts second.wrap(second_width) }
+        else
+          puts first
+        end
+      end
+    end
+
+    def self.compute_columns(width, fields)
+      first_max = [fields.map { |first, _| first.size }.max, BRIEF_COL1_MAX_WIDTH].min
+      second_max = fields.map { |_, second| second ? second&.map(&:size).sum + second.size : 0 }.max
+
+      if first_max + BRIEF_COL_SEP + second_max <= width
+        first_width = first_max
+        second_width = second_max
+      elsif first_max + BRIEF_COL_SEP + BRIEF_COL2_MAX_WIDTH <= width
+        first_width = first_max
+        second_width = width - first_width - BRIEF_COL_SEP
+      else
+        first_width = [width - BRIEF_COL_SEP - BRIEF_COL2_MAX_WIDTH, BRIEF_COL1_MAX_WIDTH].min
+        second_width = BRIEF_COL2_MAX_WIDTH
+      end
+
+      [first_width, second_width]
+    end
+
+    def self.width()
+      @width ||= TermInfo.screen_width - MARGIN_RIGHT
+    end
+
+    def self.rest() width - $stdout.margin end
+
+  private
+    def self.setup_indent(indent, &block)
+      default_indent = IndentedIO.default_indent
+      begin
+        IndentedIO.default_indent = " " * indent
+        indent(0) { yield } # Ensure IndentedIO is on the top of the stack so we can use $stdout.levels
+      ensure
+        IndentedIO.default_indent = default_indent
+      end
+    end
+  end
+end
+
+
+
+__END__
     # Brief descripion of command (when the user specifies '-h')
     def self.brief(program, width = TermInfo.screen_columns - 3)
       command_width = [width - INDENT - program.name.size - 1, USAGE_MAX_WIDTH].min
@@ -190,126 +393,30 @@ module ShellOpts
       l
     end
 
-    def self.help(program, width = TermInfo.screen_columns - 3)
-      command_width = [width - INDENT - program.name.size - 1, USAGE_MAX_WIDTH].min
-      option_briefs = program.option_groups.map { |group| [group.render(:enum), group.brief&.words] }
-      command_briefs = program.commands.map { |command| [command.render(:single, width), command.brief&.words] }
-      widths = compute_column_widths(width, option_briefs + command_briefs)
+    # Number of spaces to use for indentation in usage and brief formats
+    INDENT = 2
 
-      l = []
+    # Number of spaces to use for indentation in puts_help format
+    HELP_INDENT = 4
 
-      if program.brief
-        l << "NAME" << "#{indent}#{program.name} - #{program.brief.text}"
-      end
+    # Maximum width of Command :multi format
+    USAGE_MAX_WIDTH = 79 - INDENT 
 
-      l << "" << "USAGE"
-      if program.descrs.size == 1
-        l.concat indent_lines(r, program.render(:multi, command_width))
-      else
-        l.concat indent_lines(HELP_INDENT, program.render(:enum, command_width))
-      end
+    # Maximum width of first column in option and command lists
+    BRIEF_COL1_MAX_WIDTH = 40
 
-      if !program.description.empty?
-        l << "" << "DESCRIPTION"
-        l.concat write_description(HELP_INDENT, width - HELP_INDENT, program.description)
-      end
+    # Minimum width of second column in option and command lists
+    BRIEF_COL2_MAX_WIDTH = 50
 
-      if !program.options.empty?
-        l << "" << "OPTIONS"
-        for group in program.option_groups
-          l.concat indent_lines(HELP_INDENT, [group.render(:enum)])
-          indent = 2 * HELP_INDENT
-          if !group.description.empty?
-            l.concat write_description(indent, width - indent, group.description)
-          elsif group.brief
-            l.concat indent_lines(indent, wrap(width - indent, group.brief.words))
-          end
-          l << ""
-        end
-        l.pop # get rid of last newline
-      end
+    # String for 'Usage' in error messages
+    USAGE_STRING = "Usage:"
 
-      if !program.commands.empty?
-        l << "" << "COMMANDS"
-        l.concat indent_lines(2, columnize(widths, command_briefs))
-      end
-
-      l
+    # Usage string in error messages
+    def self.usage(program, width = TermInfo.screen_columns - 3)
+      optcmd_width = [width - USAGE_STRING.size - 1, USAGE_MAX_WIDTH].min
+      lines = program.render(:multi, optcmd_width)
+      ["Usage: #{lines[0]}"] + indent_lines(USAGE_STRING.size + 1, lines[1..-1])
     end
 
-    def self.wrap(width, curr = 0, words)
-      lines = [[]] # Array of lines of array of words
-      words.each { |word|
-        if curr + 1 + word.size < width
-          lines.last << word
-          curr += 1 + word.size
-        else
-          lines << [word]
-          curr = word.size
-        end
-      }
-      lines.map! { |words| words.join(" ") } # Flatten into an array of lines
-    end
 
-    def self.indent_lines(indent, lines)
-      lines.map { |line| "#{' ' * indent}#{line}" }
-    end
-
-  private
-    def self.write_description(indent, width, description)
-      l = []
-      description.each { |descr|
-        case descr
-          when Grammar::Paragraph
-            l.concat indent_lines(indent, wrap(width - indent, descr.words))
-          when Grammar::Code
-            l.concat indent_lines(indent + 2, descr.lines)
-        end
-      }
-      l
-    end
-
-    def self.indent() ' ' * INDENT end
-
-    def self.compute_column_widths(width, fields)
-      first_max = [fields.map { |first, _| first.size }.max, FIRST_MAX_WIDTH].min
-      second_max = fields.map { |_, second| second ? second&.map(&:size).sum + second.size : 0 }.max
-
-      if first_max + 2 + second_max <= width
-        first_width = first_max
-        second_width = second_max
-      elsif first_max + 2 + SECOND_MIN_WIDTH <= width
-        first_width = first_max
-        second_width = width - first_width - 2
-      else
-        first_width = [width - 2 - SECOND_MIN_WIDTH, FIRST_MAX_WIDTH].min
-        second_width = SECOND_MIN_WIDTH
-      end
-
-      [first_width, second_width]
-    end
-
-    def self.columnize(widths, fields)
-      l = []
-      first_width, second_width = *widths
-      second_col = first_width + 2
-
-      for (first, second) in fields
-        if first.size > first_width
-          l << first
-          l.concat indent_lines(second_col, wrap(second_width, second)) if second
-        else
-          l << first
-          if second
-            wrapped_lines = wrap(second_width, second)
-            l.last.concat ' ' * (second_col - first.size) + wrapped_lines.shift
-            l.concat indent_lines(second_col, wrapped_lines)
-          end
-        end
-      end
-
-      l
-    end
-  end
-end
 

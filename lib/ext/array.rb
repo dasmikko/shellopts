@@ -16,15 +16,27 @@ module Ext
             end
           end
           r
+        end
+      end
+    end
 
-#         while value = self.first
-#           break if !block.call(value)
-#           r << self.shift
-#         end
-#         r
+    module Wrap
+      refine ::Array do
+        # Concatenate strings into lines that are at most +width+ characters wide
+        def wrap(width, curr = 0)
+          lines = [[]]
+          each { |word|
+            if curr + 1 + word.size < width
+              lines.last << word
+              curr += 1 + word.size
+            else
+              lines << [word]
+              curr = word.size
+            end
+          }
+          lines.map! { |words| words.join(" ") }
         end
       end
     end
   end
 end
-

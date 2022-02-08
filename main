@@ -32,6 +32,12 @@ SPEC = %(
   cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
   proident, sunt in culpa qui officia deserunt mollit anim id est laborum
 
+  Here comes some code
+    
+    if this_is_printed_correctly?
+      puts "Success"
+    end
+
   OPTIONS
 
   This should be in the OPTIONS section (not supported for now)
@@ -111,7 +117,7 @@ SPEC = %(
 
       with something that is not a a description
 
-  -- GLOBAL ARGS # These are the global args
+# -- GLOBAL ARGS # These are the global args
 
   --another-global-option
 
@@ -123,15 +129,28 @@ ONELINE = "-a,all -b,beta --verbose -h,help -v,version -c -f=FILE --multiple --o
 argv = ARGV.empty? ? %w(-a cmd -c) : ARGV
 prog, args = ShellOpts::ShellOpts.process SPEC, argv
 
-puts "-" * 80
-puts ShellOpts::Formatter.usage(prog.__grammar__)
-puts
-puts "-" * 80
-puts ShellOpts::Formatter.brief(prog.__grammar__)
-puts 
-puts "-" * 80
-puts ShellOpts::Formatter.help(prog.__grammar__)
+#prog.__grammar__.dump_ast
 
+#ShellOpts::Formatter.help(prog)
+#exit
+
+puts "-" * 80
+ShellOpts::Formatter.usage(prog)
+puts "-" * 80
+ShellOpts::Formatter.brief(prog)
+puts "-" * 80
+ShellOpts::Formatter.help(prog)
+puts "-" * 80
+
+
+
+
+
+
+
+
+
+__END__
 exit
 
 puts "prog.verbose: #{prog.verbose.inspect}"
@@ -142,6 +161,9 @@ puts "prog[:cmd!]: #{prog[:cmd!].__ident__}"
 puts "prog[\"cmd\"]: #{prog["cmd"].__ident__}"
 puts "prog.subcommand!.subcommand: #{prog.subcommand!.subcommand.inspect}"
 #shellopts = ShellOpts::ShellOpts.new ONELINE, ARGV
+
+
+
 puts "---------------------"
 puts ShellOpts::Formatter.option_help(prog)
 

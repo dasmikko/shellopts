@@ -158,7 +158,7 @@ module ShellOpts
 
         case token.kind
           when :option
-            # Collect options into option groups if one the same line
+            # Collect options into option groups if on the same line
             options = [token] + tokens.shift_while { |follow| 
               follow.kind == :option && follow.line == token.line
             }

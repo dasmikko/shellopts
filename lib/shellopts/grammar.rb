@@ -28,7 +28,7 @@ module ShellOpts
       end
 
       def do_traverse(klasses, &block)
-        yield(self) if klasses.any? { |klass| self.is_a?(klass) }
+        yield(self) if klasses.empty? || klasses.any? { |klass| self.is_a?(klass) }
         children.each { |node| node.traverse(klasses, &block) }
       end
 
@@ -168,6 +168,9 @@ module ShellOpts
       # #attach
       attr_reader :description
 
+      attr_reader :options_description
+      attr_reader :commands_description
+
       # Array of option groups in declaration order. Assigned to by
       # #attach. TODO: Rename 'groups'
       attr_reader :option_groups
@@ -218,6 +221,15 @@ module ShellOpts
     end
 
     class Program < Command
+      # Lifted from .gemspec. TODO
+      attr_reader :info
+
+      # Shorthand to get the associated Grammar::Program object from a Program
+      # object
+      def self.program(obj)
+        constrain obj, Program, ::ShellOpts::Program
+        obj.is_a?(Program) || obj.__grammar__
+      end
     end
 
     class ArgSpec < Node
@@ -246,6 +258,7 @@ module ShellOpts
       attr_reader :tokens # :text tokens
 
       def text() @text ||= tokens.map(&:source).join(" ") end
+      def lines() [text] end
 
       def to_s() text end # FIXME
 
@@ -259,17 +272,19 @@ module ShellOpts
       alias_method :command, :parent
     end
 
-    module Wrap
+    module WrappedNode
+      using Ext::Array::Wrap
       def words() @words ||= text.split(" ") end
+      def lines(width, initial = 0) @lines ||= words.wrap(width, initial) end
     end
 
     class Brief < DocNode
-      include Wrap
+      include WrappedNode
       alias_method :subject, :parent # Either a command or an option
     end
 
     class Paragraph < DocNode
-      include Wrap
+      include WrappedNode
       alias_method :subject, :parent # Either a command or an option
     end
 
