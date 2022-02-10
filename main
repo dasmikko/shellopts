@@ -40,7 +40,7 @@ SPEC = %(
 
   OPTIONS
 
-  This should be in the OPTIONS section (not supported for now)
+  This should be in the OPTIONS section (not supported for now - now it is!)
 
   -a,all
   -b,beta Brief inline comment     
@@ -150,22 +150,30 @@ SPEC2 = %(
   
   text text text
 
-  -a
-    Option brief 1. Help text
+  OPTIONS
 
-  -b Option brief 2
+    Some option intro text
 
-  -c @ Option brief 3
+    -a
+      Option brief 1. Help text
 
-  -d 
-    @ Option brief 4
+    -b Option brief 2
 
-  text text text
+    -c @ Option brief 3
 
-  cmd1! -- ARG1 ARG2 Command brief 1
-  cmd2! @ Command brief 2
-  cmd3!
-    First-line option brief. After the first dot
+    -d 
+      @ Option brief 4
+
+    text text text
+
+  COMMANDS
+
+    Some command intro text
+
+    cmd1! -- ARG1 ARG2 Command brief 1
+    cmd2! @ Command brief 2
+    cmd3!
+      First-line option brief. After the first dot
 
 )
 

@@ -306,6 +306,10 @@ module ShellOpts
       def lines() @lines ||= tokens.map { |t| " " * [t.char - token.char, 0].max + t.source } end
     end
 
+    class Section < Node
+      def name() token.source end
+    end
+
     class Node
       ALLOWED_PARENTS = {
         Program => [NilClass],
@@ -317,7 +321,8 @@ module ShellOpts
         ArgDescr => [Command],
         Brief => [Command, OptionGroup, ArgSpec, ArgDescr],
         Paragraph => [Command, OptionGroup],
-        Code => [Command, OptionGroup]
+        Code => [Command, OptionGroup],
+        Section => [Command]
       }
     end
   end

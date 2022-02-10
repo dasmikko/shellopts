@@ -31,6 +31,7 @@ module ShellOpts
 
   class Lexer
     COMMAND_RE = /[a-z][a-z._-]*!/
+
     DECL_RE = /^(?:-|--|\+|\+\+|(?:@(?:\s|$))|(?:\S*!(?:\s|$)))/
 
     # Match ArgSpec argument words. TODO
@@ -38,6 +39,8 @@ module ShellOpts
 
     # Match ArgDescr words (should be at least two characters long)
     DESCR_RE = /^[^a-z]{2,}$/
+
+    SECTIONS = %w(DESCRIPTION OPTIONS COMMANDS)
 
     using Ext::Array::ShiftWhile
 
@@ -60,6 +63,8 @@ module ShellOpts
 
       # Create program token
       @tokens = [Token.new(:program, -1, -1, "#{@name}!")]
+
+      # Used to detect code blocks
       last_nonblank = @tokens.first
 
       # Process lines
@@ -86,9 +91,13 @@ module ShellOpts
         elsif line =~ /^\\/
           @tokens << Token.new(:text, line.line, line.char, line.text[1..-1])
 
-        # Options, commands, usage, arguments, and briefs
         else
-          if line =~ DECL_RE
+          # Sections
+          if SECTIONS.include?(line.text)
+            @tokens << Token.new(:section, line.line, line.char, line.text)
+
+          # Options, commands, usage, arguments, and briefs
+          elsif line =~ DECL_RE
             words = line.words
             while (char, word = words.shift)
               case word

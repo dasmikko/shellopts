@@ -214,7 +214,10 @@ module ShellOpts
 
         indent {
           children.each { |child|
-            if s = section[child.class]
+            if child.is_a?(Section)
+              indent(-1).puts child.name
+              section.delete_if { |_,v| v == child.name }
+            elsif s = section[child.class]
               indent(-1).puts s
               section.delete(child.class)
             end

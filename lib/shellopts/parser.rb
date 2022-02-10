@@ -149,7 +149,7 @@ module ShellOpts
       nodes = [@program] # Stack of Nodes. Follows the indentation of the source
       cmds = [@program] # Stack of cmds. Used to keep track of the current command
       while token = tokens.shift
-        # Options with the same indentation level are collected into groups
+        # Unwind stack
         while token.char <= nodes.top.token.char
           node = nodes.pop
           cmds.pop if cmds.top == node
@@ -157,6 +157,9 @@ module ShellOpts
         end
 
         case token.kind
+          when :section
+            Grammar::Section.parse(nodes.top, token)
+
           when :option
             # Collect options into option groups if on the same line
             options = [token] + tokens.shift_while { |follow| 

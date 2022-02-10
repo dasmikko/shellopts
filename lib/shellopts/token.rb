@@ -2,7 +2,7 @@
 module ShellOpts
   class Token
     # Each kind should have a corresponding Grammar class with the same name
-    KINDS = [:program, :option, :command, :spec, :argument, :usage, :usage_string, :brief, :text, :blank]
+    KINDS = [:program, :section, :option, :command, :spec, :argument, :usage, :usage_string, :brief, :text, :blank]
 
     # Kind of token
     attr_reader :kind
