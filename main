@@ -22,9 +22,9 @@ require 'shellopts'
 SPEC = %(
 # Comment
 
-  # Program brief
+  @ Program brief
   
-  This should end up in the DESCRIPTION section in the #help format. Bla bla
+  This should end up in the DESCRIPTION section in the @help format. Bla bla
   bla. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
   tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
   quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
@@ -43,17 +43,19 @@ SPEC = %(
   This should be in the OPTIONS section (not supported for now)
 
   -a,all
-  -b,beta # Brief inline comment     
-  +v,verbose -h,help -version # Multi option line. Option group. 
+  -b,beta Brief inline comment     
+  +v,verbose -h,help -version @ Multi option line. Option group. 
   -c
-    # Alternative brief. 
+    @ Alternative brief. 
   -f,file=FILE   
     Indented comment
 
   Some free text not related to a single options. Eg. an introduction to the
   next set of options and some more text to make this wrap
 
-  --multiple --options --on --one --line --with --brief # Brief for multi-option line - aka. option group. Lorem ipsum dolor sit amet, consectetur adipiscing elit
+  --multiple --options --on --one --line --with --brief 
+    @ Brief for multi-option line - aka. option group. Lorem ipsum dolor sit amet, consectetur adipiscing elit
+
     Common comment for previous multi-option line. Lorem ipsum dolor sit amet,
     consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
     dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation
@@ -93,9 +95,18 @@ SPEC = %(
 
     But not if it is the last blank line     
 
+      a_code_example()
+      if something == 42
+#       \\# Comment inside code block
+#       some_indented_code()
+# 
+#       \\# Something that looks like a option
+#       \\--i_miss_this
+      end
+
   -- ARG1 ARG2 
 
-  cmd! # Brief description of command
+  cmd! @ Brief description of command
     Description of command. 
 
     Another paragraph.
@@ -112,30 +123,30 @@ SPEC = %(
 
     Back to default. Then we list the options: 
 
-      -c,copt # Inline comment  
-      -d,dopt # Brief and nested comment  
+      -c,copt @ Inline comment  
+      -d,dopt @ Brief and nested comment  
         Even more nested comment
-      -a,all # Duplicate 
+      -a,all @ Duplicate 
 
     Here is some text where 
       the next line is indented (interpreted as code)
 
-    subcmd! -i,inc ++ SUB ARGS # Brief description of sub-command
+    subcmd! -i,inc ++ SUB ARGS @ Brief description of sub-command
       A description
 
     This text should be included too  
-    ++ CMD_ARG1 CMD_ARG2 # Brief description of arguments
+    ++ CMD_ARG1 CMD_ARG2 @ Brief description of arguments
 
       Longer indented text is not related to the previous
       description of arguments but is considered code
 
         is this code
 
-    ++ CMD_ARG_A CMD_ARG_B # Another set of arguments
+    ++ CMD_ARG_A CMD_ARG_B @ Another set of arguments
 
       with something that is not a a description
 
-# -- GLOBAL ARGS # These are the global args
+# -- GLOBAL ARGS @ These are the global args
 
   --another-global-option
 
@@ -144,20 +155,49 @@ SPEC = %(
 
 ONELINE = "-a,all -b,beta --verbose -h,help -v,version -c -f=FILE --multiple --options --on --one --line -l=MODE:short,long? cmd! -c,copt -d,dopt cmd.subcmd! -- GLOBAL ARGS"
 
+SPEC2 = %(
+  @ Program brief
+  
+  text text text
+
+  -a
+    Option brief 1. Help text
+
+  -b Option brief 2
+
+  -c @ Option brief 3
+
+  -d 
+    @ Option brief 4
+
+  text text text
+
+  cmd1! Command brief 1
+  cmd2! @ Command brief 2
+  cmd3!
+    First-line option brief. After the first dot
+
+)
+
 argv = ARGV.empty? ? %w(-a cmd -c) : ARGV
-prog, args = ShellOpts::ShellOpts.process SPEC, argv
+#prog, args = ShellOpts::ShellOpts.process SPEC2, argv
 
-#prog.__grammar__.dump_ast
-
-#ShellOpts::Formatter.help(prog)
+tokens = ShellOpts::Lexer.lex("main", SPEC)
+#tokens.each(&:dump)
+#exit
+ast = ShellOpts::Parser.parse(tokens)
+#ast.dump_ast
+#exit
+idr = ShellOpts::Analyzer.analyze(ast) # @idr and @ast refer to the same object
+#idr.dump_idr
 #exit
 
 puts "-" * 80
-ShellOpts::Formatter.usage(prog)
+ShellOpts::Formatter.usage(idr)
 puts "-" * 80
-ShellOpts::Formatter.brief(prog)
+ShellOpts::Formatter.brief(idr)
 puts "-" * 80
-ShellOpts::Formatter.help(prog)
+ShellOpts::Formatter.help(idr)
 puts "-" * 80
 
 

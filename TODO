@@ -1,4 +1,6 @@
 
+o Rename line and char to lineno and charno
+o Rename Compiler -> Interpreter
 o Client-defined argument types
 o Rename Expr -> ?
 o Find clean(er) procedural object model

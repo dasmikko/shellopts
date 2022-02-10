@@ -2,11 +2,15 @@ module ShellOpts
   module Grammar
     # Except for #parent, #children, and #token, all members are initialized by calling
     # #parse on the object
+    #
     class Node
       attr_reader :parent
       attr_reader :children
       attr_reader :token
 
+      # Note that in derived classes 'super' should be called after member
+      # initialization because Node#initialize calls #attach on the parent that
+      # may need to access the members
       def initialize(parent, token)
         constrain parent, Node, nil
         constrain parent, nil, lambda { |node| ALLOWED_PARENTS[self.class].any? { |klass| node.is_a?(klass) } }
@@ -117,10 +121,10 @@ module ShellOpts
       def argument?() @argument end
       def optional?() @optional end
 
-      def integer?() @argument_type.is_a? IntegerArg end
-      def float?() @argument_type.is_a? FloatArg end
-      def file?() @argument_type.is_a? FileArg end
-      def enum?() @argument_type.is_a? EnumArg end
+      def integer?() @argument_type.is_a? IntegerArgument end
+      def float?() @argument_type.is_a? FloatArgument end
+      def file?() @argument_type.is_a? FileArgument end
+      def enum?() @argument_type.is_a? EnumArgument end
       def string?() argument? && !integer? && !float? && !file? && !enum? end
 
       def match?(literal) argument_type.match?(literal) end
@@ -129,24 +133,26 @@ module ShellOpts
 #     def value?(value) ... end
     end
 
+    # Note that all public attributes are assigned by #attach
+    #
     class OptionGroup < Node
       alias_method :command, :parent
 
-      # Array of options in declaration order. Assigned by #attach
+      # Array of options in declaration order
       attr_reader :options
 
-      # Brief description of option(s). Assigned by #attach
+      # Brief description of option(s)
       attr_reader :brief
 
-      # Description of option(s). Array of Paragraph or Code objects. Assigned
-      # by #attach
+      # Description of option(s)
       attr_reader :description
 
       def initialize(parent, token)
-        super(parent, token)
         @options = []
         @brief = nil
+        @default_brief = nil
         @description = []
+        super(parent, token)
       end
 
     protected
@@ -155,41 +161,41 @@ module ShellOpts
         case child
           when Option; @options << child
           when Brief; @brief = child
-          when Paragraph, Code; @description << child
+          when Paragraph; @description << child
+          when Code; @description << child
         end
       end
     end
 
+    # Note that except for :options, all public attributes are assigned by
+    # #attach. :options and the member variables supporting the #[] and #[]=
+    # methods are initialized by the analyzer
+    #
     class Command < IdrNode
-      # Brief description of command. Assigned to by #attach
+      # Brief description of command
       attr_accessor :brief
 
-      # Description of command. Array of Paragraph or Code objects. Assigned by
-      # #attach
+      # Description of command. Array of Paragraph or Code objects
       attr_reader :description
 
-      attr_reader :options_description
-      attr_reader :commands_description
-
-      # Array of option groups in declaration order. Assigned to by
-      # #attach. TODO: Rename 'groups'
+      # Array of option groups in declaration order. TODO: Rename 'groups'
       attr_reader :option_groups
 
       # Array of options in declaration order. Assigned to by the analyzer
       attr_reader :options
 
-      # Array of sub-commands. Assigned to by #attach
+      # Array of sub-commands
       attr_reader :commands
 
-      # Arg specification objects. Assigned to by #attach
+      # Array of Arg objects
       attr_reader :specs
 
-      # ArgDescr(s) if present. Assigned to by #attach
+      # Array of ArgDescr objects
       attr_reader :descrs
 
       def initialize(parent, token)
-        super
         @brief = nil
+        @default_brief = nil
         @description = []
         @option_groups = []
         @options = []
@@ -198,11 +204,12 @@ module ShellOpts
         @commands_hash = {} # Initialized by the analyzer
         @specs = []
         @descrs = []
+        super
       end
 
-      # Maps from any name or identifier of an option or command (incl. the
-      # '!') to the associated option. #[] and #key? can't be used until after
-      # the analyze phase
+      # Maps from any name or identifier of an option or command (including the
+      # suffixed '!') to the associated option. #[] and #key? can't be used
+      # until after the analyze phase
       def [](key) @commands_hash[key] || @options_hash[key] end
       def key?(key) @commands_hash.key?(key) || @options_hash.key?(key) end
 
@@ -215,7 +222,8 @@ module ShellOpts
           when ArgSpec; @specs << child
           when ArgDescr; @descrs << child
           when Brief; @brief = child
-          when Paragraph, Code; @description << child
+          when Paragraph; @description << child
+          when Code; @description << child
         end
       end
     end
@@ -228,7 +236,7 @@ module ShellOpts
       # object
       def self.program(obj)
         constrain obj, Program, ::ShellOpts::Program
-        obj.is_a?(Program) || obj.__grammar__
+        obj.is_a?(Program) ? obj : obj.__grammar__
       end
     end
 
@@ -239,8 +247,8 @@ module ShellOpts
       attr_reader :arguments
 
       def initialize(parent, token)
-        super
         @arguments = []
+        super
       end
 
     protected
@@ -253,18 +261,23 @@ module ShellOpts
       alias_method :spec, :parent
     end
 
-    # DocNode object has no children but lines
+    # DocNode object has no children but lines. 
+    #
     class DocNode < Node
-      attr_reader :tokens # :text tokens
+      # Array of :text tokens. Assigned by the parser
+      attr_reader :tokens
 
+      # The text of the node
       def text() @text ||= tokens.map(&:source).join(" ") end
+
       def lines() [text] end
 
       def to_s() text end # FIXME
 
-      def initialize(parent, token)
-        super
+      def initialize(parent, token, text = nil)
         @tokens = [token]
+        @text = text
+        super(parent, token)
       end
     end
 

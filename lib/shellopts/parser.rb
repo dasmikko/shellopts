@@ -215,7 +215,6 @@ module ShellOpts
             # Detect indented comment groups (code)
             if nodes.top.is_a?(Grammar::Paragraph)
               code = Grammar::Code.parse(nodes.top.parent, token) # Using parent of paragraph
-#             code.tokens.concat tokens.shift_while { |t|
               tokens.shift_while { |t|
                 if t.kind == :text && t.char >= token.char
                   code.tokens << t
@@ -231,10 +230,12 @@ module ShellOpts
             # Detect comment groups (paragraphs)
             else
               if nodes.top.is_a?(Grammar::Command) || nodes.top.is_a?(Grammar::OptionGroup)
+                Grammar::Brief.new(nodes.top, token, token.source.sub(/\..*/, "")) if !nodes.top.brief
                 parent = nodes.top 
               else
                 parent = nodes.top.parent
               end
+
               paragraph = Grammar::Paragraph.parse(parent, token)
               while tokens.first&.kind == :text && tokens.first.char == token.char
                 paragraph.tokens << tokens.shift

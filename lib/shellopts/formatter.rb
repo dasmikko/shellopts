@@ -322,7 +322,7 @@ module ShellOpts
 
     def self.compute_columns(width, fields)
       first_max = [fields.map { |first, _| first.size }.max, BRIEF_COL1_MAX_WIDTH].min
-      second_max = fields.map { |_, second| second ? second&.map(&:size).sum + second.size : 0 }.max
+      second_max = fields.map { |_, second| second ? second&.map(&:size).sum + second.size - 1: 0 }.max
 
       if first_max + BRIEF_COL_SEP + second_max <= width
         first_width = first_max

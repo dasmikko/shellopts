@@ -31,7 +31,9 @@ module ShellOpts
 
   class Lexer
     COMMAND_RE = /[a-z][a-z._-]*!/
-    DECL_RE = /^(?:-|--|\+|\+\+|#|(?:\S*!(?:\s|$)))/
+#   DECL_RE = /^(?:-|--|\+|\+\+|(?:\S*!(?:\s|$)))/ TODO
+#   DECL_RE = /^(?:-|--|\+|\+\+|#|(?:\S*!(?:\s|$)))/
+    DECL_RE = /^(?:-|--|\+|\+\+|(?:@(?:\s|$))|(?:\S*!(?:\s|$)))/
 
     using Ext::Array::ShiftWhile
 
@@ -75,14 +77,18 @@ module ShellOpts
           words = line.words
           while (char, word = words.shift)
             case word
-              when /^#/
+              when "@"
+                if words.empty?
+                  error_token = Token.new(:text, line.line, char, "@")
+                  lexer_error error_token, "Empty '@' declaration"
+                end
                 source = words.shift_while { true }.map(&:last).join(" ")
                 @tokens << Token.new(:brief, line.line, char, source)
-              when "--"
+              when "--" # FIXME Rename argdescr
                 @tokens << Token.new(:usage, line.line, char, "--")
                 source = words.shift_while { |_,w| w !~ DECL_RE }.map(&:last).join(" ")
                 @tokens << Token.new(:usage_string, line.line, char, source)
-              when "++"
+              when "++" # FIXME Rename argspec
                 @tokens << Token.new(:spec, line.line, char, "++")
                 words.shift_while { |c,w| w !~ DECL_RE && @tokens << Token.new(:argument, line.line, c, w) }
               when /^-|\+/
@@ -90,11 +96,11 @@ module ShellOpts
               when /!$/
                 @tokens << Token.new(:command, line.line, char, word)
             else
-              error_token = Token.new(:text, line.line, char, source)
-              lexer_error error_token, "Illegal expression: #{word.inspect}"
+              source = [word, words.shift_while { |_,w| w !~ DECL_RE }.map(&:last)].join(" ")
+              @tokens << Token.new(:brief, line.line, char, source)
             end
           end
-        else # Comments
+        else
           i = (line =~ /^\\[!#+-]\S/ ? 1 : 0)
           @tokens << Token.new(:text, line.line, line.char, line.text[i..-1])
         end
