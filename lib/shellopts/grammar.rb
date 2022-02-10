@@ -303,7 +303,7 @@ module ShellOpts
 
     class Code < DocNode
       def text() @text ||= lines.join("\n") end
-      def lines() @lines ||= tokens.map { |t| " " * (t.char - token.char) + t.source } end
+      def lines() @lines ||= tokens.map { |t| " " * [t.char - token.char, 0].max + t.source } end
     end
 
     class Node

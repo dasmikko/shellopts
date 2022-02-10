@@ -31,8 +31,6 @@ module ShellOpts
 
   class Lexer
     COMMAND_RE = /[a-z][a-z._-]*!/
-#   DECL_RE = /^(?:-|--|\+|\+\+|(?:\S*!(?:\s|$)))/ TODO
-#   DECL_RE = /^(?:-|--|\+|\+\+|#|(?:\S*!(?:\s|$)))/
     DECL_RE = /^(?:-|--|\+|\+\+|(?:@(?:\s|$))|(?:\S*!(?:\s|$)))/
 
     using Ext::Array::ShiftWhile
@@ -56,9 +54,11 @@ module ShellOpts
 
       # Create program token
       @tokens = [Token.new(:program, -1, -1, "#{@name}!")]
+      last_nonblank = @tokens.first
 
       # Process lines
       while line = lines.shift
+
         # Pass-trough blank lines
         if line.to_s == ""
           @tokens << Token.new(:blank, line.line, line.char, "")
@@ -72,37 +72,50 @@ module ShellOpts
           lexer_error error_token, "Illegal indentation"
         end
 
+        # Code lines
+        if last_nonblank.kind == :text && line.char > last_nonblank.char
+          @tokens << Token.new(:text, line.line, line.char, line.text)
+
+        # Escaped lines
+        elsif line =~ /^\\/
+          @tokens << Token.new(:text, line.line, line.char, line.text[1..-1])
+
         # Options, commands, usage, arguments, and briefs
-        if line =~ DECL_RE
-          words = line.words
-          while (char, word = words.shift)
-            case word
-              when "@"
-                if words.empty?
-                  error_token = Token.new(:text, line.line, char, "@")
-                  lexer_error error_token, "Empty '@' declaration"
-                end
-                source = words.shift_while { true }.map(&:last).join(" ")
-                @tokens << Token.new(:brief, line.line, char, source)
-              when "--" # FIXME Rename argdescr
-                @tokens << Token.new(:usage, line.line, char, "--")
-                source = words.shift_while { |_,w| w !~ DECL_RE }.map(&:last).join(" ")
-                @tokens << Token.new(:usage_string, line.line, char, source)
-              when "++" # FIXME Rename argspec
-                @tokens << Token.new(:spec, line.line, char, "++")
-                words.shift_while { |c,w| w !~ DECL_RE && @tokens << Token.new(:argument, line.line, c, w) }
-              when /^-|\+/
-                @tokens << Token.new(:option, line.line, char, word)
-              when /!$/
-                @tokens << Token.new(:command, line.line, char, word)
-            else
-              source = [word, words.shift_while { |_,w| w !~ DECL_RE }.map(&:last)].join(" ")
-              @tokens << Token.new(:brief, line.line, char, source)
-            end
-          end
         else
-          i = (line =~ /^\\[!#+-]\S/ ? 1 : 0)
-          @tokens << Token.new(:text, line.line, line.char, line.text[i..-1])
+          if line =~ DECL_RE
+            words = line.words
+            while (char, word = words.shift)
+              case word
+                when "@"
+                  if words.empty?
+                    error_token = Token.new(:text, line.line, char, "@")
+                    lexer_error error_token, "Empty '@' declaration"
+                  end
+                  source = words.shift_while { true }.map(&:last).join(" ")
+                  @tokens << Token.new(:brief, line.line, char, source)
+                when "--" # FIXME Rename argdescr
+                  @tokens << Token.new(:usage, line.line, char, "--")
+                  source = words.shift_while { |_,w| w !~ DECL_RE }.map(&:last).join(" ")
+                  @tokens << Token.new(:usage_string, line.line, char, source)
+                when "++" # FIXME Rename argspec
+                  @tokens << Token.new(:spec, line.line, char, "++")
+                  words.shift_while { |c,w| w !~ DECL_RE && @tokens << Token.new(:argument, line.line, c, w) }
+                when /^-|\+/
+                  @tokens << Token.new(:option, line.line, char, word)
+                when /!$/
+                  @tokens << Token.new(:command, line.line, char, word)
+              else
+                source = [word, words.shift_while { |_,w| w !~ DECL_RE }.map(&:last)].join(" ")
+                @tokens << Token.new(:brief, line.line, char, source)
+              end
+            end
+
+          # Paragraph lines
+          else
+            @tokens << Token.new(:text, line.line, line.char, line.text)
+          end
+
+          last_nonblank = @tokens.last
         end
       end
       @tokens

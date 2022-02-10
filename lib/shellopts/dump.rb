@@ -36,7 +36,7 @@ module ShellOpts
             case value
               when Node
                 puts "#{attr}:"
-                indent { node.dump_idr }
+                indent { value.dump_idr }
               when Array
                 case value.first
                   when nil

@@ -94,14 +94,15 @@ SPEC = %(
     Another indented comment. The following blank line should be included
 
     But not if it is the last blank line     
+    \\hep!
 
       a_code_example()
       if something == 42
-#       \\# Comment inside code block
-#       some_indented_code()
-# 
-#       \\# Something that looks like a option
-#       \\--i_miss_this
+        # Something that looks like a command
+        doit!
+  
+        # Something that looks like a option
+        --i_miss_this
       end
 
   -- ARG1 ARG2 
@@ -110,18 +111,7 @@ SPEC = %(
     Description of command. 
 
     Another paragraph.
-    Another line in paragraph. Here comes a code block
-
-      a_code_example()
-      if something == 42
-        \\# Comment inside code block
-        some_indented_code()
-  
-        \\# Something that looks like a option
-        \\--i_miss_this
-      end
-
-    Back to default. Then we list the options: 
+    Another line in paragraph
 
       -c,copt @ Inline comment  
       -d,dopt @ Brief and nested comment  
@@ -166,6 +156,7 @@ SPEC2 = %(
   -b Option brief 2
 
   -c @ Option brief 3
+    @ Option brief 3.5
 
   -d 
     @ Option brief 4
@@ -182,7 +173,7 @@ SPEC2 = %(
 argv = ARGV.empty? ? %w(-a cmd -c) : ARGV
 #prog, args = ShellOpts::ShellOpts.process SPEC2, argv
 
-tokens = ShellOpts::Lexer.lex("main", SPEC)
+tokens = ShellOpts::Lexer.lex("main", SPEC2)
 #tokens.each(&:dump)
 #exit
 ast = ShellOpts::Parser.parse(tokens)

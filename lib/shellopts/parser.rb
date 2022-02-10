@@ -153,7 +153,7 @@ module ShellOpts
         while token.char <= nodes.top.token.char
           node = nodes.pop
           cmds.pop if cmds.top == node
-          !nodes.empty? or err(token, "Illegal indent")
+          !nodes.empty? or parse_error(token, "Illegal indent")
         end
 
         case token.kind
@@ -245,6 +245,7 @@ module ShellOpts
 
           when :brief
             parent = nodes.top.is_a?(Grammar::Paragraph) ? nodes.top.parent : nodes.top
+            parent.brief.nil? or parse_error token, "Duplicate brief"
             Grammar::Brief.parse(parent, token)
 
           when :blank
@@ -266,6 +267,8 @@ module ShellOpts
     def self.parse(tokens)
       self.new(tokens).parse
     end
+
+    def parse_error(token, message) raise ParserError, "#{token.pos} #{message}" end
   end
 end
 
