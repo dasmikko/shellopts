@@ -25,8 +25,9 @@ module Ext
         # Concatenate strings into lines that are at most +width+ characters wide
         def wrap(width, curr = 0)
           lines = [[]]
+          curr -= 1 # Simplifies conditions below
           each { |word|
-            if curr + 1 + word.size < width
+            if curr + 1 + word.size <= width
               lines.last << word
               curr += 1 + word.size
             else
