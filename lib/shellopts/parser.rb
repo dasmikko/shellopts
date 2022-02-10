@@ -197,16 +197,20 @@ module ShellOpts
             cmds.push command
 
           when :spec
-            nodes.push Grammar::ArgSpec.parse(cmds.top, token)
+            spec = Grammar::ArgSpec.parse(cmds.top, token)
+            tokens.shift_while { |token| token.kind == :argument }.each { |token|
+              Grammar::Arg.parse(spec, token)
+            }
+            
 
           when :argument
-            Grammar::Arg.parse(nodes.top, token)
+            ; raise # Should never happen
 
           when :usage
             ; # Do nothing
 
           when :usage_string
-            nodes.push Grammar::ArgDescr.parse(cmds.top, token)
+            Grammar::ArgDescr.parse(cmds.top, token)
 
           when :text
             # Text is only allowed on new lines

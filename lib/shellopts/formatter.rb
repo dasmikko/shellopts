@@ -102,7 +102,7 @@ module ShellOpts
         compact_options = [OPTIONS_ABBR]
         short_commands = commands.empty? ? [] : ["[#{commands.map(&:name).join("|")}]"]
         compact_commands = [COMMANDS_ABBR]
-        args ||= descrs.size == 1 ? [descrs.text] : [DESCRS_ABBR]
+        args ||= descrs.size == 1 ? [descrs.first.text] : [DESCRS_ABBR]
 
         begin # to be able to use 'break' below
           words = [name] + long_options + short_commands + args

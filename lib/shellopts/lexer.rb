@@ -33,6 +33,12 @@ module ShellOpts
     COMMAND_RE = /[a-z][a-z._-]*!/
     DECL_RE = /^(?:-|--|\+|\+\+|(?:@(?:\s|$))|(?:\S*!(?:\s|$)))/
 
+    # Match ArgSpec argument words. TODO
+    SPEC_RE = /^[^a-z]{2,}$/
+
+    # Match ArgDescr words (should be at least two characters long)
+    DESCR_RE = /^[^a-z]{2,}$/
+
     using Ext::Array::ShiftWhile
 
     attr_reader :name # Name of program
@@ -95,11 +101,11 @@ module ShellOpts
                   @tokens << Token.new(:brief, line.line, char, source)
                 when "--" # FIXME Rename argdescr
                   @tokens << Token.new(:usage, line.line, char, "--")
-                  source = words.shift_while { |_,w| w !~ DECL_RE }.map(&:last).join(" ")
+                  source = words.shift_while { |_,w| w =~ DESCR_RE }.map(&:last).join(" ")
                   @tokens << Token.new(:usage_string, line.line, char, source)
                 when "++" # FIXME Rename argspec
                   @tokens << Token.new(:spec, line.line, char, "++")
-                  words.shift_while { |c,w| w !~ DECL_RE && @tokens << Token.new(:argument, line.line, c, w) }
+                  words.shift_while { |c,w| w =~ SPEC_RE and @tokens << Token.new(:argument, line.line, c, w) }
                 when /^-|\+/
                   @tokens << Token.new(:option, line.line, char, word)
                 when /!$/

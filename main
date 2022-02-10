@@ -9,7 +9,7 @@ require 'shellopts'
 #   -h,help
 #   --version
 #
-# Message options
+#  Message options
 #   -q,quiet
 #   -v,verbose
 
@@ -125,18 +125,18 @@ SPEC = %(
       A description
 
     This text should be included too  
-    ++ CMD_ARG1 CMD_ARG2 @ Brief description of arguments
+    ++ CMD_ARG1 CMD_ARG2
 
       Longer indented text is not related to the previous
       description of arguments but is considered code
 
         is this code
 
-    ++ CMD_ARG_A CMD_ARG_B @ Another set of arguments
+    ++ CMD_ARG_A CMD_ARG_B
 
       with something that is not a a description
 
-# -- GLOBAL ARGS @ These are the global args
+# -- GLOBAL ARGS
 
   --another-global-option
 
@@ -156,14 +156,13 @@ SPEC2 = %(
   -b Option brief 2
 
   -c @ Option brief 3
-    @ Option brief 3.5
 
   -d 
     @ Option brief 4
 
   text text text
 
-  cmd1! Command brief 1
+  cmd1! -- ARG1 ARG2 Command brief 1
   cmd2! @ Command brief 2
   cmd3!
     First-line option brief. After the first dot
@@ -173,7 +172,7 @@ SPEC2 = %(
 argv = ARGV.empty? ? %w(-a cmd -c) : ARGV
 #prog, args = ShellOpts::ShellOpts.process SPEC2, argv
 
-tokens = ShellOpts::Lexer.lex("main", SPEC2)
+tokens = ShellOpts::Lexer.lex("main", SPEC)
 #tokens.each(&:dump)
 #exit
 ast = ShellOpts::Parser.parse(tokens)
