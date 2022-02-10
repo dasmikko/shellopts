@@ -177,10 +177,49 @@ SPEC2 = %(
 
 )
 
+SPEC3 = %q(
+  Description
+
+  -- ARG1 ARG2
+  -- ARG3 ARG4
+
+  OPTIONS
+    Some text
+
+      -a An option and not code
+
+    Some code
+
+      \\-b A code line # Because we escaped it
+      -c # this is not an option
+        this_is_more_code()
+
+    Another option
+
+      -d Another
+
+    More code
+
+      # A command
+      -e # is not an option
+
+  COMMANDS
+    Some commands text
+
+      cmd1! A command
+
+    Some code
+
+      \\cmd2! A code line
+        cmd3! # this is not a command
+
+    Final
+)
+
 argv = ARGV.empty? ? %w(-a cmd -c) : ARGV
 #prog, args = ShellOpts::ShellOpts.process SPEC2, argv
 
-tokens = ShellOpts::Lexer.lex("main", SPEC)
+tokens = ShellOpts::Lexer.lex("main", SPEC3)
 #tokens.each(&:dump)
 #exit
 ast = ShellOpts::Parser.parse(tokens)
@@ -190,13 +229,13 @@ idr = ShellOpts::Analyzer.analyze(ast) # @idr and @ast refer to the same object
 #idr.dump_idr
 #exit
 
-puts "-" * 80
-ShellOpts::Formatter.usage(idr)
+#puts "-" * 80
+#ShellOpts::Formatter.usage(idr)
 puts "-" * 80
 ShellOpts::Formatter.brief(idr)
 puts "-" * 80
-ShellOpts::Formatter.help(idr)
-puts "-" * 80
+#ShellOpts::Formatter.help(idr)
+#puts "-" * 80
 
 
 

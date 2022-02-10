@@ -1,4 +1,8 @@
 
+o Allow a USAGE section (and NAME)
+o Find source in code an adjust line number in error messages 
+o Recursive format of commands
+o Bold text output
 o Rename line and char to lineno and charno
 o Rename Compiler -> Interpreter
 o Client-defined argument types

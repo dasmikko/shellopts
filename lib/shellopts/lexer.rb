@@ -9,7 +9,7 @@ module ShellOpts
       @text = $1 || ""
     end
 
-    forward_to :@text, :=~
+    forward_to :@text, :=~, :!~
 
     # Split on whitespace while keeping track of character position. Returns
     # array of char, word tuples
@@ -32,7 +32,7 @@ module ShellOpts
   class Lexer
     COMMAND_RE = /[a-z][a-z._-]*!/
 
-    DECL_RE = /^(?:-|--|\+|\+\+|(?:@(?:\s|$))|(?:\S*!(?:\s|$)))/
+    DECL_RE = /^(?:-|--|\+|\+\+|(?:@(?:\s|$))|(?:[^\\!]\S*!(?:\s|$)))/
 
     # Match ArgSpec argument words. TODO
     SPEC_RE = /^[^a-z]{2,}$/
@@ -69,7 +69,6 @@ module ShellOpts
 
       # Process lines
       while line = lines.shift
-
         # Pass-trough blank lines
         if line.to_s == ""
           @tokens << Token.new(:blank, line.line, line.char, "")
@@ -83,55 +82,56 @@ module ShellOpts
           lexer_error error_token, "Illegal indentation"
         end
 
+        # Line without escape
+        source = line.text[(line.text =~ /^\\/ ? 1 : 0)..-1]
+
         # Code lines
-        if last_nonblank.kind == :text && line.char > last_nonblank.char
-          @tokens << Token.new(:text, line.line, line.char, line.text)
-
-        # Escaped lines
-        elsif line =~ /^\\/
-          @tokens << Token.new(:text, line.line, line.char, line.text[1..-1])
-
-        else
-          # Sections
-          if SECTIONS.include?(line.text)
-            @tokens << Token.new(:section, line.line, line.char, line.text)
-
-          # Options, commands, usage, arguments, and briefs
-          elsif line =~ DECL_RE
-            words = line.words
-            while (char, word = words.shift)
-              case word
-                when "@"
-                  if words.empty?
-                    error_token = Token.new(:text, line.line, char, "@")
-                    lexer_error error_token, "Empty '@' declaration"
-                  end
-                  source = words.shift_while { true }.map(&:last).join(" ")
-                  @tokens << Token.new(:brief, line.line, char, source)
-                when "--" # FIXME Rename argdescr
-                  @tokens << Token.new(:usage, line.line, char, "--")
-                  source = words.shift_while { |_,w| w =~ DESCR_RE }.map(&:last).join(" ")
-                  @tokens << Token.new(:usage_string, line.line, char, source)
-                when "++" # FIXME Rename argspec
-                  @tokens << Token.new(:spec, line.line, char, "++")
-                  words.shift_while { |c,w| w =~ SPEC_RE and @tokens << Token.new(:argument, line.line, c, w) }
-                when /^-|\+/
-                  @tokens << Token.new(:option, line.line, char, word)
-                when /!$/
-                  @tokens << Token.new(:command, line.line, char, word)
-              else
-                source = [word, words.shift_while { |_,w| w !~ DECL_RE }.map(&:last)].join(" ")
-                @tokens << Token.new(:brief, line.line, char, source)
-              end
-            end
-
-          # Paragraph lines
-          else
+        if last_nonblank.kind == :text && line.char > last_nonblank.char && line !~ DECL_RE
+          @tokens << Token.new(:text, line.line, line.char, source)
+          lines.shift_while { |line| line.char > last_nonblank.char }.each { |line|
             @tokens << Token.new(:text, line.line, line.char, line.text)
+          }
+          last_nonblank = @tokens.last
+
+          # Sections
+        elsif SECTIONS.include?(line.text)
+          @tokens << Token.new(:section, line.line, line.char, line.text)
+
+        # Options, commands, usage, arguments, and briefs
+        elsif line =~ DECL_RE
+          words = line.words
+          while (char, word = words.shift)
+            case word
+              when "@"
+                if words.empty?
+                  error_token = Token.new(:text, line.line, char, "@")
+                  lexer_error error_token, "Empty '@' declaration"
+                end
+                source = words.shift_while { true }.map(&:last).join(" ")
+                @tokens << Token.new(:brief, line.line, char, source)
+              when "--" # FIXME Rename argdescr
+                @tokens << Token.new(:usage, line.line, char, "--")
+                source = words.shift_while { |_,w| w =~ DESCR_RE }.map(&:last).join(" ")
+                @tokens << Token.new(:usage_string, line.line, char, source)
+              when "++" # FIXME Rename argspec
+                @tokens << Token.new(:spec, line.line, char, "++")
+                words.shift_while { |c,w| w =~ SPEC_RE and @tokens << Token.new(:argument, line.line, c, w) }
+              when /^-|\+/
+                @tokens << Token.new(:option, line.line, char, word)
+              when /!$/
+                @tokens << Token.new(:command, line.line, char, word)
+            else
+              source = [word, words.shift_while { |_,w| w !~ DECL_RE }.map(&:last)].join(" ")
+              @tokens << Token.new(:brief, line.line, char, source)
+            end
           end
 
-          last_nonblank = @tokens.last
+        # Paragraph lines
+        else
+          @tokens << Token.new(:text, line.line, line.char, source)
         end
+
+        last_nonblank = @tokens.last
       end
       @tokens
     end

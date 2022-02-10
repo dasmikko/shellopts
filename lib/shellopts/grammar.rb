@@ -285,6 +285,9 @@ module ShellOpts
       alias_method :command, :parent
     end
 
+    class Usage < ArgDescr
+    end
+
     module WrappedNode
       using Ext::Array::Wrap
       def words() @words ||= text.split(" ") end

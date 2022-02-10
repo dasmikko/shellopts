@@ -38,6 +38,10 @@ module ShellOpts
   INDENT = 2
   HELP_INDENT = 4
 
+  class ANSI
+    def self.bold(s) "[1m#{s}[0m" end
+  end
+
   module Grammar
     class Node
       def puts_help() end
@@ -59,7 +63,7 @@ module ShellOpts
 
     class OptionGroup
       def puts_help
-        puts render(:enum)
+        puts ANSI.bold(render(:enum))
         indent {
           if description.any?
             description.each { |descr|
@@ -87,10 +91,11 @@ module ShellOpts
     class Command
       using Ext::Array::Wrap
 
-      OPTIONS_ABBR = "<options>"
-      COMMANDS_ABBR = "<commands>"
+      OPTIONS_ABBR = "[OPTIONS]"
+      COMMANDS_ABBR = "[COMMANDS]"
       DESCRS_ABBR = "ARGS..."
 
+      # Helper method that returns true if words can fit in width characters
       def pass?(words, width)
         words.sum(&:size) + words.size - 1 <= width
       end
@@ -212,14 +217,18 @@ module ShellOpts
           Command => "COMMANDS"
         }
 
+        has_section = false
+
         indent {
           children.each { |child|
             if child.is_a?(Section)
               indent(-1).puts child.name
               section.delete_if { |_,v| v == child.name }
+              section.delete(Paragraph)
             elsif s = section[child.class]
               indent(-1).puts s
               section.delete(child.class)
+              section.delete(Paragraph)
             end
             child.puts_help
           }
@@ -237,6 +246,10 @@ module ShellOpts
         else
           puts render(:enum, Formatter::USAGE_MAX_WIDTH)
         end
+      end
+
+      def puts_single
+        puts render(:multi, Formatter::USAGE_MAX_WIDTH)
       end
     end
 
@@ -288,9 +301,7 @@ module ShellOpts
       setup_indent(1) {
         program = Grammar::Program.program(program)
         print lead = "#{USAGE_STRING}: "
-        indent(lead.size, ' ', bol: false) {
-          program.puts_usage
-        }
+        indent(lead.size, ' ', bol: false) { program.puts_single }
       }
     end
 
@@ -312,13 +323,13 @@ module ShellOpts
 
       for (first, second) in fields
         if first.size > first_width
-          puts first
+          puts ANSI.bold first
           indent(first_width + BRIEF_COL_SEP, ' ') { puts second.wrap(second_width) } if second
         elsif second
-          printf "%-#{first_width + BRIEF_COL_SEP}s", first
+          print ANSI.bold(sprintf "%-#{first_width + BRIEF_COL_SEP}s", first)
           indent(first_width, bol: false) { puts second.wrap(second_width) }
         else
-          puts first
+          puts ANSI.bold first
         end
       end
     end
@@ -359,67 +370,4 @@ module ShellOpts
     end
   end
 end
-
-
-
-__END__
-    # Brief descripion of command (when the user specifies '-h')
-    def self.brief(program, width = TermInfo.screen_columns - 3)
-      command_width = [width - INDENT - program.name.size - 1, USAGE_MAX_WIDTH].min
-      option_briefs = program.option_groups.map { |group| [group.render(:enum), group.brief&.words] }
-      command_briefs = program.commands.map { |command| [command.render(:single, width), command.brief&.words] }
-      widths = compute_column_widths(width, option_briefs + command_briefs)
-
-      l = []
-
-      if program.brief
-        l << "Name:" << "#{indent}#{program.name} - #{program.brief.text}" << ""
-      end
-
-      l << "Usage:"
-      if program.descrs.size == 1
-        l.concat indent_lines(2, program.render(:multi, command_width))
-      else
-        l.concat indent_lines(2, program.render(:enum, command_width))
-      end
-
-      if !program.options.empty?
-        l << "" << "Options:"
-        l.concat indent_lines(2, columnize(widths, option_briefs))
-      end
-
-      if !program.commands.empty?
-        l << "" << "Commands:"
-        l.concat indent_lines(2, columnize(widths, command_briefs))
-      end
-
-      l
-    end
-
-    # Number of spaces to use for indentation in usage and brief formats
-    INDENT = 2
-
-    # Number of spaces to use for indentation in puts_help format
-    HELP_INDENT = 4
-
-    # Maximum width of Command :multi format
-    USAGE_MAX_WIDTH = 79 - INDENT 
-
-    # Maximum width of first column in option and command lists
-    BRIEF_COL1_MAX_WIDTH = 40
-
-    # Minimum width of second column in option and command lists
-    BRIEF_COL2_MAX_WIDTH = 50
-
-    # String for 'Usage' in error messages
-    USAGE_STRING = "Usage:"
-
-    # Usage string in error messages
-    def self.usage(program, width = TermInfo.screen_columns - 3)
-      optcmd_width = [width - USAGE_STRING.size - 1, USAGE_MAX_WIDTH].min
-      lines = program.render(:multi, optcmd_width)
-      ["Usage: #{lines[0]}"] + indent_lines(USAGE_STRING.size + 1, lines[1..-1])
-    end
-
-
 
