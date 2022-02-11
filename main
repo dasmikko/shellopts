@@ -224,13 +224,13 @@ argv = ARGV.empty? ? %w(-a cmd -c) : ARGV
 #prog, args = ShellOpts::ShellOpts.process SPEC2, argv
 
 tokens = ShellOpts::Lexer.lex("main", SPEC)
-#tokens = ShellOpts::Lexer.lex("main", ONELINE)
-
 #tokens.each(&:dump)
 #exit
+
 ast = ShellOpts::Parser.parse(tokens)
 #ast.dump_ast
 #exit
+
 idr = ShellOpts::Analyzer.analyze(ast) # @idr and @ast refer to the same object
 #idr.dump_idr
 #exit

@@ -9,6 +9,8 @@ module ShellOpts
       @text = $1 || ""
     end
 
+    def blank?() @text == "" end
+
     forward_to :@text, :=~, :!~
 
     # Split on whitespace while keeping track of character position. Returns
@@ -88,12 +90,12 @@ module ShellOpts
         # Code lines
         if last_nonblank.kind == :text && line.char > last_nonblank.char && line !~ DECL_RE
           @tokens << Token.new(:text, line.line, line.char, source)
-          lines.shift_while { |line| line.char > last_nonblank.char }.each { |line|
-            @tokens << Token.new(:text, line.line, line.char, line.text)
+          lines.shift_while { |line| line.blank? || line.char > last_nonblank.char }.each { |line|
+            kind = (line.blank? ? :blank : :text)
+            @tokens << Token.new(kind, line.line, line.char, line.text)
           }
-          last_nonblank = @tokens.last
 
-          # Sections
+        # Sections
         elsif SECTIONS.include?(line.text)
           @tokens << Token.new(:section, line.line, line.char, line.text)
 
