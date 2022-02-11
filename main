@@ -219,7 +219,9 @@ SPEC3 = %q(
 argv = ARGV.empty? ? %w(-a cmd -c) : ARGV
 #prog, args = ShellOpts::ShellOpts.process SPEC2, argv
 
-tokens = ShellOpts::Lexer.lex("main", SPEC3)
+tokens = ShellOpts::Lexer.lex("main", SPEC2)
+#tokens = ShellOpts::Lexer.lex("main", ONELINE)
+
 #tokens.each(&:dump)
 #exit
 ast = ShellOpts::Parser.parse(tokens)
@@ -229,13 +231,14 @@ idr = ShellOpts::Analyzer.analyze(ast) # @idr and @ast refer to the same object
 #idr.dump_idr
 #exit
 
-#puts "-" * 80
-#ShellOpts::Formatter.usage(idr)
+puts "-" * 80
+ShellOpts::Formatter.usage(idr)
 puts "-" * 80
 ShellOpts::Formatter.brief(idr)
 puts "-" * 80
-#ShellOpts::Formatter.help(idr)
-#puts "-" * 80
+ShellOpts::Formatter.help(idr)
+puts "-" * 80
+
 
 
 

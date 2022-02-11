@@ -1,4 +1,5 @@
 
+o Built-in pager (pipe to less(1))
 o Allow a USAGE section (and NAME)
 o Find source in code an adjust line number in error messages 
 o Recursive format of commands

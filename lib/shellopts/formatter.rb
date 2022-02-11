@@ -38,10 +38,6 @@ module ShellOpts
   INDENT = 2
   HELP_INDENT = 4
 
-  class ANSI
-    def self.bold(s) "[1m#{s}[0m" end
-  end
-
   module Grammar
     class Node
       def puts_help() end
@@ -63,7 +59,7 @@ module ShellOpts
 
     class OptionGroup
       def puts_help
-        puts ANSI.bold(render(:enum))
+        puts Ansi.bold(render(:enum))
         indent {
           if description.any?
             description.each { |descr|
@@ -107,8 +103,15 @@ module ShellOpts
         compact_options = [OPTIONS_ABBR]
         short_commands = commands.empty? ? [] : ["[#{commands.map(&:name).join("|")}]"]
         compact_commands = [COMMANDS_ABBR]
-        args ||= descrs.size == 1 ? [descrs.first.text] : [DESCRS_ABBR]
 
+        # TODO: Refactor and implement recursive detection of any argument
+        args ||= 
+            case descrs.size
+              when 0; args = []
+              when 1; [descrs.first.text]
+              else [DESCRS_ABBR]
+            end
+          
         begin # to be able to use 'break' below
           words = [name] + long_options + short_commands + args
           break if pass?(words, width)
@@ -127,6 +130,7 @@ module ShellOpts
 
       # Render one line for each argument description
       def render_enum(width)
+        # TODO: Also refactor args here
         args_texts = self.descrs.empty? ? [DESCRS_ABBR] : descrs.map(&:text)
         args_texts.map { |args_text|
           render_single(width, args: [args_text])
@@ -174,6 +178,12 @@ module ShellOpts
     end
 
     class Program
+      using Ext::Array::Wrap
+
+      def puts_single
+        puts render(:multi, Formatter::USAGE_MAX_WIDTH)
+      end
+    
       def puts_brief
         width = Formatter.rest
         option_briefs = option_groups.map { |group| [group.render(:enum), group.brief&.words] }
@@ -217,8 +227,6 @@ module ShellOpts
           Command => "COMMANDS"
         }
 
-        has_section = false
-
         indent {
           children.each { |child|
             if child.is_a?(Section)
@@ -230,7 +238,14 @@ module ShellOpts
               section.delete(child.class)
               section.delete(Paragraph)
             end
-            child.puts_help
+
+            if child.is_a?(Command)
+              puts Ansi.bold(child.render(:single, Formatter.rest))
+              indent { puts child.brief.words.wrap(Formatter.rest) } if brief
+              puts if child != children.last
+             else
+              child.puts_help
+            end
           }
         }
       end
@@ -246,10 +261,6 @@ module ShellOpts
         else
           puts render(:enum, Formatter::USAGE_MAX_WIDTH)
         end
-      end
-
-      def puts_single
-        puts render(:multi, Formatter::USAGE_MAX_WIDTH)
       end
     end
 
@@ -323,13 +334,13 @@ module ShellOpts
 
       for (first, second) in fields
         if first.size > first_width
-          puts ANSI.bold first
+          puts first
           indent(first_width + BRIEF_COL_SEP, ' ') { puts second.wrap(second_width) } if second
         elsif second
-          print ANSI.bold(sprintf "%-#{first_width + BRIEF_COL_SEP}s", first)
+          printf "%-#{first_width + BRIEF_COL_SEP}s", first
           indent(first_width, bol: false) { puts second.wrap(second_width) }
         else
-          puts ANSI.bold first
+          puts first
         end
       end
     end

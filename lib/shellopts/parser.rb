@@ -146,6 +146,7 @@ module ShellOpts
 
     def parse()
       @program = Grammar::Program.parse(tokens.shift)
+      oneline = tokens.first.line == tokens.last.line
       nodes = [@program] # Stack of Nodes. Follows the indentation of the source
       cmds = [@program] # Stack of cmds. Used to keep track of the current command
       while token = tokens.shift
@@ -161,9 +162,10 @@ module ShellOpts
             Grammar::Section.parse(nodes.top, token)
 
           when :option
-            # Collect options into option groups if on the same line
+            # Collect options into option groups if on the same line and not in
+            # oneline mode
             options = [token] + tokens.shift_while { |follow| 
-              follow.kind == :option && follow.line == token.line
+              !oneline && follow.kind == :option && follow.line == token.line
             }
             group = Grammar::OptionGroup.new(cmds.top, token)
             options.each { |option| Grammar::Option.parse(group, option) }
