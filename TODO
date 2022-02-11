@@ -1,4 +1,6 @@
 
+o Add a SOURCE section with link to git repo
+o Bullet-lists
 o Built-in pager (pipe to less(1))
 o Allow a USAGE section (and NAME)
 o Find source in code an adjust line number in error messages 

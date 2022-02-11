@@ -59,16 +59,15 @@ module ShellOpts
 
     class OptionGroup
       def puts_help
-        puts Ansi.bold(render(:enum))
+        puts Ansi.bold(render(:multi))
         indent {
           if description.any?
             description.each { |descr|
               descr.puts_help
+              puts if descr != description.last
             }
           elsif brief
             brief.puts_help
-          else
-            puts
           end
         }
       end
@@ -76,7 +75,7 @@ module ShellOpts
       def render(format)
         constrain format, :enum, :long, :short, :multi
         if format == :multi
-          options.map { |option| option.render(:long) }.join("\n")
+          options.map { |option| option.render(:enum) }.join("\n")
         else
           options.map { |option| option.render(format) }.join(" ")
         end
@@ -90,11 +89,6 @@ module ShellOpts
       OPTIONS_ABBR = "[OPTIONS]"
       COMMANDS_ABBR = "[COMMANDS]"
       DESCRS_ABBR = "ARGS..."
-
-      # Helper method that returns true if words can fit in width characters
-      def pass?(words, width)
-        words.sum(&:size) + words.size - 1 <= width
-      end
 
       # Render on one line. Compact multiple argument descriptions
       def render_single(width, args: nil)
@@ -175,6 +169,17 @@ module ShellOpts
           raise InterpreterError, "Illegal format: #{format.inspect}"
         end
       end
+
+      def puts_help
+        puts Ansi.bold(render(:single, Formatter.rest))
+        indent { puts brief.words.wrap(Formatter.rest) } if brief
+      end
+
+    protected
+      # Helper method that returns true if words can fit in width characters
+      def pass?(words, width)
+        words.sum(&:size) + words.size - 1 <= width
+      end
     end
 
     class Program
@@ -219,7 +224,6 @@ module ShellOpts
 
         puts "USAGE"
         indent { puts_usage }
-        puts
 
         section = {
           Paragraph => "DESCRIPTION",
@@ -227,25 +231,36 @@ module ShellOpts
           Command => "COMMANDS"
         }
 
+        newline = false # True if a newline should be printed before child 
+
         indent {
           children.each { |child|
             if child.is_a?(Section)
+              puts
               indent(-1).puts child.name
               section.delete_if { |_,v| v == child.name }
               section.delete(Paragraph)
+              newline = false
+              next
             elsif s = section[child.class]
+              puts  
               indent(-1).puts s
               section.delete(child.class)
               section.delete(Paragraph)
+              newline = false
+            else
+              puts if newline
+              newline = true
             end
 
             if child.is_a?(Command)
               puts Ansi.bold(child.render(:single, Formatter.rest))
               indent { puts child.brief.words.wrap(Formatter.rest) } if brief
-              puts if child != children.last
+              newline = true
              else
               child.puts_help
             end
+
           }
         }
       end
@@ -265,11 +280,11 @@ module ShellOpts
     end
 
     class DocNode
-      def puts_help() puts lines; puts end
+      def puts_help() puts lines end
     end
 
     module WrappedNode
-      def puts_help(width = Formatter.rest) puts lines(width); puts end
+      def puts_help(width = Formatter.rest) puts lines(width) end
     end
 
     class Code

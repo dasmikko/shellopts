@@ -38,6 +38,10 @@ SPEC = %(
       puts "Success"
     end
 
+  Here is a paragraph
+
+  Here is another paragraph
+
   OPTIONS
 
   This should be in the OPTIONS section (not supported for now - now it is!)
@@ -219,7 +223,7 @@ SPEC3 = %q(
 argv = ARGV.empty? ? %w(-a cmd -c) : ARGV
 #prog, args = ShellOpts::ShellOpts.process SPEC2, argv
 
-tokens = ShellOpts::Lexer.lex("main", SPEC2)
+tokens = ShellOpts::Lexer.lex("main", SPEC)
 #tokens = ShellOpts::Lexer.lex("main", ONELINE)
 
 #tokens.each(&:dump)
