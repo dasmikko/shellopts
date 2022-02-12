@@ -218,11 +218,11 @@ module ShellOpts
       end
 
       def puts_help
-        puts "NAME"
+        puts Ansi.bold "NAME"
         indent { puts_name }
         puts
 
-        puts "USAGE"
+        puts Ansi.bold "USAGE"
         indent { puts_usage }
 
         section = {
@@ -237,14 +237,14 @@ module ShellOpts
           children.each { |child|
             if child.is_a?(Section)
               puts
-              indent(-1).puts child.name
+              indent(-1).puts Ansi.bold child.name
               section.delete_if { |_,v| v == child.name }
               section.delete(Paragraph)
               newline = false
               next
             elsif s = section[child.class]
               puts  
-              indent(-1).puts s
+              indent(-1).puts Ansi.bold s
               section.delete(child.class)
               section.delete(Paragraph)
               newline = false
