@@ -1,6 +1,6 @@
 
 module ShellOpts
-  class Compiler
+  class Interpreter
     attr_reader :expr
     attr_reader :args
 
@@ -11,7 +11,7 @@ module ShellOpts
       @float, @exception = float, exception
     end
 
-    def compile
+    def interpret
       @expr = command = Program.new(@grammar)
       @seen = {} # Set of seen options by UID (using UID is needed when float is true)
       @args = []
@@ -20,7 +20,7 @@ module ShellOpts
         if arg == "--"
           break
         elsif arg.start_with?("-")
-          compile_option(command, arg)
+          interpret_option(command, arg)
         elsif @args.empty? && subcommand_grammar = command.__grammar__[:"#{arg}!"]
           command = Command.add_command(command, Command.new(subcommand_grammar))
         else
@@ -35,8 +35,8 @@ module ShellOpts
       [@expr, @args += @argv]
     end
 
-    def self.compile(grammar, argv, **opts)
-      self.new(grammar, argv, **opts).compile
+    def self.interpret(grammar, argv, **opts)
+      self.new(grammar, argv, **opts).interpret
     end
 
   protected
@@ -51,7 +51,7 @@ module ShellOpts
       [command, option]
     end
 
-    def compile_option(command, option)
+    def interpret_option(command, option)
       # Split into name and argument
       case option
         when /^(--.+?)(?:=(.*))?$/
@@ -73,7 +73,7 @@ module ShellOpts
             error "Missing argument for option '#{name}'"
           end
         end
-        value &&= compile_option_value(option, name, value)
+        value &&= interpret_option_value(option, name, value)
       elsif value && short
         @argv.unshift("-#{value}")
         value = nil
@@ -84,7 +84,7 @@ module ShellOpts
       Command.add_option(option_command, Option.new(option, name, value))
     end
 
-    def compile_option_value(option, name, value)
+    def interpret_option_value(option, name, value)
       type = option.argument_type
       if type.match?(name, value)
         type.convert(value)
@@ -96,7 +96,7 @@ module ShellOpts
     end
 
     def error(msg)
-      raise CompilerError, msg
+      raise InterpreterError, msg
     end
   end
 end

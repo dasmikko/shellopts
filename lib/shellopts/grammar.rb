@@ -37,7 +37,7 @@ module ShellOpts
       end
 
       def err(message)
-        raise CompilerError, "#{token.pos} #{message}"
+        raise InterpreterError, "#{token.pos} #{message}"
       end
     end
 

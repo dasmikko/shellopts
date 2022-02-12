@@ -24,7 +24,7 @@ require 'shellopts/lexer.rb'
 require 'shellopts/argument_type.rb'
 require 'shellopts/parser.rb'
 require 'shellopts/analyzer.rb'
-require 'shellopts/compiler.rb'
+require 'shellopts/interpreter.rb'
 require 'shellopts/ansi.rb'
 require 'shellopts/renderer.rb'
 require 'shellopts/formatter.rb'
@@ -38,10 +38,10 @@ require 'shellopts/dump.rb'
 
 module ShellOpts
   class Error < StandardError; end
-  class CompilerError < Error; end
+  class InterpreterError < Error; end
   class LexerError < Error; end
-  class ParserError < CompilerError; end
-  class AnalyzerError < CompilerError; end
+  class ParserError < InterpreterError; end
+  class AnalyzerError < InterpreterError; end
   class InterpreterError < Error; end # Error by the developer
   class UserError < Error; end
   class Failure < Error; end
@@ -76,7 +76,7 @@ module ShellOpts
       # ... add stdopts options ...
       # ... add msgopts options ...
 
-      @program, @args = Compiler.compile(idr, argv, float: float, exception: exception)
+      @program, @args = Interpreter.interpret(idr, argv, float: float, exception: exception)
 
       # Process stdopts options
       # Process msgopts options
