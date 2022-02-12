@@ -1,4 +1,5 @@
 
+o Add user-defined setions
 o Add a SOURCE section with link to git repo
 o Bullet-lists
 o Built-in pager (pipe to less(1))

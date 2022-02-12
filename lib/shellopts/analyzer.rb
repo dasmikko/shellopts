@@ -10,6 +10,10 @@ module ShellOpts
         children.delete_if { |node| node.is_a?(ArgDescr) }
       end
 
+      def remove_arg_spec_nodes
+        children.delete_if { |node| node.is_a?(ArgSpec) }
+      end
+
       def analyzer_error(token, message) raise AnalyzerError, "#{token.pos} #{message}" end
     end
 
@@ -72,6 +76,7 @@ module ShellOpts
       @grammar.traverse { |node| 
         node.remove_brief_nodes 
         node.remove_arg_descr_nodes
+        node.remove_arg_spec_nodes
       }
 
       @grammar

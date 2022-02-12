@@ -325,7 +325,7 @@ module ShellOpts
         Brief => [Command, OptionGroup, ArgSpec, ArgDescr],
         Paragraph => [Command, OptionGroup],
         Code => [Command, OptionGroup],
-        Section => [Command]
+        Section => [Program]
       }
     end
   end

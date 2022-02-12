@@ -1,43 +1,13 @@
 require 'terminfo'
 
+# TODO: Move to ext/indented_io.rb
 module IndentedIO
   class IndentedIO
-    attr_reader :levels
     def margin() combined_indent.size end
   end
 end
 
-# Option rendering
-#   -a, --all                   # Only used in brief and doc formats (enum)
-#   --all                       # Only used in usage (long)
-#   -a                          # Only used in usage (short)
-#
-# Option group rendering
-#   -a, --all  -b, --beta       # Only used in brief formats (enum)
-#   --all --beta                # Used in usage (long)
-#   -a -b                       # Used in usage (short)
-#
-#   -a, --all                   # Only used in doc format (:multi)
-#   -b, --beta
-#
-# Command rendering
-#   cmd --all --beta [cmd1|cmd2] ARG1 ARG2    # Single-line formats (:single)
-#   cmd --all --beta [cmd1|cmd2] ARGS...     
-#   cmd -a -b [cmd1|cmd2] ARG1 ARG2
-#   cmd -a -b [cmd1|cmd2] ARGS...
-#
-#   cmd -a -b [cmd1|cmd2] ARG1 ARG2           # One line for each argument description (:enum)
-#   cmd -a -b [cmd1|cmd2] ARG3 ARG4           # (used in the USAGE section)
-#
-#   cmd --all --beta                          # Multi-line formats (:multi)
-#       [cmd1|cmd2] ARG1 ARG2
-#   cmd --all --beta
-#       <commands> ARGS
-#   
 module ShellOpts
-  INDENT = 2
-  HELP_INDENT = 4
-
   module Grammar
     class Node
       def puts_help() end
@@ -45,16 +15,6 @@ module ShellOpts
     end
 
     class Option
-      def render(format)
-        constrain format, :enum, :long, :short
-        case format
-          when :enum; names.join(", ")
-          when :long; name
-          when :short; short_names.first || name
-        else
-          raise InterpreterError, "Illegal format: #{format.inspect}"
-        end + (argument? ? "=#{argument_name}" : "")
-      end
     end
 
     class OptionGroup
@@ -71,114 +31,32 @@ module ShellOpts
           end
         }
       end
-
-      def render(format)
-        constrain format, :enum, :long, :short, :multi
-        if format == :multi
-          options.map { |option| option.render(:enum) }.join("\n")
-        else
-          options.map { |option| option.render(format) }.join(" ")
-        end
-      end
     end
 
     # brief one-line commands should optionally use compact options
     class Command
       using Ext::Array::Wrap
 
-      OPTIONS_ABBR = "[OPTIONS]"
-      COMMANDS_ABBR = "[COMMANDS]"
-      DESCRS_ABBR = "ARGS..."
-
-      # Render on one line. Compact multiple argument descriptions
-      def render_single(width, args: nil)
-        long_options = options.map { |option| option.render(:long) }
-        short_options = options.map { |option| option.render(:short) }
-        compact_options = [OPTIONS_ABBR]
-        short_commands = commands.empty? ? [] : ["[#{commands.map(&:name).join("|")}]"]
-        compact_commands = [COMMANDS_ABBR]
-
-        # TODO: Refactor and implement recursive detection of any argument
-        args ||= 
-            case descrs.size
-              when 0; args = []
-              when 1; [descrs.first.text]
-              else [DESCRS_ABBR]
-            end
-          
-        begin # to be able to use 'break' below
-          words = [name] + long_options + short_commands + args
-          break if pass?(words, width)
-          words = [name] + short_options + short_commands + args
-          break if pass?(words, width)
-          words = [name] + long_options + compact_commands + args
-          break if pass?(words, width)
-          words = [name] + short_options + compact_commands + args
-          break if pass?(words, width)
-          words = [name] + compact_options + short_commands + args
-          break if pass?(words, width)
-          words = [name] + compact_options + compact_commands + args
-        end while false
-        words.join(" ")
-      end
-
-      # Render one line for each argument description
-      def render_enum(width)
-        # TODO: Also refactor args here
-        args_texts = self.descrs.empty? ? [DESCRS_ABBR] : descrs.map(&:text)
-        args_texts.map { |args_text|
-          render_single(width, args: [args_text])
-        }
-      end
-
-      # Wrap options and commands and compact multiple descriptions
-      def render_multi(width)
-        long_options = options.map { |option| option.render(:long) }
-        short_options = options.map { |option| option.render(:short) }
-        short_commands = commands.empty? ? [] : ["[#{commands.map(&:name).join("|")}]"]
-        compact_commands = [COMMANDS_ABBR]
-        args = self.descrs.size != 1 ? [DESCRS_ABBR] : descrs.map(&:text)
-
-        # On one line
-        words = long_options + short_commands + args
-        return [words.join(" ")] if pass?(words, width)
-        words = short_options + short_commands + args
-        return [words.join(" ")] if pass?(words, width)
-
-        # On multiple lines
-        options = long_options.wrap(width)
-        commands = [[short_commands, args].join(" ")]
-        return options + commands if pass?(commands, width)
-        options + [[compact_commands, args].join(" ")]
-      end
-
-      def render(format, width)
-        case format
-          # Force one line. Compact descriptions if needed
-          when :single
-            render_single(width)
-
-          # One line for each descr
-          when :enum
-            render_enum(width)
-    
-          # Wrap if needed
-          when :multi
-            render_multi(width)
-        else
-          raise InterpreterError, "Illegal format: #{format.inspect}"
-        end
-      end
-
-      def puts_help
+      def puts_help(brief = !self.brief.nil?)
         puts Ansi.bold(render(:single, Formatter.rest))
-        indent { puts brief.words.wrap(Formatter.rest) } if brief
-      end
+        indent {
+          if brief
+            puts self.brief.words.wrap(Formatter.rest)
+          else
+            newline = false
+            children.each { |child|
+              puts if newline
+              newline = true
 
-    protected
-      # Helper method that returns true if words can fit in width characters
-      def pass?(words, width)
-        words.sum(&:size) + words.size - 1 <= width
+              if child.is_a?(Command)
+                child.puts_help(false)
+                newline = false
+               else
+                child.puts_help
+              end
+            }
+          end
+        }
       end
     end
 
@@ -254,8 +132,7 @@ module ShellOpts
             end
 
             if child.is_a?(Command)
-              puts Ansi.bold(child.render(:single, Formatter.rest))
-              indent { puts child.brief.words.wrap(Formatter.rest) } if brief
+              child.puts_help(false)
               newline = true
              else
               child.puts_help
@@ -331,16 +208,34 @@ module ShellOpts
       }
     end
 
+    def self.usage=(usage_lambda)
+    end
+
+    # When the user gives a -h option
     def self.brief(program)
       program = Grammar::Program.program(program)
       setup_indent(BRIEF_INDENT) { program.puts_brief }
     end
 
-    # --puts_help 
+    def self.brief=(brief_lambda)
+    end
+
+    # When the user gives a --help option
     def self.help(program)
       program = Grammar::Program.program(program)
       setup_indent(HELP_INDENT) { program.puts_help }
     end
+
+    def self.help_w_lambda(program)
+      if @help_lambda
+        #
+      else
+        program = Grammar::Program.program(program)
+        setup_indent(HELP_INDENT) { program.puts_help }
+      end
+    end
+
+    def self.help=(help_lambda) @help_lambda end
 
     def self.puts_columns(widths, fields)
       l = []

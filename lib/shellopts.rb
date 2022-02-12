@@ -26,6 +26,7 @@ require 'shellopts/parser.rb'
 require 'shellopts/analyzer.rb'
 require 'shellopts/compiler.rb'
 require 'shellopts/ansi.rb'
+require 'shellopts/renderer.rb'
 require 'shellopts/formatter.rb'
 require 'shellopts/dump.rb'
 

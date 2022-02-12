@@ -1,22 +1,4 @@
 
-
-#describe "Formatter" do
-# describe "Formatting" do
-#   it "parses sub-command with options and arguments" do
-#     s = %(
-#       cmd!
-#         subcmd! -i,inc ++ SUB ARGS @ Brief description of sub-command
-#           A description
-#     )
-#
-#   end
-# end
-#end
-
-
-
-
-
 __END__
 include ShellOpts
 
