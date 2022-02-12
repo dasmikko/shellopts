@@ -199,6 +199,15 @@ module ShellOpts
     # Indent to use in help output
     HELP_INDENT = 4
 
+    def self.usage_string(program)
+      saved = $stdout
+      $stdout = StringIO.new
+      usage(program)
+      $stdout.string
+    ensure
+      $stdout = saved
+    end
+
     # Usage string in error messages
     def self.usage(program)
       setup_indent(1) {

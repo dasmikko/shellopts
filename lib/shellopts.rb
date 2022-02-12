@@ -57,47 +57,58 @@ module ShellOpts
     # Array of arguments
     attr_reader :argv 
 
-    # Resulting ShellOpts::Program object containing options and subcommand if present
+    # Resulting ShellOpts::Program object containing options and optional
+    # subcommand
     def program() @program end
 
     # Array of remaining arguments
     attr_reader :args
 
-    def initialize(spec, argv, name: nil)
+    # Compiler flags
+    attr_accessor :stdopts
+    attr_accessor :msgopts
+
+    # Interpreter flags
+    attr_accessor :float
+    attr_accessor :exception
+
+    # Grammar. Grammar::Program object
+    attr_reader :grammar
+
+    def initialize(name: nil, stdopts: true, msgopts: false, float: true, exception: false)
       @name = name || File.basename($PROGRAM_NAME)
-      @spec, @argv = spec, argv.dup
+      @stdopts, @msgopts, @float, @exception = stdopts, msgopts, float, exception
     end
 
-    def process(float: true, stdopts: true, msgopts: false, exception: false)
+    def compile(spec)
+      @spec = spec
       tokens = Lexer.lex(name, spec)
       ast = Parser.parse(tokens)
-      idr = Analyzer.analyze(ast) # @idr and @ast refer to the same object
-
-      # ... add stdopts options ...
-      # ... add msgopts options ...
-
-      @program, @args = Interpreter.interpret(idr, argv, float: float, exception: exception)
-
-      # Process stdopts options
-      # Process msgopts options
-
-#     idr.dump_idr(true)
-#     Command.dump(@program, @args)
-#     puts 
-#     puts usage
-      [@program, @args]
+      # TODO: Add standard and message options and their handlers
+      @grammar = Analyzer.analyze(ast)
     end
 
-    # Create a ShellOpts object and sets the global instance if not defined
-    def self.process(spec, argv, name: nil, **opts)
-      shellopts = ShellOpts.new(spec, argv, name: name)
-      ::ShellOpts.instance = shellopts if !::ShellOpts.instance?
-      shellopts.process(**opts)
+    def interpret(argv)
+      @argv = argv.dup
+      @program, @args = Interpreter.interpret(grammar, argv, float: float, exception: exception)
+    end
+
+    def process(spec, argv)
+      compile(spec)
+      interpret(argv)
+      [program, args]
+    end
+
+    # Create a ShellOpts object and sets the global instance
+    def self.process(spec, argv, **opts)
+      ::ShellOpts.instance = shellopts = ShellOpts.new(**opts)
+      shellopts.process(spec, argv)
     end
 
     def error(subject = nil, message)
       $stderr.puts "#{name}: #{message}"
-      $stderr.puts "Usage: #{Formatter.usage_string(program)}"
+      usage = Formatter.usage_string(program)
+      $stderr.puts "Usage: #{usage}"
       exit 1
     end
 

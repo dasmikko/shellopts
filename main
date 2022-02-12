@@ -243,7 +243,8 @@ puts "-" * 80
 ShellOpts::Formatter.help(idr)
 puts "-" * 80
 
-
+ShellOpts.process(SPEC, [])
+ShellOpts.error("Hej")
 
 
 
