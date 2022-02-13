@@ -27,7 +27,7 @@ module ShellOpts
         if commands.any?
           if i = children.find_index { |child| child.is_a?(Command) }
             options, rest = children[i+1..-1].partition { |child| child.is_a?(OptionGroup) }
-            @children = children[0..i-1] + options + children[i..i] + rest
+            @children = children[0, i] + options + children[i..i] + rest
           end
         end
       end
