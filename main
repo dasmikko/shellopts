@@ -220,10 +220,21 @@ SPEC3 = %q(
     Final
 )
 
+SPEC4 = %(
+  cmd!
+    A command
+
+    cmd.nested!
+      A nested command
+
+  cmd.subcmd!
+    A subcommand
+)
+
 argv = ARGV.empty? ? %w(-a cmd -c) : ARGV
 #prog, args = ShellOpts::ShellOpts.process SPEC2, argv
 
-tokens = ShellOpts::Lexer.lex("main", SPEC)
+tokens = ShellOpts::Lexer.lex("main", SPEC4)
 #tokens.each(&:dump)
 #exit
 
@@ -243,8 +254,8 @@ puts "-" * 80
 ShellOpts::Formatter.help(idr)
 puts "-" * 80
 
-ShellOpts.process(SPEC, [])
-ShellOpts.error("Hej")
+#ShellOpts.process(SPEC, [])
+#ShellOpts.error("Hej")
 
 
 

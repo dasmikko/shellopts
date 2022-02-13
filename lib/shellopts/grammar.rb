@@ -42,8 +42,11 @@ module ShellOpts
     end
 
     class IdrNode < Node
-      # Command of this object
-      alias_method :command, :parent
+      # Command of this object. This is different from parent when a subcommand
+      # is nested on a higher level than its supercommand to avoid excessive
+      # indentation of subcommands. Initialized by the analyzer
+      attr_reader :command
+#     alias_method :command, :parent
 
       # Unique identifier of node (String) within the context of a program. nil
       # for the Program object. It is the list of path elements concatenated
@@ -207,11 +210,19 @@ module ShellOpts
         super
       end
 
-      # Maps from any name or identifier of an option or command (including the
+      # Maps from any (sub-)path, name or identifier of an option or command (including the
       # suffixed '!') to the associated option. #[] and #key? can't be used
       # until after the analyze phase
-      def [](key) @commands_hash[key] || @options_hash[key] end
-      def key?(key) @commands_hash.key?(key) || @options_hash.key?(key) end
+      def [](key)
+        case key
+          when String, Symbol; lookup(key.to_s.split(".").map(&:to_sym)) 
+          when Array; lookup(key)
+        else
+          raise ArgumentError
+        end
+      end
+
+      def key?(key) !self.[](key).nil? end
 
     protected
       def attach(child)
@@ -224,6 +235,15 @@ module ShellOpts
           when Brief; @brief = child
           when Paragraph; @description << child
           when Code; @description << child
+        end
+      end
+
+      def lookup(path)
+        if path.empty?
+          return self
+        else
+          key = path[0]
+          (@commands_hash[key] || @options_hash[key])&.lookup(path[1..-1])
         end
       end
     end

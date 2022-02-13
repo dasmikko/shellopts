@@ -14,11 +14,11 @@ module ShellOpts
     end
 
     class IdrNode
-      # Assume @ident and @name has been defined
+      # Assume @path, @ident and @name has been defined
       def parse
         @attr = ::ShellOpts::Command::RESERVED_OPTION_NAMES.include?(ident.to_s) ? nil : ident
-        @path = command ? command.path + [ident] : []
-        @uid = command && @path.join(".")
+#       @path = command ? command.path + [ident] : []
+        @uid = parent && @path.join(".") # uid is nil for the Program object
       end
     end
 
@@ -57,6 +57,7 @@ module ShellOpts
         @long_idents = names.map { |name| name.tr("-", "_").to_sym }
 
         @name = @long_names.first || @short_names.first
+        @path = command.path + [@name]
         @ident = @long_idents.first || @short_idents.first
 
         @argument = !arg.nil?
@@ -106,10 +107,11 @@ module ShellOpts
 
     class Command
       def parse
-        word = token.source.split(".").last
-        @name = word[0..-2]
-        @ident = word.to_sym
+        @path = parent ? token.source.sub("!", "").split(".").map(&:to_sym) : []
+        @name = @path.last.to_s
+        @ident = "#{@name}!".to_sym
         super
+#       @path = command ? command.path + [ident] : []
       end
     end
 
@@ -150,7 +152,7 @@ module ShellOpts
       nodes = [@program] # Stack of Nodes. Follows the indentation of the source
       cmds = [@program] # Stack of cmds. Used to keep track of the current command
       while token = tokens.shift
-        # Unwind stack
+        # Unwind stack according to indentation
         while token.char <= nodes.top.token.char
           node = nodes.pop
           cmds.pop if cmds.top == node
@@ -172,21 +174,31 @@ module ShellOpts
             nodes.push group
 
           when :command
+
             parent = nil # Required by #indent
             token.source =~ /^(?:(.*)\.)?([^.]+)$/
             parent_id = $1
             ident = $2.to_sym
             parent_uid = parent_id && parent_id.sub(".", "!.") + "!"
 
+            # Handle dotted command
             if parent_uid
               # Clear stack except for the top-level Program object and then
-              # push command objects in the parent path
-              cmds = cmds[0..0]
-              for ident in parent_uid.split(".").map(&:to_sym)
-                cmds.push cmds.top.commands.find { |c| c.ident == ident } or
-                    parse_error token, "Unknown command: #{ident.sub(/!/, "")}"
-              end
+              # push command objects in the path
+              #
+              # FIXME: Move to analyzer
+#             cmds = cmds[0..0]
+#             for ident in parent_uid.split(".").map(&:to_sym)
+#               cmds.push cmds.top.commands.find { |c| c.ident == ident } or
+#                   parse_error token, "Unknown command: #{ident.sub(/!/, "")}"
+#             end
+#             parent = cmds.top
               parent = cmds.top
+              if !cmds.top.is_a?(Grammar::Program) && token.line == cmds.top.token.line
+                parent = cmds.pop.parent
+              end
+
+            # Regular command
             else
               # Don't nest cmds if they are declared on the same line (as it
               # often happens with one-line declarations). Program is special

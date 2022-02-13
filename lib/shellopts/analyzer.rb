@@ -52,6 +52,7 @@ module ShellOpts
               analyzer_error command.token, "Duplicate command name: #{command.name}"
           @commands_hash[command.name] = command
           @commands_hash[command.ident] = command
+          command.compute_command_hashes
         }
       end
     end
@@ -66,13 +67,43 @@ module ShellOpts
       @grammar = grammar
     end
 
+    # Move commands that are nested within a different command than it belongs to
+    def move_commands
+      # We can't use Command#[] at this point so we collect the commands here
+      h = {}
+      @grammar.traverse(Grammar::Command) { |command|
+        h[command.path] = command
+      }
+
+      # Find commands to move. This is done in two steps because the behaviour
+      # of #traverse is not defined when the data structure changes
+      move = []
+      @grammar.traverse(Grammar::Command) { |command|
+        if command.parent && command.parent.path != command.path[0..-2]
+          move << command
+        end
+      }
+
+      # Move commands but do not change parent/child relationship
+      move.each { |command|
+        supercommand = h[command.path[0..-2]] or
+            analyzer_error "Can't find #{command.ident}!"
+        command.parent.commands.delete(command)
+        supercommand.commands << command
+      }
+    end
+
     def analyze()
+      move_commands
+
       @grammar.traverse(Grammar::Command) { |command|
         command.reorder_options
         command.collect_options
         command.compute_option_hashes
-        command.compute_command_hashes
       }
+
+      @grammar.compute_command_hashes
+
       @grammar.traverse { |node| 
         node.remove_brief_nodes 
         node.remove_arg_descr_nodes

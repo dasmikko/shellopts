@@ -38,7 +38,11 @@ module ShellOpts
       using Ext::Array::Wrap
 
       def puts_help(brief = !self.brief.nil?)
-        puts Ansi.bold(render(:single, Formatter.rest))
+        if parent&.path != command&.path
+          puts Ansi.bold([path[0..-2], render(:single, Formatter.rest)].flatten.join(" "))
+        else
+          puts Ansi.bold(render(:single, Formatter.rest))
+        end
         indent {
           if brief
             puts self.brief.words.wrap(Formatter.rest)
@@ -110,7 +114,6 @@ module ShellOpts
         }
 
         newline = false # True if a newline should be printed before child 
-
         indent {
           children.each { |child|
             if child.is_a?(Section)
@@ -137,7 +140,6 @@ module ShellOpts
              else
               child.puts_help
             end
-
           }
         }
       end
@@ -198,15 +200,6 @@ module ShellOpts
 
     # Indent to use in help output
     HELP_INDENT = 4
-
-    def self.usage_string(program)
-      saved = $stdout
-      $stdout = StringIO.new
-      usage(program)
-      $stdout.string
-    ensure
-      $stdout = saved
-    end
 
     # Usage string in error messages
     def self.usage(program)

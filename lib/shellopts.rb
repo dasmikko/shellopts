@@ -51,17 +51,20 @@ module ShellOpts
     # Name of program. Defaults to the name of the executable
     attr_reader :name
 
-    # Specification. String
+    # Specification (String). Initialized by #compile
     attr_reader :spec
 
-    # Array of arguments
+    # Array of arguments. Initialized by #interpret
     attr_reader :argv 
 
+    # Grammar. Grammar::Program object. Initialized by #compile
+    attr_reader :grammar
+
     # Resulting ShellOpts::Program object containing options and optional
-    # subcommand
+    # subcommand. Initialized by #interpret
     def program() @program end
 
-    # Array of remaining arguments
+    # Array of remaining arguments. Initialized by #interpret
     attr_reader :args
 
     # Compiler flags
@@ -72,14 +75,12 @@ module ShellOpts
     attr_accessor :float
     attr_accessor :exception
 
-    # Grammar. Grammar::Program object
-    attr_reader :grammar
-
     def initialize(name: nil, stdopts: true, msgopts: false, float: true, exception: false)
       @name = name || File.basename($PROGRAM_NAME)
       @stdopts, @msgopts, @float, @exception = stdopts, msgopts, float, exception
     end
 
+    # Compile source and return grammar object. Also sets #spec and #grammar
     def compile(spec)
       @spec = spec
       tokens = Lexer.lex(name, spec)
@@ -93,6 +94,8 @@ module ShellOpts
       @program, @args = Interpreter.interpret(grammar, argv, float: float, exception: exception)
     end
 
+    # Compile +spec+ and interpret +argv+. Returns a tuple of
+    # ShellOpts::Program and Array of remaining arguments
     def process(spec, argv)
       compile(spec)
       interpret(argv)
@@ -106,10 +109,13 @@ module ShellOpts
     end
 
     def error(subject = nil, message)
+      saved = $stdout
+      $stdout = $stderr
       $stderr.puts "#{name}: #{message}"
-      usage = Formatter.usage_string(program)
-      $stderr.puts "Usage: #{usage}"
+      Formatter.usage(program)
       exit 1
+    ensure
+      $stdout = saved
     end
 
     def failure(message)
