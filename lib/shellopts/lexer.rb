@@ -71,8 +71,8 @@ module ShellOpts
       lines.shift_while { |line| line.text == "" || line.text.start_with?("#") && line.char == 0 }
       initial_indent = lines.first&.char
 
-      # Create program token
-      @tokens = [Token.new(:program, -1, -1, "#{@name}!")]
+      # Create program token. The source is the program name
+      @tokens = [Token.new(:program, -1, -1, name)]
 
       # Used to detect code blocks
       last_nonblank = @tokens.first

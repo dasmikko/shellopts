@@ -37,8 +37,45 @@ module ShellOpts
     class Command
       using Ext::Array::Wrap
 
+      def puts_usage
+        if descrs.size == 1
+          print lead = "#{name} "
+          indent(lead.size, ' ', bol: false) { puts render(:multi, Formatter::USAGE_MAX_WIDTH) }
+        else
+          puts render(:enum, Formatter::USAGE_MAX_WIDTH)
+        end
+      end
+
+      def puts_brief
+        width = Formatter.rest
+        option_briefs = option_groups.map { |group| [group.render(:enum), group.brief&.words] }
+        command_briefs = commands.map { |command| [command.render(:single, width), command.brief&.words] }
+        widths = Formatter::compute_columns(width, option_briefs + command_briefs)
+
+        if brief
+          puts brief
+          puts
+        end
+
+        puts "Usage:"
+        indent { puts_usage }
+
+        if options.any?
+          puts
+          puts "Options:"
+          indent { Formatter::puts_columns(widths, option_briefs) }
+        end
+
+        if commands.any?
+          puts
+          puts "Commands:"
+          indent { Formatter::puts_columns(widths, command_briefs) }
+        end
+      end
+
       def puts_help(brief = !self.brief.nil?)
         if parent&.path != command&.path
+          # Prefix with parent(s) name 
           puts Ansi.bold([path[0..-2], render(:single, Formatter.rest)].flatten.join(" "))
         else
           puts Ansi.bold(render(:single, Formatter.rest))
@@ -71,37 +108,9 @@ module ShellOpts
         puts render(:multi, Formatter::USAGE_MAX_WIDTH)
       end
     
-      def puts_brief
-        width = Formatter.rest
-        option_briefs = option_groups.map { |group| [group.render(:enum), group.brief&.words] }
-        command_briefs = commands.map { |command| [command.render(:single, width), command.brief&.words] }
-        widths = Formatter::compute_columns(width, option_briefs + command_briefs)
-
-        if brief
-          puts "Name:"
-          indent { puts_name }
-          puts
-        end
-
-        puts "Usage:"
-        indent { puts_usage }
-
-        if options.any?
-          puts
-          puts "Options:"
-          indent { Formatter::puts_columns(widths, option_briefs) }
-        end
-
-        if commands.any?
-          puts
-          puts "Commands:"
-          indent { Formatter::puts_columns(widths, command_briefs) }
-        end
-      end
-
       def puts_help
         puts Ansi.bold "NAME"
-        indent { puts_name }
+        indent { puts brief ? "#{name} - #{brief}" : name }
         puts
 
         puts Ansi.bold "USAGE"
@@ -142,19 +151,6 @@ module ShellOpts
             end
           }
         }
-      end
-
-      def puts_name
-        puts brief ? "#{name} - #{brief}" : name
-      end
-
-      def puts_usage
-        if descrs.size == 1
-          print lead = "#{name} "
-          indent(lead.size, ' ', bol: false) { puts render(:multi, Formatter::USAGE_MAX_WIDTH) }
-        else
-          puts render(:enum, Formatter::USAGE_MAX_WIDTH)
-        end
       end
     end
 

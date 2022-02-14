@@ -30,12 +30,6 @@ require 'shellopts/renderer.rb'
 require 'shellopts/formatter.rb'
 require 'shellopts/dump.rb'
 
-# There are three interfaces for the reporting methods:
-#   o On a shellopts object
-#   o On the Shellopts module
-#   o In the global scope if ShellOpts::Include is included
-#
-
 module ShellOpts
   # Base error class
   #
@@ -117,20 +111,6 @@ module ShellOpts
       @stdopts, @msgopts, @float, @exception = stdopts, msgopts, float, exception
     end
 
-    def handle_exception(&block)
-      return yield if exception
-      begin
-        yield
-      rescue Error => ex
-        error(ex.message)
-      rescue Failure => ex
-        failure(ex.message)
-      rescue CompilerError => ex
-        $stderr.puts "#{file} #{ex.message}"
-        exit(1)
-      end
-    end
-
     # Compile source and return grammar object. Also sets #spec and #grammar
     def compile(spec)
       handle_exception {
@@ -201,6 +181,20 @@ module ShellOpts
 #   end
 
   private
+    def handle_exception(&block)
+      return yield if exception
+      begin
+        yield
+      rescue Error => ex
+        error(ex.message)
+      rescue Failure => ex
+        failure(ex.message)
+      rescue CompilerError => ex
+        $stderr.puts "#{file} #{ex.message}"
+        exit(1)
+      end
+    end
+
     def find_caller_file
       caller.reverse.select { |line| line !~ /^\s*#{__FILE__}:/ }.last.sub(/:.*/, "").sub(/^\.\//, "")
     end

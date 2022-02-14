@@ -32,9 +32,7 @@ module ShellOpts
     def to_s() source end
 
     def inspect() 
-      "<#{self.class.to_s.sub(/.*::/, "")} #{pos} #{kind.inspect}" + 
-          (kind != :program ? " #{source.inspect}" : "") +
-      ">"
+      "<#{self.class.to_s.sub(/.*::/, "")} #{pos} #{kind.inspect} #{source.inspect}>"
     end
 
     def dump

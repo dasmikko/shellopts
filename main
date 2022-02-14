@@ -238,10 +238,11 @@ shellopts.compile(SPEC)
 #shellopts.compile(SPEC3)
 #shellopts.compile(SPEC4)
 
-shellopts.usage
+#shellopts.usage
 shellopts.brief
-shellopts.help
+#shellopts.help
 
+#p shellopts.tokens
 
 #
 #shellopts = ShellOpts::ShellOpts.new

@@ -107,9 +107,15 @@ module ShellOpts
 
     class Command
       def parse
-        @path = parent ? token.source.sub("!", "").split(".").map(&:to_sym) : []
-        @name = @path.last.to_s
-        @ident = "#{@name}!".to_sym
+        if parent
+          @path = token.source.sub("!", "").split(".").map(&:to_sym)
+          @name = @path.last.to_s
+          @ident = "#{@name}!".to_sym
+        else
+          @path = []
+          @name = token.source
+          @ident = :!
+        end
         super
 #       @path = command ? command.path + [ident] : []
       end
