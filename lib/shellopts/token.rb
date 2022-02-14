@@ -10,11 +10,11 @@ module ShellOpts
     # Kind of token
     attr_reader :kind
 
-    # Line number. Zero based
+    # Line number. Zero based. Rename 'lineno'
     attr_reader :line
 
     # Char number. Zero based. The lexer may adjust the char number (eg. for
-    # blank lines). TODO: Rename 'col'
+    # blank lines). TODO: Rename 'col'/'charno'
     attr_accessor :char
 
     # Source of the token

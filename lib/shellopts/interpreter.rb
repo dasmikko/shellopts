@@ -96,7 +96,7 @@ module ShellOpts
     end
 
     def error(msg)
-      raise InterpreterError, msg
+      raise Error, msg
     end
   end
 end

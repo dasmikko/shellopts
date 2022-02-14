@@ -151,6 +151,7 @@ module ShellOpts
       oneline = tokens.first.line == tokens.last.line
       nodes = [@program] # Stack of Nodes. Follows the indentation of the source
       cmds = [@program] # Stack of cmds. Used to keep track of the current command
+
       while token = tokens.shift
         # Unwind stack according to indentation
         while token.char <= nodes.top.token.char

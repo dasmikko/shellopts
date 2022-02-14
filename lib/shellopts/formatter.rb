@@ -210,6 +210,7 @@ module ShellOpts
       }
     end
 
+    # TODO
     def self.usage=(usage_lambda)
     end
 
@@ -219,6 +220,7 @@ module ShellOpts
       setup_indent(BRIEF_INDENT) { program.puts_brief }
     end
 
+    # TODO
     def self.brief=(brief_lambda)
     end
 
@@ -228,15 +230,16 @@ module ShellOpts
       setup_indent(HELP_INDENT) { program.puts_help }
     end
 
-    def self.help_w_lambda(program)
-      if @help_lambda
-        #
-      else
-        program = Grammar::Program.program(program)
-        setup_indent(HELP_INDENT) { program.puts_help }
-      end
-    end
+#   def self.help_w_lambda(program)
+#     if @help_lambda
+#       #
+#     else
+#       program = Grammar::Program.program(program)
+#       setup_indent(HELP_INDENT) { program.puts_help }
+#     end
+#   end
 
+    # TODO
     def self.help=(help_lambda) @help_lambda end
 
     def self.puts_columns(widths, fields)

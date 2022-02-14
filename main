@@ -231,28 +231,48 @@ SPEC4 = %(
     A subcommand
 )
 
-argv = ARGV.empty? ? %w(-a cmd -c) : ARGV
+shellopts = ShellOpts::ShellOpts.new(exception: true)
+#shellopts.compile("cmd! cmd!")
+shellopts.compile(SPEC)
+#shellopts.compile(SPEC2)
+#shellopts.compile(SPEC3)
+#shellopts.compile(SPEC4)
+
+shellopts.usage
+shellopts.brief
+shellopts.help
+
+
+#
+#shellopts = ShellOpts::ShellOpts.new
+#shellopts.compile(SPEC4)
+#p shellopts.file
+#ShellOpts.process(SPEC4, [])
+#exit
+
+
+#argv = ARGV.empty? ? %w(-a cmd -c) : ARGV
 #prog, args = ShellOpts::ShellOpts.process SPEC2, argv
 
-tokens = ShellOpts::Lexer.lex("main", SPEC4)
+#tokens = ShellOpts::Lexer.lex("main", SPEC4)
 #tokens.each(&:dump)
 #exit
 
-ast = ShellOpts::Parser.parse(tokens)
+#ast = ShellOpts::Parser.parse(tokens)
 #ast.dump_ast
 #exit
 
-idr = ShellOpts::Analyzer.analyze(ast) # @idr and @ast refer to the same object
+#idr = ShellOpts::Analyzer.analyze(ast) # @idr and @ast refer to the same object
 #idr.dump_idr
 #exit
 
-puts "-" * 80
-ShellOpts::Formatter.usage(idr)
-puts "-" * 80
-ShellOpts::Formatter.brief(idr)
-puts "-" * 80
-ShellOpts::Formatter.help(idr)
-puts "-" * 80
+#puts "-" * 80
+#ShellOpts::Formatter.usage(idr)
+#puts "-" * 80
+#ShellOpts::Formatter.brief(idr)
+#puts "-" * 80
+#ShellOpts::Formatter.help(idr)
+#puts "-" * 80
 
 #ShellOpts.process(SPEC, [])
 #ShellOpts.error("Hej")

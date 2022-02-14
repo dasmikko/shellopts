@@ -37,15 +37,40 @@ require 'shellopts/dump.rb'
 #
 
 module ShellOpts
-  class Error < StandardError; end
-  class InterpreterError < Error; end
-  class LexerError < Error; end
-  class ParserError < InterpreterError; end
-  class AnalyzerError < InterpreterError; end
-  class InterpreterError < Error; end # Error by the developer
-  class UserError < Error; end
+  # Base error class
+  #
+  # Note that errors in the usage of the ShellOpts library are reported using
+  # standard exceptions
+  #
+  class ShellOptsError < StandardError; end
+
+  # Raised on syntax errors on the command line (eg. unknown option). When
+  # ShellOpts handles the exception a message with the following format is
+  # printed on standard error:
+  #
+  #   <program>: <message>
+  #   Usage: <program> ...
+  #
+  class Error < ShellOptsError; end 
+
+  # Default class for program failures. Failures are raised on missing files or
+  # illegal paths. When ShellOpts handles the exception a message with the
+  # following format is printed on standard error:
+  #
+  #   <program>: <message>
+  #
   class Failure < Error; end
-  class InternalError < Error; end
+
+  # ShellOptsErrors during compilation. These errors are caused by syntax errors in the
+  # source. Messages are formatted as '<file> <lineno>:<charno> <message>' when
+  # handled by ShellOpts
+  class CompilerError < ShellOptsError; end
+  class LexerError < CompilerError; end 
+  class ParserError < CompilerError; end
+  class AnalyzerError < CompilerError; end
+
+  # Internal errors. These are caused by bugs in the ShellOpts library
+  class InternalError < ShellOptsError; end
 
   class ShellOpts
     # Name of program. Defaults to the name of the executable
@@ -73,25 +98,57 @@ module ShellOpts
 
     # Interpreter flags
     attr_accessor :float
+
+    # True if ShellOpts let exceptions through instead of writing an error
+    # message and exit
     attr_accessor :exception
+
+    # File of source
+    attr_reader :file
+    attr_reader :lineno
+    attr_reader :charno
+
+    # Debug: Internal variables made public
+    attr_reader :tokens
+    alias_method :ast, :grammar
 
     def initialize(name: nil, stdopts: true, msgopts: false, float: true, exception: false)
       @name = name || File.basename($PROGRAM_NAME)
       @stdopts, @msgopts, @float, @exception = stdopts, msgopts, float, exception
     end
 
+    def handle_exception(&block)
+      return yield if exception
+      begin
+        yield
+      rescue Error => ex
+        error(ex.message)
+      rescue Failure => ex
+        failure(ex.message)
+      rescue CompilerError => ex
+        $stderr.puts "#{file} #{ex.message}"
+        exit(1)
+      end
+    end
+
     # Compile source and return grammar object. Also sets #spec and #grammar
     def compile(spec)
-      @spec = spec
-      tokens = Lexer.lex(name, spec)
-      ast = Parser.parse(tokens)
-      # TODO: Add standard and message options and their handlers
-      @grammar = Analyzer.analyze(ast)
+      handle_exception {
+        @spec = spec
+        @file = find_caller_file
+        @lineno, @charno = find_spec_in_file
+        @tokens = Lexer.lex(name, spec, @lineno, @charno)
+        ast = Parser.parse(tokens)
+        # TODO: Add standard and message options and their handlers
+        @grammar = Analyzer.analyze(ast)
+      }
     end
 
     def interpret(argv)
-      @argv = argv.dup
-      @program, @args = Interpreter.interpret(grammar, argv, float: float, exception: exception)
+      handle_exception { 
+        @argv = argv.dup
+        @program, @args = Interpreter.interpret(grammar, argv, float: float, exception: exception)
+      }
     end
 
     # Compile +spec+ and interpret +argv+. Returns a tuple of
@@ -123,6 +180,10 @@ module ShellOpts
       exit 1
     end
 
+    def usage() Formatter.usage(@grammar) end
+    def brief() Formatter.brief(@grammar) end
+    def help() Formatter.help(@grammar) end
+
 #   def exception(message)
 #     $stderr.puts "#{name}: Unexpected error"
 #     $stderr.puts message
@@ -134,12 +195,33 @@ module ShellOpts
 #     device.puts Formatter.usage_string(subject, levels: levels, margin: margin)
 #   end
 
-    def help(subject = nil, device: $stdout, levels: 10, margin: "", tab: "  ")
-      subject = find_subject(subject)
-      device.puts Formatter.help_string(subject, levels: levels, margin: margin, tab: tab)
-    end
+#   def help(subject = nil, device: $stdout, levels: 10, margin: "", tab: "  ")
+#     subject = find_subject(subject)
+#     device.puts Formatter.help_string(subject, levels: levels, margin: margin, tab: tab)
+#   end
 
   private
+    def find_caller_file
+      caller.reverse.select { |line| line !~ /^\s*#{__FILE__}:/ }.last.sub(/:.*/, "").sub(/^\.\//, "")
+    end
+
+    # Find spec in the source file. Only the first part of the spec
+    def find_spec_in_file
+      text = IO.read(@file)
+      index = text.index(@spec) or return [1, 1]
+      lineno = 1
+      charno = 1
+      for i in 0...index
+        if file[i] == "\n"
+          lineno += 1
+          charno = 1
+        else
+          charno += 1
+        end
+      end
+      [lineno, charno]
+    end
+
     def lookup(name)
       a = name.split(".")
       cmd = grammar

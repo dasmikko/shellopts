@@ -35,10 +35,6 @@ module ShellOpts
         yield(self) if klasses.empty? || klasses.any? { |klass| self.is_a?(klass) }
         children.each { |node| node.traverse(klasses, &block) }
       end
-
-      def err(message)
-        raise InterpreterError, "#{token.pos} #{message}"
-      end
     end
 
     class IdrNode < Node
@@ -46,7 +42,6 @@ module ShellOpts
       # is nested on a higher level than its supercommand to avoid excessive
       # indentation of subcommands. Initialized by the analyzer
       attr_reader :command
-#     alias_method :command, :parent
 
       # Unique identifier of node (String) within the context of a program. nil
       # for the Program object. It is the list of path elements concatenated

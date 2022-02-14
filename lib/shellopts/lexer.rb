@@ -1,11 +1,14 @@
 
 module ShellOpts
   class Line
-    attr_reader :source, :line, :char, :text
+    attr_reader :source
+    attr_reader :line 
+    attr_reader :char # Accessor because we need to set the charno of the first line
+    attr_reader :text
 
-    def initialize(line, source)
+    def initialize(line, char, source)
       @line, @source = line, source
-      @char = (@source =~ /(\S.*?)\s*$/) || 0
+      @char = char + ((@source =~ /(\S.*?)\s*$/) || 0)
       @text = $1 || ""
     end
 
@@ -56,8 +59,13 @@ module ShellOpts
       @source += "\n" if @source[-1] != "\n" # Always terminate source with a newline
     end
 
-    def lex
-      lines = source[0..-2].split("\n").map.with_index { |line,i| Line.new(i, line) }
+    def lex(lineno = 1, charno = 1)
+      # Split source into lines starting at the given lineno and charno
+      lines = source[0..-2].split("\n").map.with_index { |line,i|
+        l = Line.new(i + lineno -1, charno, line)
+        charno = 0
+        l
+      }
 
       # Skip initial comments and blank lines and compute indent level
       lines.shift_while { |line| line.text == "" || line.text.start_with?("#") && line.char == 0 }
@@ -138,8 +146,8 @@ module ShellOpts
       @tokens
     end
 
-    def self.lex(name, source)
-      Lexer.new(name, source).lex
+    def self.lex(name, source, lineno = 1, charno = 0)
+      Lexer.new(name, source).lex(lineno, charno)
     end
 
     def lexer_error(token, message) raise LexerError, "#{token.pos} #{message}" end

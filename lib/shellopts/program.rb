@@ -1,4 +1,6 @@
 
+# TODO: Create a BasicShellOptsObject with is_a? and operators defined
+#
 module ShellOpts
   # Command represents a program or a subcommand. It is derived from
   # BasicObject to have only a minimum of inherited member methods.
@@ -32,14 +34,25 @@ module ShellOpts
   #   # Return the subcommand object or nil if not present
   #   def <identifier>!() subcommand == :<identifier> ? @__subcommand__ : nil end
   #
+  # The general #subcommand method can be used to find out which subcommand is
+  # used
+  #
   class Command < BasicObject
     define_method(:is_a?, ::Kernel.method(:is_a?))
 
+    # These names can't be used as option or command names
     RESERVED_OPTION_NAMES = %w(
         is_a
         instance_eval instance_exec method_missing singleton_method_added
         singleton_method_removed singleton_method_undefined)
 
+    # These methods can be overridden by an option (the value is not used -
+    # this is just for informational purposes)
+    OVERRIDEABLE_METHODS = %w(
+        subcommand
+    )
+
+    # Redefine ::new to call #__initialize__
     def self.new(grammar)
       object = super()
       object.__send__(:__initialize__, grammar)
@@ -59,10 +72,6 @@ module ShellOpts
     # arguments have the number of occurences as the value
     #
     def [](key)
-      ::Kernel.puts
-      ::Kernel.p key
-      ::Kernel.p __grammar__[key].class
-
       case object = __grammar__[key]
         when ::ShellOpts::Grammar::Command
           object.ident == __subcommand__!.__ident__ ? __subcommand__! : nil
@@ -80,13 +89,13 @@ module ShellOpts
     def []=(key, value)
       case object = __grammar__[key]
         when ::ShellOpts::Grammar::Command
-          ::Kernel.raise ShellOpts::InterpreterError, "#{key.inspect} is not an option"
+          ::Kernel.raise ArgumentError, "#{key.inspect} is not an option"
         when ::ShellOpts::Grammar::Option
           object.argument? || object.repeatable? or
-              ::Kernel.raise ShellOpts::InterpreterError, "#{key.inspect} is not assignable"
+              ::Kernel.raise ArgumentError, "#{key.inspect} is not assignable"
           __options__[object.ident] = value
         else
-          ::Kernel.raise InterpreterError, "Unknown option or command: #{key.inspect}"
+          ::Kernel.raise ArgumentError, "Unknown option or command: #{key.inspect}"
       end
     end
 

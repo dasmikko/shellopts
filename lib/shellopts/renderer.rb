@@ -43,7 +43,7 @@ module ShellOpts
           when :long; name
           when :short; short_names.first || name
         else
-          raise InterpreterError, "Illegal format: #{format.inspect}"
+          raise ArgumentError, "Illegal format: #{format.inspect}"
         end + (argument? ? "=#{argument_name}" : "")
       end
     end
@@ -87,7 +87,7 @@ module ShellOpts
           when :enum; render_enum(width)
           when :multi; render_multi(width)
         else
-          raise InterpreterError, "Illegal format: #{format.inspect}"
+          raise ArgumentError, "Illegal format: #{format.inspect}"
         end
       end
 

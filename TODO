@@ -3,19 +3,12 @@ o Command aliases
 o Add user-defined setions
 o Add a SOURCE section with link to git repo
 o Bullet-lists
-o Built-in pager (pipe to less(1))
 o Allow a USAGE section (and NAME)
 o Find source in code an adjust line number in error messages 
-o Recursive format of commands
-o Bold text output
 o Rename line and char to lineno and charno
 o Client-defined argument types
 o Rename Expr -> ?
 o Find clean(er) procedural object model
-
-+ Rename Compiler -> Interpreter
-
-KEPT
 o Allow assignment to options (this makes practical stuff easier)
 o Special handling of --help arguments so that '--help command' is possible
 o Support for paging of help:
@@ -27,6 +20,11 @@ o Support for paging of help:
     ensure 
       file.close 
     end 
+
++ Bold text output
++ Recursive format of commands
++ Rename Compiler -> Interpreter
+
 
 OLD
 
