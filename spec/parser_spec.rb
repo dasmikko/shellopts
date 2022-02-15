@@ -3,7 +3,26 @@ include ShellOpts
 
 describe "Parser" do
   def prog(source)
-    Parser.parse(Lexer.lex("main", source))
+    tokens = Lexer.lex("main", source)
+    ast = Parser.parse tokens
+
+#   puts "Tokens"
+#   indent { tokens.each(&:dump) }
+#   puts 
+#   puts "Ast"
+#   indent { ast.dump_ast }
+#   puts
+
+    grammar = Analyzer.analyze(ast)
+
+#   puts "Idr"
+#   indent { grammar.dump_idr }
+#   puts
+#   puts "Doc"
+#   indent { grammar.dump_doc }
+#   puts
+
+    grammar
   end
 
   def struct(source)
@@ -14,14 +33,15 @@ describe "Parser" do
     it "parses cmd!" do
       s = "cmd!"
       expect(struct s).to eq undent %(
-        main!
+        !
           cmd!
       )
     end
+   
     it "parses -a cmd!" do
       s = "-a cmd!"
       expect(struct s).to eq undent %(
-        main!
+        !
           -a
           cmd!
       )
@@ -29,7 +49,7 @@ describe "Parser" do
     it "parses -a cmd! -b" do
       s = "-a cmd! -b"
       expect(struct s).to eq undent %(
-        main!
+        !
           -a
           cmd!
             -b
@@ -38,7 +58,7 @@ describe "Parser" do
     it "parses -a cmd! -a" do
       s = "-a cmd! -a"
       expect(struct s).to eq undent %(
-        main!
+        !
           -a
           cmd!
             -a
@@ -47,7 +67,7 @@ describe "Parser" do
     it "parses -a cmd1! -b cmd2! -c" do
       s = "-a cmd1! -b cmd2! -c"
       expect(struct s).to eq undent %(
-        main!
+        !
           -a
           cmd1!
             -b
@@ -58,7 +78,7 @@ describe "Parser" do
     it "parses -a cmd1! -b cmd1.cmd2! -c" do
       s = "-a cmd1! -b cmd1.cmd2! -c"
       expect(struct s).to eq undent %(
-        main!
+        !
           -a
           cmd1!
             -b
@@ -66,10 +86,23 @@ describe "Parser" do
               -c
       )
     end
+    it "parses indented sub-commands" do
+      s = undent %(
+        cmd!
+          sub!
+      )
+      expect(struct s).to eq undent %(
+        !
+          cmd!
+            sub!
+      )
+
+    end
+
     it "parses -a cmd1! -b cmd1.cmd2! -c cmd1.cmd2.cmd3! -d" do
       s = "-a cmd1! -b cmd1.cmd2! -c cmd1.cmd2.cmd3! -d"
       expect(struct s).to eq undent %(
-        main!
+        !
           -a
           cmd1!
             -b
@@ -83,7 +116,7 @@ describe "Parser" do
     it "parses -- ARG" do
       s = "-- ARG"
       expect(struct s).to eq undent %(
-        main!
+        !
           ARG
       )
     end
@@ -107,7 +140,7 @@ describe "Parser" do
     it "parses -a -- ARG" do
       s = "-a -- ARG"
       expect(struct s).to eq undent %(
-        main!
+        !
           -a
           ARG
       )
@@ -115,7 +148,7 @@ describe "Parser" do
     it "parses -a -- ARG0 cmd1! -b -- ARG1" do
       s = "-a -- ARG0 cmd1! -b -- ARG1"
       expect(struct s).to eq undent %(
-        main!
+        !
           -a
           cmd1!
             -b
@@ -126,7 +159,7 @@ describe "Parser" do
     it "parses -a -- ARG0 cmd1! -b -- ARG1 cmd2! -c -- ARG2" do
       s = "-a -- ARG0 cmd1! -b -- ARG1 cmd2! -c -- ARG2"
       expect(struct s).to eq undent %(
-        main!
+        !
           -a
           cmd1!
             -b
@@ -146,7 +179,7 @@ describe "Parser" do
           cmd3!
         )
         expect(struct s).to eq undent %(
-          main!
+          !
             cmd1!
             cmd2!
             cmd3!
@@ -158,7 +191,7 @@ describe "Parser" do
           -a
           -b -c
         )
-        expect(prog(s).children).to all(be_a OptionGroup)
+        expect(prog(s).children).to all(be_a Grammar::OptionGroup)
         expect(prog(s).options.map { |option| option.group.token.source }).to eq %w(-a -b -b)
       end
     end
@@ -186,7 +219,8 @@ describe "Option#parse" do
   def opt(source, method = nil)
     tokens = Lexer.lex("main", source)
     program = Parser.parse(tokens)
-    option = program.options.first
+    options = program.option_groups.map(&:options).flatten
+    option = options.first
     method ? option.send(method) : option
   end
 

@@ -1,20 +1,28 @@
 
+include ShellOpts
 
 describe "Formatter" do
   def compile(s)
-    ShellOpts.new.compile(s)
+    ShellOpts::ShellOpts.new.compile(s)
   end
 
   describe "Formatting" do
     it "parses sub-command with options and arguments" do
       s = %(
         cmd!
-          subcmd! -i,inc ++ SUB ARGS @ Brief description of sub-command
+          subcmd!
             A description
       )
-      grammar = compile(s)
-
-
+#     s = %(
+#       cmd! @ Brief description of command
+#         subcmd! -i,inc -- SUB ARGS @ Brief description of sub-command
+#           A description
+#     )
+#     grammar = compile(s)
+#     grammar.dump_idr
+#     exit
+#     Formatter.brief(grammar)
+#     Formatter.help(grammar)
     end
   end
 end

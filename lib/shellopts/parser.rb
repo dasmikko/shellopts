@@ -14,11 +14,11 @@ module ShellOpts
     end
 
     class IdrNode
-      # Assume @path, @ident and @name has been defined
+      # Assumes that @name and @path has been defined
       def parse
+        @ident = @path.last || :!
         @attr = ::ShellOpts::Command::RESERVED_OPTION_NAMES.include?(ident.to_s) ? nil : ident
-#       @path = command ? command.path + [ident] : []
-        @uid = parent && @path.join(".") # uid is nil for the Program object
+        @uid = parent && @path.join(".").sub(/!\./, ".") # uid is nil for the Program object
       end
     end
 
@@ -57,8 +57,7 @@ module ShellOpts
         @long_idents = names.map { |name| name.tr("-", "_").to_sym }
 
         @name = @long_names.first || @short_names.first
-        @path = command.path + [@name]
-        @ident = @long_idents.first || @short_idents.first
+        @path = command.path + [@long_idents.first || @short_idents.first]
 
         @argument = !arg.nil?
 
@@ -108,16 +107,14 @@ module ShellOpts
     class Command
       def parse
         if parent
-          @path = token.source.sub("!", "").split(".").map(&:to_sym)
-          @name = @path.last.to_s
-          @ident = "#{@name}!".to_sym
+          path_names = token.source.sub("!", "").split(".")
+          @name = path_names.last
+          @path = path_names.map { |cmd| "#{cmd}!".to_sym }
         else
           @path = []
           @name = token.source
-          @ident = :!
         end
         super
-#       @path = command ? command.path + [ident] : []
       end
     end
 
@@ -181,7 +178,6 @@ module ShellOpts
             nodes.push group
 
           when :command
-
             parent = nil # Required by #indent
             token.source =~ /^(?:(.*)\.)?([^.]+)$/
             parent_id = $1

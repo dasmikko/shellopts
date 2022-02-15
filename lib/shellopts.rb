@@ -163,6 +163,14 @@ module ShellOpts
     def usage() Formatter.usage(@grammar) end
     def brief() Formatter.brief(@grammar) end
     def help() Formatter.help(@grammar) end
+#   def help(subject = @grammar) Formatter.help(subject) end
+
+    # +subject+ is a dot-separated list of command names
+    def helps(subject = nil)
+      node = @grammar[subject] or raise ArgumentError, "No such command: '#{subject.sub(".", " ")}'"
+      Formatter.helps(node)
+    end
+
 
 #   def exception(message)
 #     $stderr.puts "#{name}: Unexpected error"
@@ -206,7 +214,7 @@ module ShellOpts
       lineno = 1
       charno = 1
       for i in 0...index
-        if file[i] == "\n"
+        if text[i] == "\n"
           lineno += 1
           charno = 1
         else

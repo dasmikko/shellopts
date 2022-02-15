@@ -233,14 +233,15 @@ SPEC4 = %(
 
 shellopts = ShellOpts::ShellOpts.new(exception: true)
 #shellopts.compile("cmd! cmd!")
-shellopts.compile(SPEC)
+#shellopts.compile(SPEC)
 #shellopts.compile(SPEC2)
 #shellopts.compile(SPEC3)
-#shellopts.compile(SPEC4)
+shellopts.compile(SPEC4)
 
 #shellopts.usage
-shellopts.brief
-#shellopts.help
+#shellopts.brief
+shellopts.help
+#shellopts.helps("cmd!")
 
 #p shellopts.tokens
 

@@ -52,10 +52,13 @@ module ShellOpts
     attr_reader :name # Name of program
     attr_reader :source
     attr_reader :tokens
+    
+    def oneline?() @oneline end
 
     def initialize(name, source)
       @name = name
       @source = source
+      @oneline = source.index("\n").nil?
       @source += "\n" if @source[-1] != "\n" # Always terminate source with a newline
     end
 
@@ -131,10 +134,13 @@ module ShellOpts
               when /!$/
                 @tokens << Token.new(:command, line.line, char, word)
             else
-              source = [word, words.shift_while { |_,w| w !~ DECL_RE }.map(&:last)].join(" ")
+              source = [word, words.shift_while { |_,w| w !~ DECL_RE }.map(&:last)].flatten.join(" ")
               @tokens << Token.new(:brief, line.line, char, source)
             end
           end
+
+          (token = @tokens.last).kind != :brief || !oneline? or 
+              lexer_error token, "Briefs are only allowed in multi-line specifications"
 
         # Paragraph lines
         else
@@ -143,6 +149,14 @@ module ShellOpts
 
         last_nonblank = @tokens.last
       end
+
+      # Move arguments and briefs before first command if one-line source
+#     if oneline? && cmd_index = @tokens.index { |token| token.kind == :command }
+#       @tokens = 
+#           @tokens[0...cmd_index] +
+#           @tokens[cmd_index..-1].partition { |token| ![:command, :option].include?(token.kind) }.flatten
+#     end
+
       @tokens
     end
 

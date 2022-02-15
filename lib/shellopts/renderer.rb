@@ -91,8 +91,27 @@ module ShellOpts
         end
       end
 
+      # TODO TODO TODO
+      def render2(format, width, root: false)
+        case format
+          when :single; render_single(width)
+          when :enum; render_enum(width)
+          when :multi; render_multi2(width)
+        else
+          raise ArgumentError, "Illegal format: #{format.inspect}"
+        end
+      end
+
+      def names(root: false)
+        (root ? ancestors : []) + [self]
+      end
+
     protected
-      # Force one line. Compact descriptions and options if needed
+      # FIXME FIXME FIXME: render_single includes name, render_enum includes
+      # anything, and render_multi doesn't include name. TODO: Make
+      # render_multi include name
+
+      # Force one line. Compact options, commands, arguments if needed
       def render_single(width, args: nil)
         long_options = options.map { |option| option.render(:long) }
         short_options = options.map { |option| option.render(:short) }
@@ -107,7 +126,7 @@ module ShellOpts
               when 1; [descrs.first.text]
               else [DESCRS_ABBR]
             end
-          
+
         begin # to be able to use 'break' below
           words = [name] + long_options + short_commands + args
           break if pass?(words, width)
@@ -120,6 +139,8 @@ module ShellOpts
           words = [name] + compact_options + short_commands + args
           break if pass?(words, width)
           words = [name] + compact_options + compact_commands + args
+          break if pass?(words, width)
+          words = [name] + compact_options + compact_commands + [DESCRS_ABBR]
         end while false
         words.join(" ")
       end
@@ -153,10 +174,64 @@ module ShellOpts
         options + [[compact_commands, args].join(" ")]
       end
 
+      # Try to keep on one line but wrap options if needed. Multiple argument
+      # specifications/descriptions are always compacted
+      def render_multi2(width)
+        long_options = options.map { |option| option.render(:long) }
+        short_options = options.map { |option| option.render(:short) }
+        short_commands = commands.empty? ? [] : ["[#{commands.map(&:name).join("|")}]"]
+        compact_commands = [COMMANDS_ABBR]
+
+        # TODO: Refactor and implement recursive detection of any argument
+        args ||= 
+            case descrs.size
+              when 0; args = []
+              when 1; [descrs.first.text]
+              else [DESCRS_ABBR]
+            end
+
+        # On one line
+        words = [name] + long_options + short_commands + args
+        return [words.join(" ")] if pass?(words, width)
+        words = [name] + short_options + short_commands + args
+        return [words.join(" ")] if pass?(words, width)
+
+        # On multiple lines
+        lead = name + " "
+        options = long_options.wrap(width - lead.size)
+        options = [lead + options[0]] + indent_lines(lead.size, options[1..-1])
+
+        begin
+          words = short_commands + args
+          break if pass?(words, width)
+          words = compact_commands + args
+          break if pass?(words, width)
+          words = compact_commands + [DESCRS_ABBR]
+        end while false
+
+        cmdargs = words.empty? ? [] : [words.join(" ")]
+        options + indent_lines(lead.size, cmdargs)
+      end
+
+    protected
       # Helper method that returns true if words can fit in width characters
       def pass?(words, width)
         words.sum(&:size) + words.size - 1 <= width
       end
+
+      # Indent array of lines
+      def indent_lines(indent, lines)
+        indent = [indent, 0].max
+        lines.map { |line| ' ' * indent + line }
+      end
     end
   end
 end
+
+
+
+
+
+
+
+

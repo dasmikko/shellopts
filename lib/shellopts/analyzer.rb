@@ -47,7 +47,7 @@ module ShellOpts
 
       def compute_command_hashes
         commands.each { |command|
-          # Check for dash-collision
+          # TODO Check for dash-collision
           !@commands_hash.key?(command.name) or 
               analyzer_error command.token, "Duplicate command name: #{command.name}"
           @commands_hash[command.name] = command
@@ -75,21 +75,26 @@ module ShellOpts
         h[command.path] = command
       }
 
-      # Find commands to move. This is done in two steps because the behaviour
-      # of #traverse is not defined when the data structure changes
+      # Find commands to move
+      #
+      # Commands are moved in two steps because the behaviour of #traverse is
+      # not defined when the data structure changes beneath it
       move = []
       @grammar.traverse(Grammar::Command) { |command|
-        if command.parent && command.parent.path != command.path[0..-2]
+        if command.path.size > 1 && command.parent && command.parent.path != command.path[0..-2]
           move << command
+        else
+          command.instance_variable_set(:@command, command.parent)
         end
       }
 
       # Move commands but do not change parent/child relationship
       move.each { |command|
-        supercommand = h[command.path[0..-2]] or
-            analyzer_error "Can't find #{command.ident}!"
+        puts "Moving #{command.uid}"
+        supercommand = h[command.path[0..-2]] or analyzer_error "Can't find #{command.ident}!"
         command.parent.commands.delete(command)
         supercommand.commands << command
+        command.instance_variable_set(:@command, supercommand)
       }
     end
 

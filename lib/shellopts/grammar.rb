@@ -26,6 +26,13 @@ module ShellOpts
         do_traverse(Array(klasses).flatten, &block)
       end
 
+      def parents() parent ? [parent] + parent.parents : [] end
+      def ancestors() parents.reverse end
+
+      def inspect
+        "#{self.class}"
+      end
+
     protected
       def attach(child)
         @children << child
@@ -38,14 +45,15 @@ module ShellOpts
     end
 
     class IdrNode < Node
-      # Command of this object. This is different from parent when a subcommand
-      # is nested on a higher level than its supercommand to avoid excessive
-      # indentation of subcommands. Initialized by the analyzer
+      # Command of this object. This is different from #parent when a
+      # subcommand is nested on a higher level than its supercommand.
+      # Initialized by the analyzer
       attr_reader :command
 
       # Unique identifier of node (String) within the context of a program. nil
       # for the Program object. It is the list of path elements concatenated
-      # with '.'. Initialized by the parser
+      # with '.' and with internal '!' removed (eg. "cmd.opt" or "cmd.cmd!").
+      # Initialized by the parser
       attr_reader :uid
 
       # Path from Program object and down to this node. Array of identifiers.
@@ -57,10 +65,11 @@ module ShellOpts
       # For options, this is the canonical name of the objekt without the
       # initial '-' or '--'. For commands it is the command name including the
       # suffixed exclamation mark. Both options and commands have internal dashes
-      # replaced with underscores
+      # replaced with underscores. Initialized by the parser
       #
-      # Note that an identifier can't be mapped back to a option name because
-      # '--with-separator' and '--with_separator' both maps to :with_separator
+      # Note that the analyzer fails with an an error if both --with-separator
+      # and --with_separator are used because they would both map to
+      # :with_separator
       attr_reader :ident
 
       # Canonical name (String) of the object
@@ -68,12 +77,18 @@ module ShellOpts
       # This is the name of the object as the user sees it. For options it is
       # the name of the first long option or the name of the first short option
       # if there is no long option name. For commands it is the name without
-      # the exclamation mark
+      # the exclamation mark. Initialized by the parser
       attr_reader :name
 
       # The associated attribute (Symbol) in the parent command object. nil if
-      # #ident is a reserved word
+      # #ident is a reserved word. Initialized by the parser
       attr_reader :attr
+
+    protected
+      def lookup(path)
+        path.empty? or raise ArgumentError, "Argument should be empty"
+        self
+      end
     end
 
     # Note that options are children of Command object but are attached to
@@ -173,22 +188,24 @@ module ShellOpts
       # Brief description of command
       attr_accessor :brief
 
-      # Description of command. Array of Paragraph or Code objects
+      # Description of command. Array of Paragraph or Code objects. Initialized
+      # by the parser
       attr_reader :description
 
-      # Array of option groups in declaration order. TODO: Rename 'groups'
+      # Array of option groups in declaration order. Initialized by the parser
+      # TODO: Rename 'groups'
       attr_reader :option_groups
 
-      # Array of options in declaration order. Assigned to by the analyzer
+      # Array of options in declaration order. Initialized by the analyzer
       attr_reader :options
 
-      # Array of sub-commands
+      # Array of sub-commands. Initialized by the parser but edited by the analyzer
       attr_reader :commands
 
-      # Array of Arg objects
+      # Array of Arg objects. Initialized by the parser
       attr_reader :specs
 
-      # Array of ArgDescr objects
+      # Array of ArgDescr objects. Initialized by the parser
       attr_reader :descrs
 
       def initialize(parent, token)
@@ -210,7 +227,8 @@ module ShellOpts
       # until after the analyze phase
       def [](key)
         case key
-          when String, Symbol; lookup(key.to_s.split(".").map(&:to_sym)) 
+          when String; lookup(key.split("."))
+          when Symbol; lookup(key.to_s.sub(".", "!.").split(".").map(&:to_sym))
           when Array; lookup(key)
         else
           raise ArgumentError
@@ -218,6 +236,9 @@ module ShellOpts
       end
 
       def key?(key) !self.[](key).nil? end
+
+      # Mostly for debug. Has questional semantics because it only lists local keys 
+      def keys() @options_hash.keys + @commands_hash.keys end
 
     protected
       def attach(child)
@@ -234,11 +255,13 @@ module ShellOpts
       end
 
       def lookup(path)
-        if path.empty?
-          return self
+        key = path[0]
+        if path.size > 1
+          @commands_hash[key]&.lookup(path[1..-1])
+        elsif path.size == 1
+          @commands_hash[key] || @options_hash[key]
         else
-          key = path[0]
-          (@commands_hash[key] || @options_hash[key])&.lookup(path[1..-1])
+          self
         end
       end
     end

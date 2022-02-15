@@ -1,6 +1,18 @@
 module ShellOpts
   module Grammar
+    class IdrNode
+      def dump_doc
+        puts "#{self.class} #{ident}"
+        indent {
+          children.each(&:dump_doc)
+        }
+      end
+    end
+  end
+
+  module Grammar
     class Command
+      # Usable after parsing
       def render_structure
         io = StringIO.new
         dump_structure(io)
@@ -10,7 +22,7 @@ module ShellOpts
       def dump_structure(device = $stdout)
         device.puts ident
         device.indent { |dev|
-          options.each { |option| dev.puts option.name }
+          option_groups.each { |group| dev.puts group.options.map(&:name).join(" ") }
           commands.each { |command| command.dump_structure(dev) }
           descrs.each { |descr| dev.puts descr.text }
         }
@@ -34,6 +46,8 @@ module ShellOpts
           Array(attrs).flatten.select { |attr| attr.is_a?(Symbol) }.each { |attr|
             value = self.send(attr)
             case value
+              when Brief
+                puts "#{attr}: #{value.text}"
               when Node
                 puts "#{attr}:"
                 indent { value.dump_idr }

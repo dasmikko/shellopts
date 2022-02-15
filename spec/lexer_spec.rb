@@ -35,7 +35,7 @@ describe "Lexer" do
 
     it "creates a program brief token if present" do
       src = %(
-        # program brief
+        @ program brief
       )
       tokens = ::ShellOpts::Lexer.new("main", src).lex[1..-1]
       expect(tokens.first.kind).to eq :brief
@@ -85,7 +85,10 @@ describe "Lexer" do
     end
 
     it "creates brief tokens" do
-      src = "-c # Brief"
+      src = "\n-c @ Brief"
+      expect(make src, fields: :kind).to eq [:option, :brief]
+      expect(make src, fields: :source).to eq %w(-c Brief)
+      src = "\n-c Brief"
       expect(make src, fields: :kind).to eq [:option, :brief]
       expect(make src, fields: :source).to eq %w(-c Brief)
     end

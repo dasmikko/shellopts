@@ -36,8 +36,6 @@ describe "Interpreter" do
 
   def interpret(spec, argv)
     tokens = Lexer.lex("main", spec)
-    p spec
-    p tokens
     ast = Parser.parse(tokens)
     idr = Analyzer.analyze(ast) # @idr and @ast refer to the same object
     expr, args = Interpreter.interpret(idr, argv)
