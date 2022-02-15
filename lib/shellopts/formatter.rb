@@ -37,12 +37,18 @@ module ShellOpts
     class Command
       using Ext::Array::Wrap
 
-      def puts_usage
-        if descrs.size == 1
-          print lead = "#{name} "
-          indent(lead.size, ' ', bol: false) { puts render2(:multi, Formatter::USAGE_MAX_WIDTH) }
+      def puts_usage(bol: false)
+        if descrs.size == 0
+          print lead = Formatter.command_prefix
+          indent(lead.size, ' ', bol: bol && lead == "") { 
+            puts render2(:multi, Formatter::USAGE_MAX_WIDTH) 
+          }
         else
-          puts render2(:enum, Formatter::USAGE_MAX_WIDTH)
+          lead = Formatter.command_prefix
+          descrs.each { |descr|
+            print lead
+            puts render2(:single, Formatter::USAGE_MAX_WIDTH, args: [descr.text]) 
+          } 
         end
       end
 
@@ -57,18 +63,18 @@ module ShellOpts
           puts
         end
 
-        puts "Usage:"
-        indent { puts_usage }
+        puts "Usage"
+        indent { puts_usage(bol: true) }
 
         if options.any?
           puts
-          puts "Options:"
+          puts "Options"
           indent { Formatter::puts_columns(widths, option_briefs) }
         end
 
         if commands.any?
           puts
-          puts "Commands:"
+          puts "Commands"
           indent { Formatter::puts_columns(widths, command_briefs) }
         end
       end
@@ -141,9 +147,9 @@ module ShellOpts
     class Program
       using Ext::Array::Wrap
 
-      def puts_single
-        puts render2(:multi, Formatter::USAGE_MAX_WIDTH)
-      end
+#     def puts_single
+#       puts render2(:multi, Formatter::USAGE_MAX_WIDTH)
+#     end
     
       def puts_help
         puts Ansi.bold "NAME"
@@ -226,6 +232,9 @@ module ShellOpts
     BRIEF_COL_SEP = 2
 
     # Maximum width of first column in brief option and command lists
+    BRIEF_COL1_MIN_WIDTH = 6
+
+    # Maximum width of first column in brief option and command lists
     BRIEF_COL1_MAX_WIDTH = 40
 
     # Minimum width of second column in brief option and command lists
@@ -234,12 +243,16 @@ module ShellOpts
     # Indent to use in help output
     HELP_INDENT = 4
 
+    # Command prefix when subject is a sub-command
+    def self.command_prefix() @command_prefix end
+
     # Usage string in error messages
-    def self.usage(program)
+    def self.usage(subject)
+      subject = Grammar::Command.command(subject)
+      @command_prefix = subject.ancestors.map { |node| node.name + " " }.join
       setup_indent(1) {
-        program = Grammar::Program.program(program)
         print lead = "#{USAGE_STRING}: "
-        indent(lead.size, ' ', bol: false) { program.puts_single }
+        indent(lead.size, ' ', bol: false) { subject.puts_usage }
       }
     end
 
@@ -248,9 +261,10 @@ module ShellOpts
     end
 
     # When the user gives a -h option
-    def self.brief(program)
-      program = Grammar::Program.program(program)
-      setup_indent(BRIEF_INDENT) { program.puts_brief }
+    def self.brief(command)
+      command = Grammar::Command.command(command)
+      @command_prefix = command.ancestors.map { |node| node.name + " " }.join
+      setup_indent(BRIEF_INDENT) { command.puts_brief }
     end
 
     # TODO
@@ -259,7 +273,7 @@ module ShellOpts
 
     # When the user gives a --help option
     def self.help(program)
-      program = Grammar::Program.program(program)
+      program = Grammar::Command.command(program)
       setup_indent(HELP_INDENT) { program.puts_help }
     end
 
@@ -278,7 +292,7 @@ module ShellOpts
 #     if @help_lambda
 #       #
 #     else
-#       program = Grammar::Program.program(program)
+#       program = Grammar::Command.command(program)
 #       setup_indent(HELP_INDENT) { program.puts_help }
 #     end
 #   end
@@ -305,7 +319,10 @@ module ShellOpts
     end
 
     def self.compute_columns(width, fields)
-      first_max = [fields.map { |first, _| first.size }.max, BRIEF_COL1_MAX_WIDTH].min
+      first_max = [
+        (fields.map { |first, _| first.size } + [BRIEF_COL1_MIN_WIDTH]).max, 
+        BRIEF_COL1_MAX_WIDTH
+      ].min
       second_max = fields.map { |_, second| second ? second&.map(&:size).sum + second.size - 1: 0 }.max
 
       if first_max + BRIEF_COL_SEP + second_max <= width
@@ -329,6 +346,7 @@ module ShellOpts
     def self.rest() width - $stdout.margin end
 
   private
+    # TODO Get rid of?
     def self.setup_indent(indent, &block)
       default_indent = IndentedIO.default_indent
       begin

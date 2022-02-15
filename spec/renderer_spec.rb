@@ -54,7 +54,21 @@ describe ShellOpts do
     end
 
     describe "render :enum" do
-      it "renders each argument description on a line"
+      def str(source, width)
+        compile(source).render2(:enum, width).join("\n") + "\n"
+      end
+
+      it "renders each argument description on a line" do
+        s = %(
+          -- ARG1 
+          -- ARG2
+        )
+        r = undent %(
+          rspec ARG1
+          rspec ARG2
+        )
+        expect(str(s, 10)).to eq r
+      end
     end
 
     describe "render :multi" do

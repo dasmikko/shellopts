@@ -2,9 +2,141 @@
 include ShellOpts
 
 describe "Formatter" do
-  def compile(s)
-    ShellOpts::ShellOpts.new.compile(s)
+  def method_str(method, source, subject = nil)
+    shellopts = ShellOpts::ShellOpts.new
+    grammar = shellopts.compile(source)
+#   grammar.dump_idr
+#   exit
+    subject = subject ? grammar[subject] : grammar
+    capture { Formatter.send method, subject }
   end
+
+  def capture(&block)
+    save = $stdout
+    begin
+      $stdout = StringIO.new
+      yield
+      $stdout.string
+    ensure
+      $stdout = save
+    end
+  end
+
+  describe "::usage" do
+    def str(source, subject = nil)
+      method_str(:usage, source, subject)
+    end
+
+    it "puts usage description" do
+      s = %(
+        -a 
+        cmd!
+          subcmd!
+            A description
+      )
+      r = undent %(
+        Usage: rspec -a [cmd]
+      )
+      expect(str(s)).to eq r
+
+      s = %(
+        -a 
+        cmd!
+          -b
+          subcmd!
+            A description
+      )
+      r = undent %(
+        Usage: rspec cmd -b [subcmd]
+      )
+      expect(str(s, :cmd!)).to eq r
+    end
+
+    it "puts a line for each argument description" do
+      s = %(
+        -- ARG1
+        -- ARG2
+      )
+      r = undent %(
+        Usage: rspec ARG1
+               rspec ARG2
+      )
+      expect(str(s)).to eq r
+
+      s = %(
+        cmd!
+          -- ARG1
+          -- ARG2
+      )
+      r = undent %(
+        Usage: rspec cmd ARG1
+               rspec cmd ARG2
+      )
+      expect(str(s, :cmd!)) .to eq r
+    end
+  end
+
+  describe "::brief" do
+    def str(source, subject = nil)
+      method_str(:brief, source, subject)
+    end
+
+    it "prints a brief description" do
+      s = %(
+        -a Brief A
+          Option description
+        -b Brief B
+          Option description
+        cmd1! Command 1
+          Command description
+
+          -c      Brief C
+          -d      Brief D
+
+          cmd11!  Command 11
+          cmd12!  Command 12
+
+        cmd2! Command 2
+      )
+      r = undent %(
+        Usage 
+          rspec -a -b [cmd1|cmd2]
+
+        Options 
+          -a                        Brief A
+          -b                        Brief B
+
+        Commands 
+          cmd1 -c -d [cmd11|cmd12]  Command 1
+          cmd2                      Command 2
+      )
+      expect(str(s)).to eq r
+
+      r = undent %(
+        Command 1
+
+        Usage 
+          rspec cmd1 -c -d [cmd11|cmd12]
+
+        Options 
+          -c      Brief C
+          -d      Brief D
+
+        Commands
+          cmd11   Command 11
+          cmd12   Command 12
+      )
+      expect(str(s, :cmd1!)).to eq r
+          
+    end
+  end
+end
+
+
+
+
+
+__END__
 
   describe "Formatting" do
     it "parses sub-command with options and arguments" do
@@ -13,16 +145,33 @@ describe "Formatter" do
           subcmd!
             A description
       )
-#     s = %(
-#       cmd! @ Brief description of command
-#         subcmd! -i,inc -- SUB ARGS @ Brief description of sub-command
-#           A description
-#     )
-#     grammar = compile(s)
+      s = %(
+        cmd! @ Brief description of command
+          subcmd! -i,inc -- SUB ARGS @ Brief description of sub-command
+            A description
+      )
+      grammar = compile(s)
+
 #     grammar.dump_idr
 #     exit
+#     puts "-----------------------------------------------------"     
 #     Formatter.brief(grammar)
+#     puts "-----------------------------------------------------"     
 #     Formatter.help(grammar)
+#     puts "-----------------------------------------------------"
+
+#     r = %(
+#       Usage:
+#         cmd [subcmd] 
+#
+#       Commands:
+#         subcmd --inc SUB ARGS  A description
+
+
+
+      puts
+      command = grammar[:cmd!]
+      Formatter.brief(command)
     end
   end
 end

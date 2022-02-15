@@ -96,7 +96,6 @@ describe "Parser" do
           cmd!
             sub!
       )
-
     end
 
     it "parses -a cmd1! -b cmd1.cmd2! -c cmd1.cmd2.cmd3! -d" do
@@ -143,6 +142,19 @@ describe "Parser" do
         !
           -a
           ARG
+      )
+    end
+    it "parses indented argument descriptions" do
+      s = %(
+        cmd!
+          -- ARG1
+          -- ARG2
+      )
+      expect(struct s).to eq undent %(
+        !
+          cmd!
+            ARG1
+            ARG2
       )
     end
     it "parses -a -- ARG0 cmd1! -b -- ARG1" do

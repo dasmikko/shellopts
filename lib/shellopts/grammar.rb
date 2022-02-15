@@ -240,6 +240,13 @@ module ShellOpts
       # Mostly for debug. Has questional semantics because it only lists local keys 
       def keys() @options_hash.keys + @commands_hash.keys end
 
+      # Shorthand to get the associated Grammar::Command object from a Program
+      # or a Grammar::Command object
+      def self.command(obj)
+        constrain obj, Command, ::ShellOpts::Program
+        obj.is_a?(Command) ? obj : obj.__grammar__
+      end
+
     protected
       def attach(child)
         super
@@ -269,13 +276,6 @@ module ShellOpts
     class Program < Command
       # Lifted from .gemspec. TODO
       attr_reader :info
-
-      # Shorthand to get the associated Grammar::Program object from a Program
-      # object
-      def self.program(obj)
-        constrain obj, Program, ::ShellOpts::Program
-        obj.is_a?(Program) ? obj : obj.__grammar__
-      end
     end
 
     class ArgSpec < Node

@@ -93,6 +93,7 @@ module ShellOpts
               :argument?, argument? && :argument_name, argument? && :argument_type, 
               :enum?, enum? && :argument_enum, 
               :optional?)
+          indent { puts "brief: #{group.brief}" }
         end
       end
     end
@@ -116,7 +117,7 @@ module ShellOpts
     class ArgDescr
       def dump_idr(short = false)
         super
-        puts token.to_s
+        indent { puts token.to_s }
       end
     end
 

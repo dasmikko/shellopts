@@ -92,11 +92,11 @@ module ShellOpts
       end
 
       # TODO TODO TODO
-      def render2(format, width, root: false)
+      def render2(format, width, root: false, **opts)
         case format
-          when :single; render_single(width)
-          when :enum; render_enum(width)
-          when :multi; render_multi2(width)
+          when :single; render_single(width, **opts)
+          when :enum; render_enum(width, **opts)
+          when :multi; render_multi2(width, **opts)
         else
           raise ArgumentError, "Illegal format: #{format.inspect}"
         end
@@ -115,9 +115,9 @@ module ShellOpts
       def render_single(width, args: nil)
         long_options = options.map { |option| option.render(:long) }
         short_options = options.map { |option| option.render(:short) }
-        compact_options = [OPTIONS_ABBR]
+        compact_options = options.empty? ? [] : [OPTIONS_ABBR]
         short_commands = commands.empty? ? [] : ["[#{commands.map(&:name).join("|")}]"]
-        compact_commands = [COMMANDS_ABBR]
+        compact_commands = commands.empty? ? [] : [COMMANDS_ABBR]
 
         # TODO: Refactor and implement recursive detection of any argument
         args ||= 
@@ -148,18 +148,23 @@ module ShellOpts
       # Render one line for each argument specification/description
       def render_enum(width)
         # TODO: Also refactor args here
-        args_texts = self.descrs.empty? ? [DESCRS_ABBR] : descrs.map(&:text)
+        args_texts = self.descrs.empty? ? [""] : descrs.map(&:text)
         args_texts.map { |args_text| render_single(width, args: [args_text]) }
+      end
+
+      # Render the description using the given method (:single, :multi)
+      def render_descr(method, width, descr)
+        send.send method, width, args: descr
       end
 
       # Try to keep on one line but wrap options if needed. Multiple argument
       # specifications/descriptions are always compacted
-      def render_multi(width)
+      def render_multi(width, args: nil)
         long_options = options.map { |option| option.render(:long) }
         short_options = options.map { |option| option.render(:short) }
         short_commands = commands.empty? ? [] : ["[#{commands.map(&:name).join("|")}]"]
         compact_commands = [COMMANDS_ABBR]
-        args = self.descrs.size != 1 ? [DESCRS_ABBR] : descrs.map(&:text)
+        args ||= self.descrs.size != 1 ? [DESCRS_ABBR] : descrs.map(&:text)
 
         # On one line
         words = long_options + short_commands + args
@@ -176,7 +181,7 @@ module ShellOpts
 
       # Try to keep on one line but wrap options if needed. Multiple argument
       # specifications/descriptions are always compacted
-      def render_multi2(width)
+      def render_multi2(width, args: nil)
         long_options = options.map { |option| option.render(:long) }
         short_options = options.map { |option| option.render(:short) }
         short_commands = commands.empty? ? [] : ["[#{commands.map(&:name).join("|")}]"]

@@ -90,7 +90,6 @@ module ShellOpts
 
       # Move commands but do not change parent/child relationship
       move.each { |command|
-        puts "Moving #{command.uid}"
         supercommand = h[command.path[0..-2]] or analyzer_error "Can't find #{command.ident}!"
         command.parent.commands.delete(command)
         supercommand.commands << command
