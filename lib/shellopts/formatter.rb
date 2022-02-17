@@ -41,13 +41,13 @@ module ShellOpts
         if descrs.size == 0
           print (lead = Formatter.command_prefix || "")
           indent(lead.size, ' ', bol: bol && lead == "") { 
-            puts render2(:multi, Formatter::USAGE_MAX_WIDTH) 
+            puts render(:multi, Formatter::USAGE_MAX_WIDTH) 
           }
         else
           lead = Formatter.command_prefix || ""
           descrs.each { |descr|
             print lead
-            puts render2(:single, Formatter::USAGE_MAX_WIDTH, args: [descr.text]) 
+            puts render(:single, Formatter::USAGE_MAX_WIDTH, args: [descr.text]) 
           } 
         end
       end
@@ -55,7 +55,7 @@ module ShellOpts
       def puts_brief
         width = Formatter.rest
         option_briefs = option_groups.map { |group| [group.render(:enum), group.brief&.words] }
-        command_briefs = commands.map { |command| [command.render2(:single, width), command.brief&.words] }
+        command_briefs = commands.map { |command| [command.render(:single, width), command.brief&.words] }
         widths = Formatter::compute_columns(width, option_briefs + command_briefs)
 
         if brief
@@ -80,7 +80,7 @@ module ShellOpts
       end
 
       def puts_descr(prefix, brief: !self.brief.nil?, name: :path)
-        puts Ansi.bold([prefix, render2(:single, Formatter.rest)].flatten.compact.join(" "))
+        puts Ansi.bold([prefix, render(:single, Formatter.rest)].flatten.compact.join(" "))
         indent {
           if brief
             puts self.brief.words.wrap(Formatter.rest)

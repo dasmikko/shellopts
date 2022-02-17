@@ -81,18 +81,7 @@ module ShellOpts
       # one-line output but wrap options if needed. Multiple argument
       # specifications/descriptions are always compacted
       #
-      def render(format, width)
-        case format
-          when :single; render_single(width)
-          when :enum; render_enum(width)
-          when :multi; render_multi(width)
-        else
-          raise ArgumentError, "Illegal format: #{format.inspect}"
-        end
-      end
-
-      # TODO TODO TODO
-      def render2(format, width, root: false, **opts)
+      def render(format, width, root: false, **opts)
         case format
           when :single; render_single(width, **opts)
           when :enum; render_enum(width, **opts)
@@ -107,10 +96,6 @@ module ShellOpts
       end
 
     protected
-      # FIXME FIXME FIXME: render_single includes name, render_enum includes
-      # anything, and render_multi doesn't include name. TODO: Make
-      # render_multi include name
-
       # Force one line. Compact options, commands, arguments if needed
       def render_single(width, args: nil)
         long_options = options.map { |option| option.render(:long) }

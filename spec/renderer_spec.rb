@@ -55,7 +55,7 @@ describe ShellOpts do
 
     describe "render :enum" do
       def str(source, width)
-        compile(source).render2(:enum, width).join("\n") + "\n"
+        compile(source).render(:enum, width).join("\n") + "\n"
       end
 
       it "renders each argument description on a line" do
@@ -73,7 +73,7 @@ describe ShellOpts do
 
     describe "render :multi" do
       def str(source, width)
-        compile(source).render2(:multi, width)
+        compile(source).render(:multi, width)
       end
 
       it "tries to emit a single line" do
