@@ -79,19 +79,38 @@ module ShellOpts
         end
       end
 
-      # Excludes program name
-      def path_name
-        parent.path.join(" ")
-      end
+      def puts_descr(brief: !self.brief.nil?, name: :path)
+        # Handle outdented commands
+        if parent&.path != command&.path
+          # Prefix with parent(s) name 
+          puts Ansi.bold([path[0..-2], render2(:single, Formatter.rest)].flatten.join(" "))
+        else
+          puts Ansi.bold(render2(:single, Formatter.rest))
+        end
+        indent {
+          if brief
+            puts self.brief.words.wrap(Formatter.rest)
+          else
+            newline = false
+            children.each { |child|
+              puts if newline
+              newline = true
 
-      # Includes program name
-      def full_name
-        parents.reverse.map(&:name).join(" ")
+              if child.is_a?(Command)
+                child.puts_descr(name: :path)
+                newline = false
+               else
+                child.puts_descr
+              end
+            }
+          end
+        }
       end
 
       def puts_help
         puts Ansi.bold "NAME"
-        indent { puts brief ? "#{name} - #{brief}" : name }
+        full_name = [Formatter::command_prefix, name].join
+        indent { puts brief ? "#{full_name} - #{brief}" : full_name }
         puts
 
         puts Ansi.bold "USAGE"
@@ -131,35 +150,24 @@ module ShellOpts
               child.puts_descr
             end
           }
+
+          # Also emit commands not declared in nested scope
+          (commands - children.select { |child| child.is_a?(Command) }).each { |cmd|
+            puts if newline
+            newline = true
+            cmd.puts_descr(brief: false, name: path)
+          }
         }
       end
 
-      def puts_descr(brief: !self.brief.nil?, name: :path)
-        # Handle outdented commands
-        if parent&.path != command&.path
-          # Prefix with parent(s) name 
-          puts Ansi.bold([path[0..-2], render2(:single, Formatter.rest)].flatten.join(" "))
-        else
-          puts Ansi.bold(render2(:single, Formatter.rest))
-        end
-        indent {
-          if brief
-            puts self.brief.words.wrap(Formatter.rest)
-          else
-            newline = false
-            children.each { |child|
-              puts if newline
-              newline = true
+      # Excludes program name. TODO: Use this instead of Formatter::command_prefix
+      def path_name
+        parent.path.join(" ")
+      end
 
-              if child.is_a?(Command)
-                child.puts_descr(name: :path)
-                newline = false
-               else
-                child.puts_descr
-              end
-            }
-          end
-        }
+      # Includes program name
+      def full_name
+        parents.reverse.map(&:name).join(" ")
       end
     end
 
@@ -218,7 +226,6 @@ module ShellOpts
 
     # Usage string in error messages
     def self.usage(subject)
-      p :A
       subject = Grammar::Command.command(subject)
       @command_prefix = subject.ancestors.map { |node| node.name + " " }.join
       setup_indent(1) {
@@ -243,9 +250,10 @@ module ShellOpts
 #   end
 
     # When the user gives a --help option
-    def self.help(command)
-      command =command_of(command)
-      setup_indent(HELP_INDENT) { command.puts_help }
+    def self.help(subject)
+      subject = Grammar::Command.command(subject)
+      @command_prefix = subject.ancestors.map { |node| node.name + " " }.join
+      setup_indent(HELP_INDENT) { subject.puts_help }
     end
 
     # Short-hand to get the Grammar::Command object
