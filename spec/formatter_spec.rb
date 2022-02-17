@@ -85,8 +85,10 @@ describe "Formatter" do
       s = %(
         -a Brief A
           Option description
+
         -b Brief B
           Option description
+
         cmd1! Command 1
           Command description
 
@@ -127,7 +129,69 @@ describe "Formatter" do
           cmd12   Command 12
       )
       expect(str(s, :cmd1!)).to eq r
-          
+    end
+  end
+
+  describe "::help" do
+    def str(source, subject = nil)
+      method_str(:help, source, subject)
+    end
+
+    source = %(
+      cmd!
+        A command
+
+        cmd.nested!
+          A nested command
+
+      cmd.subcmd!
+        A subcommand
+    )
+
+    context "when given a program" do
+      it "keeps the indentation levels of subcommands" do
+        r = undent %(
+          NAME
+              rspec
+
+          USAGE
+              rspec [cmd]
+
+          COMMANDS
+              cmd [nested|subcmd]
+                  A command
+
+                  nested
+                      A nested command
+
+              cmd subcmd
+                  A subcommand
+
+        )
+        expect(str(source)).to eq r
+      end
+    end
+    context "when given a subcommand" do
+      it "keeps subcommands on the same level" do
+        r = undent %(
+          NAME
+              rspec cmd - A command
+
+          USAGE
+              rspec cmd [nested|subcmd]
+
+          DESCRIPTION
+              A command
+
+          COMMANDS
+              nested
+                  A nested command
+
+              subcmd
+                  A subcommand
+        )
+        expect(str(source, "cmd")).to eq r
+      end
     end
   end
 end

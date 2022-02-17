@@ -18,6 +18,10 @@ module ShellOpts
     end
 
     class Command
+      def set_supercommand
+        commands.each { |child| child.instance_variable_set(:@supercommand, self) }
+      end
+
       def collect_options
         @options = option_groups.map(&:options).flatten
       end
@@ -101,6 +105,7 @@ module ShellOpts
       move_commands
 
       @grammar.traverse(Grammar::Command) { |command|
+        command.set_supercommand
         command.reorder_options
         command.collect_options
         command.compute_option_hashes

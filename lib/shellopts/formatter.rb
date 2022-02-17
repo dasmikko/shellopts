@@ -79,14 +79,8 @@ module ShellOpts
         end
       end
 
-      def puts_descr(brief: !self.brief.nil?, name: :path)
-        # Handle outdented commands
-        if parent&.path != command&.path
-          # Prefix with parent(s) name 
-          puts Ansi.bold([path[0..-2], render2(:single, Formatter.rest)].flatten.join(" "))
-        else
-          puts Ansi.bold(render2(:single, Formatter.rest))
-        end
+      def puts_descr(prefix, brief: !self.brief.nil?, name: :path)
+        puts Ansi.bold([prefix, render2(:single, Formatter.rest)].flatten.compact.join(" "))
         indent {
           if brief
             puts self.brief.words.wrap(Formatter.rest)
@@ -97,7 +91,7 @@ module ShellOpts
               newline = true
 
               if child.is_a?(Command)
-                child.puts_descr(name: :path)
+                child.puts_descr(prefix, name: :path)
                 newline = false
                else
                 child.puts_descr
@@ -144,7 +138,9 @@ module ShellOpts
             end
 
             if child.is_a?(Command)
-              child.puts_descr(brief: false, name: :path)
+#             prefix = child.parent != self ? nil : child.supercommand&.name
+              prefix = child.supercommand == self ? nil : child.supercommand&.name
+              child.puts_descr(prefix, brief: false, name: :path)
               newline = true
              else
               child.puts_descr
@@ -155,19 +151,10 @@ module ShellOpts
           (commands - children.select { |child| child.is_a?(Command) }).each { |cmd|
             puts if newline
             newline = true
-            cmd.puts_descr(brief: false, name: path)
+            prefix = cmd.supercommand == self ? nil : cmd.supercommand&.name
+            cmd.puts_descr(prefix, brief: false, name: path)
           }
         }
-      end
-
-      # Excludes program name. TODO: Use this instead of Formatter::command_prefix
-      def path_name
-        parent.path.join(" ")
-      end
-
-      # Includes program name
-      def full_name
-        parents.reverse.map(&:name).join(" ")
       end
     end
 

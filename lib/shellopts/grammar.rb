@@ -185,6 +185,10 @@ module ShellOpts
     # methods are initialized by the analyzer
     #
     class Command < IdrNode
+      # Supercommand or nil if this is the top-level Program object.
+      # Initialized by the analyzer
+      attr_reader :supercommand
+
       # Brief description of command
       attr_accessor :brief
 
