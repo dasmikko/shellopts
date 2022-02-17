@@ -135,9 +135,6 @@ module ShellOpts
     using Stack
     using Ext::Array::ShiftWhile
 
-    # Array of token
-    attr_reader :tokens
-
     # AST root node
     attr_reader :program
 
@@ -145,17 +142,17 @@ module ShellOpts
     attr_reader :commands
 
     def initialize(tokens)
-      @tokens = tokens.dup
+      @tokens = tokens.dup # Array of token. Consumed by #parse
       @nodes = {}
     end
 
     def parse()
-      @program = Grammar::Program.parse(tokens.shift)
-      oneline = tokens.first.line == tokens.last.line
+      @program = Grammar::Program.parse(@tokens.shift)
+      oneline = @tokens.first.line == @tokens.last.line
       nodes = [@program] # Stack of Nodes. Follows the indentation of the source
       cmds = [@program] # Stack of cmds. Used to keep track of the current command
 
-      while token = tokens.shift
+      while token = @tokens.shift
         # Unwind stack according to indentation
         while token.char <= nodes.top.token.char
           node = nodes.pop
@@ -170,7 +167,7 @@ module ShellOpts
           when :option
             # Collect options into option groups if on the same line and not in
             # oneline mode
-            options = [token] + tokens.shift_while { |follow| 
+            options = [token] + @tokens.shift_while { |follow| 
               !oneline && follow.kind == :option && follow.line == token.line
             }
             group = Grammar::OptionGroup.new(cmds.top, token)
@@ -218,7 +215,7 @@ module ShellOpts
 
           when :spec
             spec = Grammar::ArgSpec.parse(cmds.top, token)
-            tokens.shift_while { |token| token.kind == :argument }.each { |token|
+            @tokens.shift_while { |token| token.kind == :argument }.each { |token|
               Grammar::Arg.parse(spec, token)
             }
             
@@ -239,11 +236,11 @@ module ShellOpts
             # Detect indented comment groups (code)
             if nodes.top.is_a?(Grammar::Paragraph)
               code = Grammar::Code.parse(nodes.top.parent, token) # Using parent of paragraph
-              tokens.shift_while { |t|
+              @tokens.shift_while { |t|
                 if t.kind == :text && t.char >= token.char
                   code.tokens << t
-                elsif t.kind == :blank && tokens.first&.kind != :blank # Emit last blank line
-                  if tokens.first&.char >= token.char # But only if it is not the last blank line
+                elsif t.kind == :blank && @tokens.first&.kind != :blank # Emit last blank line
+                  if @tokens.first&.char >= token.char # But only if it is not the last blank line
                     code.tokens << t
                   end
                 else
@@ -261,8 +258,8 @@ module ShellOpts
               end
 
               paragraph = Grammar::Paragraph.parse(parent, token)
-              while tokens.first&.kind == :text && tokens.first.char == token.char
-                paragraph.tokens << tokens.shift
+              while @tokens.first&.kind == :text && @tokens.first.char == token.char
+                paragraph.tokens << @tokens.shift
               end
               nodes.push paragraph # Leave paragraph on stack so we can detect code blocks
             end
@@ -280,18 +277,17 @@ module ShellOpts
         end
 
         # Skip blank lines
-        tokens.shift_while { |token| token.kind == :blank }
+        @tokens.shift_while { |token| token.kind == :blank }
       end
 
       @program
     end
 
-    # Find parent command of a dotted-command expression
-
     def self.parse(tokens)
       self.new(tokens).parse
     end
 
+  protected
     def parse_error(token, message) raise ParserError, "#{token.pos} #{message}" end
   end
 end

@@ -93,7 +93,7 @@ module ShellOpts
     # Interpreter flags
     attr_accessor :float
 
-    # True if ShellOpts let exceptions through instead of writing an error
+    # True if ShellOpts lets exceptions through instead of writing an error
     # message and exit
     attr_accessor :exception
 
@@ -111,9 +111,10 @@ module ShellOpts
       @stdopts, @msgopts, @float, @exception = stdopts, msgopts, float, exception
     end
 
-    # Compile source and return grammar object. Also sets #spec and #grammar
+    # Compile source and return grammar object. Also sets #spec and #grammar.
+    # Returns the gramamr
     def compile(spec)
-      handle_exception {
+      handle_exceptions {
         @spec = spec
         @file = find_caller_file
         @lineno, @charno = find_spec_in_file
@@ -124,27 +125,41 @@ module ShellOpts
       }
     end
 
+    # Use grammar to interpret arguments. Return a ShellOpts::Program and
+    # ShellOpts::Args tuple
+    #
     def interpret(argv)
-      handle_exception { 
+      handle_exceptions { 
         @argv = argv.dup
         @program, @args = Interpreter.interpret(grammar, argv, float: float, exception: exception)
       }
     end
 
-    # Compile +spec+ and interpret +argv+. Returns a tuple of
-    # ShellOpts::Program and Array of remaining arguments
+    # Compile +spec+ and interpret +argv+. Returns a tuple of a
+    # ShellOpts::Program and ShellOpts::Args object
+    #
     def process(spec, argv)
       compile(spec)
       interpret(argv)
       [program, args]
     end
 
-    # Create a ShellOpts object and sets the global instance
+    # Create a ShellOpts object and sets the global instance, then process the
+    # spec and arguments. Returns a tuple of a ShellOpts::Program with the
+    # options and subcommands and a ShellOpts::Args object with the remaining
+    # arguments
+    #
     def self.process(spec, argv, **opts)
       ::ShellOpts.instance = shellopts = ShellOpts.new(**opts)
       shellopts.process(spec, argv)
     end
 
+    # Write short usage and error message to standard error and terminate
+    # program with status 1
+    #
+    # #error is supposed to be used when the user made an error and the usage
+    # is written to help correcting the error
+    #
     def error(subject = nil, message)
       saved = $stdout
       $stdout = $stderr
@@ -155,20 +170,30 @@ module ShellOpts
       $stdout = saved
     end
 
+    # Write error message to standard error and terminate program with status 1
+    #
+    # #failure is supposed to be used the used specified the correct arguments
+    # but something went wrong during processing. Since the used didn't cause
+    # the problem, only the error message is written
+    #
     def failure(message)
       $stderr.puts "#{name}: #{message}"
       exit 1
     end
 
+    # Print usage
     def usage() Formatter.usage(@grammar) end
-    def brief() Formatter.brief(@grammar) end
-    def help() Formatter.help(@grammar) end
-#   def help(subject = @grammar) Formatter.help(subject) end
 
-    # +subject+ is a dot-separated list of command names
-    def helps(subject = nil)
-      node = @grammar[subject] or raise ArgumentError, "No such command: '#{subject.sub(".", " ")}'"
-      Formatter.helps(node)
+    # Print brief help
+    def brief() Formatter.brief(@grammar) end
+
+    # Print help for the given subject or the full documentation if +subject+
+    # is nil 
+    #
+    def help(subject = nil)
+      node = (subject ? @grammar[subject] : @grammar) or
+          raise ArgumentError, "No such command: '#{subject&.sub(".", " ")}'"
+      Formatter.help(node)
     end
 
 
@@ -189,7 +214,7 @@ module ShellOpts
 #   end
 
   private
-    def handle_exception(&block)
+    def handle_exceptions(&block)
       return yield if exception
       begin
         yield

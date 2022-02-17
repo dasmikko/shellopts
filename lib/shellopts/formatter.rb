@@ -18,16 +18,16 @@ module ShellOpts
     end
 
     class OptionGroup
-      def puts_help
+      def puts_descr
         puts Ansi.bold(render(:multi))
         indent {
           if description.any?
             description.each { |descr|
-              descr.puts_help
+              descr.puts_descr
               puts if descr != description.last
             }
           elsif brief
-            brief.puts_help
+            brief.puts_descr
           end
         }
       end
@@ -39,12 +39,12 @@ module ShellOpts
 
       def puts_usage(bol: false)
         if descrs.size == 0
-          print lead = Formatter.command_prefix
+          print (lead = Formatter.command_prefix || "")
           indent(lead.size, ' ', bol: bol && lead == "") { 
             puts render2(:multi, Formatter::USAGE_MAX_WIDTH) 
           }
         else
-          lead = Formatter.command_prefix
+          lead = Formatter.command_prefix || ""
           descrs.each { |descr|
             print lead
             puts render2(:single, Formatter::USAGE_MAX_WIDTH, args: [descr.text]) 
@@ -89,75 +89,13 @@ module ShellOpts
         parents.reverse.map(&:name).join(" ")
       end
 
-      def puts_help(brief: !self.brief.nil?, name: :path)
-        # Handle outdented commands
-        if parent&.path != command&.path
-          # Prefix with parent(s) name 
-          puts Ansi.bold([path[0..-2], render2(:single, Formatter.rest)].flatten.join(" "))
-        else
-          puts Ansi.bold(render2(:single, Formatter.rest))
-        end
-        indent {
-          if brief
-            puts self.brief.words.wrap(Formatter.rest)
-          else
-            newline = false
-            children.each { |child|
-              puts if newline
-              newline = true
-
-              if child.is_a?(Command)
-                child.puts_help(name: :path)
-                newline = false
-               else
-                child.puts_help
-              end
-            }
-          end
-        }
-      end
-      
-
-#     def puts_help(brief: !self.brief.nil?, name: :path)
-#       constrain name, :path, :abs
-#       p name
-#       path = (name == :path ? path_name : full_name)
-#       puts Ansi.bold("#{path} #{render(:single, Formatter.rest)}")
-#       indent {
-#         if brief
-#           puts self.brief.words.wrap(Formatter.rest)
-#         else
-#           newline = false
-#           children.each { |child|
-#             puts if newline
-#             newline = true
-#
-#             if child.is_a?(Command)
-#               child.puts_help(name: :path)
-#               newline = false
-#              else
-#               child.puts_help
-#             end
-#           }
-#         end
-#       }
-#     end
-    end
-
-    class Program
-      using Ext::Array::Wrap
-
-#     def puts_single
-#       puts render2(:multi, Formatter::USAGE_MAX_WIDTH)
-#     end
-    
       def puts_help
         puts Ansi.bold "NAME"
         indent { puts brief ? "#{name} - #{brief}" : name }
         puts
 
         puts Ansi.bold "USAGE"
-        indent { puts_usage }
+        indent { puts_usage(bol: true) }
 
         section = {
           Paragraph => "DESCRIPTION",
@@ -187,26 +125,58 @@ module ShellOpts
             end
 
             if child.is_a?(Command)
-              child.puts_help(brief: false, name: :path)
+              child.puts_descr(brief: false, name: :path)
               newline = true
              else
-              child.puts_help
+              child.puts_descr
             end
           }
         }
       end
+
+      def puts_descr(brief: !self.brief.nil?, name: :path)
+        # Handle outdented commands
+        if parent&.path != command&.path
+          # Prefix with parent(s) name 
+          puts Ansi.bold([path[0..-2], render2(:single, Formatter.rest)].flatten.join(" "))
+        else
+          puts Ansi.bold(render2(:single, Formatter.rest))
+        end
+        indent {
+          if brief
+            puts self.brief.words.wrap(Formatter.rest)
+          else
+            newline = false
+            children.each { |child|
+              puts if newline
+              newline = true
+
+              if child.is_a?(Command)
+                child.puts_descr(name: :path)
+                newline = false
+               else
+                child.puts_descr
+              end
+            }
+          end
+        }
+      end
+    end
+
+    class Program
+      using Ext::Array::Wrap
     end
 
     class DocNode
-      def puts_help() puts lines end
+      def puts_descr() puts lines end
     end
 
     module WrappedNode
-      def puts_help(width = Formatter.rest) puts lines(width) end
+      def puts_descr(width = Formatter.rest) puts lines(width) end
     end
 
     class Code
-      def puts_help() indent { super } end
+      def puts_descr() indent { super } end
     end
   end
 
@@ -248,6 +218,7 @@ module ShellOpts
 
     # Usage string in error messages
     def self.usage(subject)
+      p :A
       subject = Grammar::Command.command(subject)
       @command_prefix = subject.ancestors.map { |node| node.name + " " }.join
       setup_indent(1) {
@@ -256,9 +227,9 @@ module ShellOpts
       }
     end
 
-    # TODO
-    def self.usage=(usage_lambda)
-    end
+#   # TODO
+#   def self.usage=(usage_lambda)
+#   end
 
     # When the user gives a -h option
     def self.brief(command)
@@ -267,17 +238,12 @@ module ShellOpts
       setup_indent(BRIEF_INDENT) { command.puts_brief }
     end
 
-    # TODO
-    def self.brief=(brief_lambda)
-    end
+#   # TODO
+#   def self.brief=(brief_lambda)
+#   end
 
     # When the user gives a --help option
-    def self.help(program)
-      program = Grammar::Command.command(program)
-      setup_indent(HELP_INDENT) { program.puts_help }
-    end
-
-    def self.helps(command)
+    def self.help(command)
       command =command_of(command)
       setup_indent(HELP_INDENT) { command.puts_help }
     end
@@ -288,17 +254,17 @@ module ShellOpts
       obj.is_a?(Grammar::Command) ? obj : obj.__grammar__
     end
 
+#   # TODO
 #   def self.help_w_lambda(program)
 #     if @help_lambda
 #       #
 #     else
 #       program = Grammar::Command.command(program)
-#       setup_indent(HELP_INDENT) { program.puts_help }
+#       setup_indent(HELP_INDENT) { program.puts_descr }
 #     end
 #   end
-
-    # TODO
-    def self.help=(help_lambda) @help_lambda end
+#
+#   def self.help=(help_lambda) @help_lambda end
 
     def self.puts_columns(widths, fields)
       l = []

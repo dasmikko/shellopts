@@ -231,7 +231,7 @@ module ShellOpts
           when Symbol; lookup(key.to_s.sub(".", "!.").split(".").map(&:to_sym))
           when Array; lookup(key)
         else
-          raise ArgumentError
+          nil
         end
       end
 
