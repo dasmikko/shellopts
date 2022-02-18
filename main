@@ -123,12 +123,14 @@ SPEC = %(
       -a,all @ Duplicate 
 
     Here is some text where 
+
       the next line is indented (interpreted as code)
 
     subcmd! -i,inc ++ SUB ARGS @ Brief description of sub-command
       A description
 
     This text should be included too  
+
     ++ CMD_ARG1 CMD_ARG2
 
       Longer indented text is not related to the previous
@@ -233,10 +235,10 @@ SPEC4 = %(
 
 shellopts = ShellOpts::ShellOpts.new(exception: true)
 #shellopts.compile("cmd! cmd!")
-#shellopts.compile(SPEC)
+shellopts.compile(SPEC)
 #shellopts.compile(SPEC2)
 #shellopts.compile(SPEC3)
-shellopts.compile(SPEC4)
+#shellopts.compile(SPEC4)
 
 #shellopts.usage
 #shellopts.brief

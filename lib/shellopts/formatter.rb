@@ -92,7 +92,6 @@ module ShellOpts
 
               if child.is_a?(Command)
                 child.puts_descr(prefix, name: :path)
-                newline = false
                else
                 child.puts_descr
               end
@@ -119,20 +118,23 @@ module ShellOpts
         newline = false # True if a newline should be printed before child 
         indent {
           children.each { |child|
-            if child.is_a?(Section)
+            if child.is_a?(Section) # Explicit section
+#             p :A
               puts
               indent(-1).puts Ansi.bold child.name
               section.delete_if { |_,v| v == child.name }
               section.delete(Paragraph)
               newline = false
               next
-            elsif s = section[child.class]
+            elsif s = section[child.class] # Implicit section
+#             p :B
               puts  
               indent(-1).puts Ansi.bold s
               section.delete(child.class)
               section.delete(Paragraph)
               newline = false
-            else
+            else # Any other node add a newline
+#             p :C
               puts if newline
               newline = true
             end
@@ -144,6 +146,7 @@ module ShellOpts
               newline = true
              else
               child.puts_descr
+              newline = true
             end
           }
 
