@@ -97,8 +97,8 @@ SPEC = %(
   -l=MODE:short,long
     Another indented comment. The following blank line should be included
 
-    But not if it is the last blank line     
-    \\hep!
+    But not if it is the last blank line. 
+    \\hep! initiates a line but is not a command because it is escaped
 
       a_code_example()
       if something == 42
@@ -239,6 +239,9 @@ shellopts.compile(SPEC)
 #shellopts.compile(SPEC2)
 #shellopts.compile(SPEC3)
 #shellopts.compile(SPEC4)
+
+#shellopts.tokens.each(&:dump)
+#exit
 
 #shellopts.usage
 #shellopts.brief

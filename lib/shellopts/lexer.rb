@@ -95,7 +95,7 @@ module ShellOpts
           lexer_error error_token, "Illegal indentation"
         end
 
-        # Line without escape
+        # Line without escape sequences
         source = line.text[(line.text =~ /^\\/ ? 1 : 0)..-1]
 
         # Code lines
@@ -146,8 +146,9 @@ module ShellOpts
         else
           @tokens << Token.new(:text, line.line, line.char, source)
         end
-
-        last_nonblank = @tokens.last
+        # FIXME Not sure about this
+#       last_nonblank = @tokens.last 
+        last_nonblank = @tokens.last if ![:blank, :usage_string, :argument].include? @tokens.last.kind 
       end
 
       # Move arguments and briefs before first command if one-line source

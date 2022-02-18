@@ -218,7 +218,6 @@ module ShellOpts
             @tokens.shift_while { |token| token.kind == :argument }.each { |token|
               Grammar::Arg.parse(spec, token)
             }
-            
 
           when :argument
             ; raise # Should never happen
