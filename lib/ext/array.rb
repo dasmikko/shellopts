@@ -20,6 +20,25 @@ module Ext
       end
     end
 
+    module PopWhile
+      refine ::Array do
+        # The algorithm ensures that the block sees the array as if the current
+        # element has already been removed
+        def pop_while(&block)
+          r = []
+          while value = self.pop
+            if !block.call(value)
+              self.push value
+              break
+            else
+              r << value
+            end
+          end
+          r
+        end
+      end
+    end
+
     module Wrap
       refine ::Array do
         # Concatenate strings into lines that are at most +width+ characters wide
