@@ -3,7 +3,8 @@ include ShellOpts
 
 describe "ShellOpts" do
   def prog(source)
-    tokens = Lexer.lex("main", source)
+    oneline = source.index("\n").nil?
+    tokens = Lexer.lex("main", source, oneline)
     ast = Parser.parse tokens
     grammar = Analyzer.analyze(ast)
   end

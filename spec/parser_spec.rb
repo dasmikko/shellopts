@@ -3,7 +3,8 @@ include ShellOpts
 
 describe "Parser" do
   def prog(source)
-    tokens = Lexer.lex("main", source)
+    oneline = source.index("\n").nil?
+    tokens = Lexer.lex("main", source, oneline)
     ast = Parser.parse tokens
 
 #   puts "Tokens"
@@ -217,7 +218,7 @@ end
 describe "Command#parse" do
   it "sets uid" do
     source = "cmd1!"
-    tokens = Lexer.lex("main", source)
+    tokens = Lexer.lex("main", source, true)
     program = Parser.parse(tokens)
     expect(program.uid).to eq nil
     expect(program.path).to eq []
@@ -229,7 +230,8 @@ end
 
 describe "Option#parse" do
   def opt(source, method = nil)
-    tokens = Lexer.lex("main", source)
+    oneline = source.index("\n").nil?
+    tokens = Lexer.lex("main", source, oneline)
     program = Parser.parse(tokens)
     options = program.option_groups.map(&:options).flatten
     option = options.first
