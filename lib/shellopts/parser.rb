@@ -287,7 +287,7 @@ module ShellOpts
     end
 
   protected
-    def parse_error(token, message) raise ParserError, "#{token.pos} #{message}" end
+    def parse_error(token, message) raise ParserError, token, message end
   end
 end
 

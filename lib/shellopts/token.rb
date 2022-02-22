@@ -27,7 +27,9 @@ module ShellOpts
 
     forward_to :source, :to_s, :empty?
 
-    def pos() "#{lineno}:#{charno}" end
+    def pos(start_lineno = 1, start_charno = 1) 
+      "#{start_lineno + lineno - 1}:#{start_charno + charno - 1}" 
+    end
 
     def to_s() source end
 

@@ -14,7 +14,9 @@ module ShellOpts
         children.delete_if { |node| node.is_a?(ArgSpec) }
       end
 
-      def analyzer_error(token, message) raise AnalyzerError, "#{token.pos} #{message}" end
+      def analyzer_error(token, message) 
+        raise AnalyzerError.new(token), message 
+      end
     end
 
     class Command

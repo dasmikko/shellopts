@@ -236,12 +236,15 @@ SPEC4 = %(
     A subcommand
 )
 
+SPEC5 = "cmd! cmd!"
+
 shellopts = ShellOpts::ShellOpts.new(exception: false)
 #shellopts.compile("cmd! cmd!")
-#shellopts.compile(SPEC)
+shellopts.compile(SPEC)
 #shellopts.compile(SPEC2)
-shellopts.compile(SPEC3)
+#shellopts.compile(SPEC3)
 #shellopts.compile(SPEC4)
+#shellopts.compile(SPEC5)
 
 #shellopts.tokens.each(&:dump)
 #exit

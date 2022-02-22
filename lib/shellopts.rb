@@ -38,7 +38,13 @@ module ShellOpts
   # Note that errors in the usage of the ShellOpts library are reported using
   # standard exceptions
   #
-  class ShellOptsError < StandardError; end
+  class ShellOptsError < StandardError
+    attr_reader :token
+    def initialize(token)
+      super
+      @token = token
+    end
+  end
 
   # Raised on syntax errors on the command line (eg. unknown option). When
   # ShellOpts handles the exception a message with the following format is
@@ -104,8 +110,6 @@ module ShellOpts
 
     # File of source
     attr_reader :file
-    attr_reader :lineno
-    attr_reader :charno
 
     # Debug: Internal variables made public
     attr_reader :tokens
@@ -120,10 +124,10 @@ module ShellOpts
     # Returns the grammar
     def compile(spec)
       handle_exceptions {
+        @oneline = spec.index("\n").nil?
         @spec = spec.sub(/^\s*\n/, "")
         @file = find_caller_file
-        @lineno, @charno = find_spec_in_file # Only execute on error
-        @tokens = Lexer.lex(name, @spec, @lineno, @charno)
+        @tokens = Lexer.lex(name, @spec, @oneline)
         ast = Parser.parse(tokens)
         # TODO: Add standard and message options and their handlers
         @grammar = Analyzer.analyze(ast)
@@ -201,23 +205,6 @@ module ShellOpts
       Formatter.help(node)
     end
 
-
-#   def exception(message)
-#     $stderr.puts "#{name}: Unexpected error"
-#     $stderr.puts message
-#     exit 1
-#   end
-
-#   def usage(subject = nil, device: $stdout, levels: 1, margin: "")
-#     subject = find_subject(subject)
-#     device.puts Formatter.usage_string(subject, levels: levels, margin: margin)
-#   end
-
-#   def help(subject = nil, device: $stdout, levels: 10, margin: "", tab: "  ")
-#     subject = find_subject(subject)
-#     device.puts Formatter.help_string(subject, levels: levels, margin: margin, tab: tab)
-#   end
-
   private
     def handle_exceptions(&block)
       return yield if exception
@@ -229,7 +216,9 @@ module ShellOpts
         failure(ex.message)
       rescue CompilerError => ex
         filename = file =~ /\// ? file : "./#{file}"
-        $stderr.puts "#{filename}:#{ex.message}"
+        lineno, charno = find_spec_in_file
+        charno = 1 if !@oneline
+        $stderr.puts "#{filename}:#{ex.token.pos(lineno, charno)} #{ex.message}"
         exit(1)
       end
     end
@@ -238,29 +227,20 @@ module ShellOpts
       caller.reverse.select { |line| line !~ /^\s*#{__FILE__}:/ }.last.sub(/:.*/, "").sub(/^\.\//, "")
     end
 
-    def self.compare_lines_org(text, spec)
+    def self.compare_lines(text, spec)
       return true if text == spec
       return true if text =~ /[#\$\\]/
       false
     end
 
-    def self.compare_lines(text, spec)
-#     puts "Compare #{text.inspect} with #{spec.inspect}"
-      r = compare_lines_org(text, spec)
-#     puts "  result: #{r.inspect}"
-#     r
-    end
-
   public
     # Find line and char index of spec in text. Returns [nil, nil] if not found
-    def self.find_spec_in_text(text, spec)
+    def self.find_spec_in_text(text, spec, oneline)
       text_lines = text.split("\n")
       spec_lines = spec.split("\n")
-      single_line = spec_lines.size == 1
-#     spec_lines.shift_while { |line| line =~ /^\s*$/ }
       spec_lines.pop_while { |line| line =~ /^\s*$/ }
 
-      if single_line
+      if oneline
         line_i = nil
         char_i = nil
         char_z = 0
@@ -273,8 +253,8 @@ module ShellOpts
             char_i = curr_char_i
             char_z = curr_char_z
           end
-          line_i ? [line_i, char_i] : [nil, nil]
         }
+        line_i ? [line_i, char_i] : [nil, nil]
       else
         spec_string = spec_lines.first.strip
         line_i = (0 ... text_lines.size - spec_lines.size + 1).find { |text_i|
@@ -289,7 +269,7 @@ module ShellOpts
     end
 
     def find_spec_in_file
-      self.class.find_spec_in_text(IO.read(@file), @spec).map { |i| (i || 0) + 1 }
+      self.class.find_spec_in_text(IO.read(@file), @spec, @oneline).map { |i| (i || 0) + 1 }
     end
 
     def lookup(name)

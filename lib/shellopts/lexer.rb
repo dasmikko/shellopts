@@ -55,10 +55,10 @@ module ShellOpts
     
     def oneline?() @oneline end
 
-    def initialize(name, source)
+    def initialize(name, source, oneline)
       @name = name
       @source = source
-      @oneline = source.index("\n").nil?
+      @oneline = oneline
       @source += "\n" if @source[-1] != "\n" # Always terminate source with a newline
     end
 
@@ -66,7 +66,7 @@ module ShellOpts
       # Split source into lines and tag them with lineno and charno. Only the
       # first line can have charno != 1
       lines = source[0..-2].split("\n").map.with_index { |line,i|
-        l = Line.new(i + lineno, @oneline ? charno : 1, line)
+        l = Line.new(i + lineno, charno, line)
         charno = 1
         l
       }
@@ -142,6 +142,7 @@ module ShellOpts
             end
           end
 
+          # TODO: Move to parser and remove @oneline from Lexer
           (token = @tokens.last).kind != :brief || !oneline? or 
               lexer_error token, "Briefs are only allowed in multi-line specifications"
 
@@ -164,11 +165,11 @@ module ShellOpts
       @tokens
     end
 
-    def self.lex(name, source, lineno = 1, charno = 0)
-      Lexer.new(name, source).lex(lineno, charno)
+    def self.lex(name, source, oneline, lineno = 1, charno = 1)
+      Lexer.new(name, source, oneline).lex(lineno, charno)
     end
 
-    def lexer_error(token, message) raise LexerError, "#{token.pos} #{message}" end
+    def lexer_error(token, message) raise LexerError.new(token), message end
   end
 end
 
