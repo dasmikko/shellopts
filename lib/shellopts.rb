@@ -12,6 +12,7 @@ include Constrain
 
 require 'ext/array.rb'
 require 'ext/forward_to.rb'
+require 'ext/lcs.rb'
 include ForwardTo
 
 require 'shellopts/version.rb'
@@ -29,6 +30,7 @@ require 'shellopts/ansi.rb'
 require 'shellopts/renderer.rb'
 require 'shellopts/formatter.rb'
 require 'shellopts/dump.rb'
+
 
 module ShellOpts
   # Base error class
@@ -67,6 +69,9 @@ module ShellOpts
   class InternalError < ShellOptsError; end
 
   class ShellOpts
+    using Ext::Array::ShiftWhile
+    using Ext::Array::PopWhile
+
     # Name of program. Defaults to the name of the executable
     attr_reader :name
 
@@ -112,13 +117,13 @@ module ShellOpts
     end
 
     # Compile source and return grammar object. Also sets #spec and #grammar.
-    # Returns the gramamr
+    # Returns the grammar
     def compile(spec)
       handle_exceptions {
-        @spec = spec
+        @spec = spec.sub(/^\s*\n/, "")
         @file = find_caller_file
-        @lineno, @charno = find_spec_in_file
-        @tokens = Lexer.lex(name, spec, @lineno, @charno)
+        @lineno, @charno = find_spec_in_file # Only execute on error
+        @tokens = Lexer.lex(name, @spec, @lineno, @charno)
         ast = Parser.parse(tokens)
         # TODO: Add standard and message options and their handlers
         @grammar = Analyzer.analyze(ast)
@@ -223,7 +228,8 @@ module ShellOpts
       rescue Failure => ex
         failure(ex.message)
       rescue CompilerError => ex
-        $stderr.puts "#{file} #{ex.message}"
+        filename = file =~ /\// ? file : "./#{file}"
+        $stderr.puts "#{filename}:#{ex.message}"
         exit(1)
       end
     end
@@ -232,21 +238,58 @@ module ShellOpts
       caller.reverse.select { |line| line !~ /^\s*#{__FILE__}:/ }.last.sub(/:.*/, "").sub(/^\.\//, "")
     end
 
-    # Find spec in the source file. Only the first part of the spec
-    def find_spec_in_file
-      text = IO.read(@file)
-      index = text.index(@spec) or return [1, 1]
-      lineno = 1
-      charno = 1
-      for i in 0...index
-        if text[i] == "\n"
-          lineno += 1
-          charno = 1
-        else
-          charno += 1
-        end
+    def self.compare_lines_org(text, spec)
+      return true if text == spec
+      return true if text =~ /[#\$\\]/
+      false
+    end
+
+    def self.compare_lines(text, spec)
+#     puts "Compare #{text.inspect} with #{spec.inspect}"
+      r = compare_lines_org(text, spec)
+#     puts "  result: #{r.inspect}"
+#     r
+    end
+
+  public
+    # Find line and char index of spec in text. Returns [nil, nil] if not found
+    def self.find_spec_in_text(text, spec)
+      text_lines = text.split("\n")
+      spec_lines = spec.split("\n")
+      single_line = spec_lines.size == 1
+#     spec_lines.shift_while { |line| line =~ /^\s*$/ }
+      spec_lines.pop_while { |line| line =~ /^\s*$/ }
+
+      if single_line
+        line_i = nil
+        char_i = nil
+        char_z = 0
+
+        (0 ... text_lines.size).each { |text_i|
+          curr_char_i, curr_char_z = 
+              LCS.find_longest_common_substring_index(text_lines[text_i], spec_lines.first.strip)
+          if curr_char_z > char_z
+            line_i = text_i
+            char_i = curr_char_i
+            char_z = curr_char_z
+          end
+          line_i ? [line_i, char_i] : [nil, nil]
+        }
+      else
+        spec_string = spec_lines.first.strip
+        line_i = (0 ... text_lines.size - spec_lines.size + 1).find { |text_i|
+          (0 ... spec_lines.size).all? { |spec_i|
+            compare_lines(text_lines[text_i + spec_i], spec_lines[spec_i])
+          }
+        } or return [nil, nil]
+        char_i, char_z = 
+            LCS.find_longest_common_substring_index(text_lines[line_i], spec_lines.first.strip)
+        [line_i, char_i || 0]
       end
-      [lineno, charno]
+    end
+
+    def find_spec_in_file
+      self.class.find_spec_in_text(IO.read(@file), @spec).map { |i| (i || 0) + 1 }
     end
 
     def lookup(name)

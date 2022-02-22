@@ -10,24 +10,24 @@ module ShellOpts
     # Kind of token
     attr_reader :kind
 
-    # Line number. Zero based. Rename 'lineno'
-    attr_reader :line
+    # Line number (one-based)
+    attr_reader :lineno
 
-    # Char number. Zero based. The lexer may adjust the char number (eg. for
-    # blank lines). TODO: Rename 'col'/'charno'
-    attr_accessor :char
+    # Char number (one-based). The lexer may adjust the char number (eg. for
+    # blank lines)
+    attr_accessor :charno
 
     # Source of the token
     attr_reader :source
 
-    def initialize(kind, line, char, source)
+    def initialize(kind, lineno, charno, source)
       constrain kind, :program, *KINDS
-      @kind, @line, @char, @source = kind, line, char, source
+      @kind, @lineno, @charno, @source = kind, lineno, charno, source
     end
 
     forward_to :source, :to_s, :empty?
 
-    def pos() "#{line+1}:#{char+1}" end
+    def pos() "#{lineno}:#{charno}" end
 
     def to_s() source end
 
@@ -36,7 +36,7 @@ module ShellOpts
     end
 
     def dump
-      puts "#{kind}@#{line+1}:#{char+1} #{source.inspect}"
+      puts "#{kind}@#{lineno}:#{charno} #{source.inspect}"
     end
   end
 end

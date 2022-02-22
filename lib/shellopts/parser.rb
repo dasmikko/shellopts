@@ -148,13 +148,13 @@ module ShellOpts
 
     def parse()
       @program = Grammar::Program.parse(@tokens.shift)
-      oneline = @tokens.first.line == @tokens.last.line
+      oneline = @tokens.first.lineno == @tokens.last.lineno
       nodes = [@program] # Stack of Nodes. Follows the indentation of the source
       cmds = [@program] # Stack of cmds. Used to keep track of the current command
 
       while token = @tokens.shift
         # Unwind stack according to indentation
-        while token.char <= nodes.top.token.char
+        while token.charno <= nodes.top.token.charno
           node = nodes.pop
           cmds.pop if cmds.top == node
           !nodes.empty? or parse_error(token, "Illegal indent")
@@ -168,7 +168,7 @@ module ShellOpts
             # Collect options into option groups if on the same line and not in
             # oneline mode
             options = [token] + @tokens.shift_while { |follow| 
-              !oneline && follow.kind == :option && follow.line == token.line
+              !oneline && follow.kind == :option && follow.lineno == token.lineno
             }
             group = Grammar::OptionGroup.new(cmds.top, token)
             options.each { |option| Grammar::Option.parse(group, option) }
@@ -194,7 +194,7 @@ module ShellOpts
 #             end
 #             parent = cmds.top
               parent = cmds.top
-              if !cmds.top.is_a?(Grammar::Program) && token.line == cmds.top.token.line
+              if !cmds.top.is_a?(Grammar::Program) && token.lineno == cmds.top.token.lineno
                 parent = cmds.pop.parent
               end
 
@@ -204,7 +204,7 @@ module ShellOpts
               # often happens with one-line declarations). Program is special
               # cased as its virtual token is on line 0
               parent = cmds.top
-              if !cmds.top.is_a?(Grammar::Program) && token.line == cmds.top.token.line
+              if !cmds.top.is_a?(Grammar::Program) && token.lineno == cmds.top.token.lineno
                 parent = cmds.pop.parent
               end
             end
@@ -230,16 +230,16 @@ module ShellOpts
 
           when :text
             # Text is only allowed on new lines
-            token.line > nodes.top.token.line
+            token.lineno > nodes.top.token.lineno
 
             # Detect indented comment groups (code)
             if nodes.top.is_a?(Grammar::Paragraph)
               code = Grammar::Code.parse(nodes.top.parent, token) # Using parent of paragraph
               @tokens.shift_while { |t|
-                if t.kind == :text && t.char >= token.char
+                if t.kind == :text && t.charno >= token.charno
                   code.tokens << t
                 elsif t.kind == :blank && @tokens.first&.kind != :blank # Emit last blank line
-                  if @tokens.first&.char >= token.char # But only if it is not the last blank line
+                  if @tokens.first&.charno >= token.charno # But only if it is not the last blank line
                     code.tokens << t
                   end
                 else
@@ -257,7 +257,7 @@ module ShellOpts
               end
 
               paragraph = Grammar::Paragraph.parse(parent, token)
-              while @tokens.first&.kind == :text && @tokens.first.char == token.char
+              while @tokens.first&.kind == :text && @tokens.first.charno == token.charno
                 paragraph.tokens << @tokens.shift
               end
               nodes.push paragraph # Leave paragraph on stack so we can detect code blocks
