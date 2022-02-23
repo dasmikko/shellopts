@@ -1,47 +1,42 @@
 # Shellopts
 
-`ShellOpts` is a simple Linux command line parsing libray that covers most modern use
-cases incl. sub-commands. Options and commands are specified using a
-getopt(1)-like string that is interpreted by the library to process the command
-line
+`ShellOpts` is a simple Linux command line processing libray that covers short
+and long options, and subcommands, and has built-in help and error messages
+
 
 ## Usage
 
-The following program accepts the options -a or --all, --count, --file, and -v
-or --verbose. It expects `--count` to have an optional integer argument,
-`--file` to have a mandatory argument, and allows `-v` and `--verbose` to be
-repeated:
+The following program accepts the options -a or --alpha, -b or --beta, and a
+number of arguments
 
 ```ruby
- 
-# Define options
-USAGE = "a,all count=#? file= +v,verbose -- FILE..."
+require 'shellopts'
 
-# Define default values
-all = false
-count = nil
-file = nil
-verbosity_level = 0
+USAGE = "-a,all -b,beta=OPTARG -- CMDARG..."
 
-# Process command line and return remaining non-option arguments
-args = ShellOpts.process(USAGE, ARGV) do |opt, arg|
-  case opt
-    when '-a', '--all';    all = true
-    when '--count';        count = arg || 42
-    when '--file';         file = arg # never nil
-    when '-v, '--verbose'; verbosity_level += 1
-  else
-    fail "Internal Error: Unmatched option: '#{opt}'"
-  end
-end
+opts, args = ShellOpts.process(SPEC, ARGV)
 
-# Process remaining command line arguments
-args.each { |arg| ... }
+alpha = opts.alpha?   # Is the -a or --alpha present
+beta = opts.beta      # The value of the -b or --beta option
+
 ```
 
-Note that the `else` clause catches legal but unhandled options; it is not an
-user error. It typically happens because of a missing or misspelled option name
-in the `when` clauses
+ShellOpts also allow multi-line definitions with comments that are printed as
+part of help messages:
+
+```ruby
+require 'shellopts'
+
+USAGE = %(
+  -a,all            Brief comment for -a and --alpha options
+      Longer and more elaborate description of the --alpha option
+
+  -b,beta=OPTARG    Brief comment for -b and --beta options
+      Longer and more elaborate description of the --beta option
+  
+  -- CMDARG...
+)
+```
 
 If there is an error in the command line options, the program will exit with
 status 1 and print an error message and a short usage description on standard
@@ -50,7 +45,11 @@ error
 ## Processing
 
 `ShellOpts.process` compiles a usage definition string into a grammar and use
-that to parse the command line. If given a block, the block is called with a
+that to parse the command line
+
+HERE
+
+
 name/value pair for each option or command and return a list of the remaining
 non-option arguments
 
