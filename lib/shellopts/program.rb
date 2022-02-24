@@ -59,7 +59,7 @@ module ShellOpts
       object
     end
 
-    # Return command object or option argument or nil if not present
+    # Return command object or option argument value if present, otherwise nil
     #
     # The key is the name or identifier of the object or any any option
     # alias. Eg.  :f, '-f', :file, or '--file' are all usable as option keys

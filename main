@@ -5,6 +5,34 @@ Bundler.setup
 
 require 'shellopts'
 
+include ShellOpts
+
+
+SPEC = %(
+  -a,alpha        @ Brief comment for -a and --alpha options
+      Longer and more elaborate description of the --alpha option
+
+  -b,beta=ARG
+      @ Alternative style of brief comment
+
+      Longer and more elaborate description of the --beta option
+)
+
+opts, args = ShellOpts.process(SPEC, ARGV)
+puts "opts.alpha?: #{opts.alpha?.inspect}"
+#puts "opts.alpha: #{opts.alpha.inspect}"
+puts "opts.beta?: #{opts.beta?.inspect}"
+puts "opts.beta: #{opts.beta.inspect}"
+exit
+ShellOpts::ShellOpts.brief
+exit
+
+
+
+
+
+
+
 # Standard options
 #   -h,help
 #   --version

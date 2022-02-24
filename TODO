@@ -1,4 +1,5 @@
 
+o Ignore all text after ' # ' (doesn't conflict with option flag)
 o Command aliases
 o Add user-defined setions
 o Add a SOURCE section with link to git repo

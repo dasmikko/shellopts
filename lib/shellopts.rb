@@ -113,7 +113,7 @@ module ShellOpts
 
     # Debug: Internal variables made public
     attr_reader :tokens
-    alias_method :ast, :grammar
+    alias_method :ast, :grammar # Oops - defined earlier FIXME
 
     def initialize(name: nil, stdopts: true, msgopts: false, float: true, exception: false)
       @name = name || File.basename($PROGRAM_NAME)
@@ -163,7 +163,7 @@ module ShellOpts
     def self.process(spec, argv, **opts)
       ::ShellOpts.instance = shellopts = ShellOpts.new(**opts)
       shellopts.process(spec, argv)
-      [shellopts.opts, shellopts.argv]
+      [shellopts.program, shellopts.argv]
     end
 
     # Write short usage and error message to standard error and terminate
