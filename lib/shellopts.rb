@@ -132,6 +132,7 @@ module ShellOpts
         # TODO: Add standard and message options and their handlers
         @grammar = Analyzer.analyze(ast)
       }
+      self
     end
 
     # Use grammar to interpret arguments. Return a ShellOpts::Program and
@@ -142,6 +143,7 @@ module ShellOpts
         @argv = argv.dup
         @program, @args = Interpreter.interpret(grammar, argv, float: float, exception: exception)
       }
+      self
     end
 
     # Compile +spec+ and interpret +argv+. Returns a tuple of a
@@ -150,7 +152,7 @@ module ShellOpts
     def process(spec, argv)
       compile(spec)
       interpret(argv)
-      [program, args]
+      self
     end
 
     # Create a ShellOpts object and sets the global instance, then process the
@@ -161,6 +163,7 @@ module ShellOpts
     def self.process(spec, argv, **opts)
       ::ShellOpts.instance = shellopts = ShellOpts.new(**opts)
       shellopts.process(spec, argv)
+      [shellopts.opts, shellopts.argv]
     end
 
     # Write short usage and error message to standard error and terminate
@@ -204,6 +207,10 @@ module ShellOpts
           raise ArgumentError, "No such command: '#{subject&.sub(".", " ")}'"
       Formatter.help(node)
     end
+
+    def self.usage() ::ShellOpts.instance.usage end
+    def self.brief() ::ShellOpts.instance.brief end
+    def self.help(subject = nil) ::ShellOpts.instance.help(subject) end
 
   private
     def handle_exceptions(&block)
