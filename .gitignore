@@ -1,7 +1,6 @@
 /.bundle/
 /.yardoc
 /_yardoc/
-/doc/
 /rdoc/
 /pkg/
 /spec/reports/
@@ -27,3 +26,5 @@ tt.*
 s
 s.*
 
+# Ignore temporary directory
+/spec/tmpdir/

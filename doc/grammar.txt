@@ -1,0 +1,27 @@
+
+Optionn Grammar
+  [ "+" ] name-list [ "=" [ label ] [ ":" [ "#" | "$" | enum | special-constant ] ] [ "?" ] ]
+
+  -a=               # Renders as -a=
+  -a=#              # Renders as -a=INT
+  -b=$              # Renders as -b=NUM
+  -c=a,b,c          # Renders as -c=a|b|c
+  -d=3..5           # Renders as -d=3..5
+  -e=:DIR           # Renders as -e=DIR
+  -f=:FILE          # Renders as -f=FILE
+
+  -o=COUNT          
+  -a=COUNT:#
+  -b=COUNT:$
+  -c=COUNT:a,b,c
+  -e=DIR:DIRPATH
+  -f=FILE:FILEPATH
+
+Special constants
+
+          Exist   Missing   Optional
+
+  File    FILE    -         FILEPATH
+  Dir     DIR     -         DIRPATH
+  Node    NODE    NEW       PATH
+

@@ -1,345 +1,289 @@
 # Shellopts
 
-`ShellOpts` is a simple Linux command line parsing libray that covers most modern use
-cases incl. sub-commands. Options and commands are specified using a
-getopt(1)-like string that is interpreted by the library to process the command
-line
+`ShellOpts` is a command line processing library. It supports short
+and long options and subcommands, and has built-in help and error messages
+
 
 ## Usage
 
-The following program accepts the options -a or --all, --count, --file, and -v
-or --verbose. It expects `--count` to have an optional integer argument,
-`--file` to have a mandatory argument, and allows `-v` and `--verbose` to be
-repeated:
+ShellOpts use a string to specify legal options and documentation. The
+following program accepts the options --alpha and --beta with an argument. -a
+and -b are option aliases:
 
 ```ruby
- 
-# Define options
-USAGE = "a,all count=#? file= +v,verbose -- FILE..."
+require 'shellopts'
 
-# Define default values
-all = false
-count = nil
-file = nil
-verbosity_level = 0
+SPEC = "-a,alpha -b,beta=VAL -- ARG1 ARG2"
 
-# Process command line and return remaining non-option arguments
-args = ShellOpts.process(USAGE, ARGV) do |opt, arg|
-  case opt
-    when '-a', '--all';    all = true
-    when '--count';        count = arg || 42
-    when '--file';         file = arg # never nil
-    when '-v, '--verbose'; verbosity_level += 1
-  else
-    fail "Internal Error: Unmatched option: '#{opt}'"
-  end
-end
+opts, args = ShellOpts.process(SPEC, ARGV)
 
-# Process remaining command line arguments
-args.each { |arg| ... }
+alpha = opts.alpha?   # True if -a or --alpha are present
+beta = opts.beta      # The value of the -b or --beta option
+
 ```
 
-Note that the `else` clause catches legal but unhandled options; it is not an
-user error. It typically happens because of a missing or misspelled option name
-in the `when` clauses
+```ruby
+```
+
+ShellOpts also allow multi-line definitions with comments that are used as part
+of help messages
+
+```ruby
+require 'shellopts'
+
+SPEC = %(
+  -a,alpha @ Brief comment for -a and --alpha options
+  -b,beta=VAL
+      @ Alternative style of brief comment
+  -- ARG1 ARG2
+)
+
+opts, args = ShellOpts.process(SPEC, ARGV)
+ShellOpts::ShellOpts.brief
+```
+
+prints
+
+```
+Usage
+  main --alpha --beta=VAL ARG1 ARG2
+
+Options
+  -a, --alpha     Brief comment for -a and --alpha options
+  -b, --beta=VAL  Alternative style of brief comment
+```
+
+There is also a `ShellOpts.help` method that prints a more detailed
+documentation, and a `ShellOpts.usage` method that prints a compact usage
+string
 
 If there is an error in the command line options, the program will exit with
-status 1 and print an error message and a short usage description on standard
-error
+status 1 and print an error message and usage on standard error.  If there is
+an error in the specification, a message to the developer with the origin of
+the error is printed on standard error
 
 ## Processing
 
-`ShellOpts.process` compiles a usage definition string into a grammar and use
-that to parse the command line. If given a block, the block is called with a
-name/value pair for each option or command and return a list of the remaining
-non-option arguments
+`ShellOpts.process` creates a `ShellOpts::ShellOpts` object and use it to
+compile the specification and process the command line. It returns a tuple of a
+Program object and an array of the remaining arguments
+
+The Program object has accessor methods for each defined option and sub-command
+to check presence and return an optional argument. Given the options "--alpha
+--beta=ARG" then the following accessor methods are available:
 
 ```ruby
-args = ShellOpts.process(USAGE, ARGV) do |opt, arg|
-  case opt
-    when ...
+  # Returns true if the option is present and false otherwise
+  opts.alpha?()     
+  opts.beta?()
+
+  # Returns the argument of the beta option or nil if missing
+  opts.beta()       
+```
+
+Given the commands "cmd1! cmd2!" the following methods are available:
+
+```ruby
+  # Returns the sub-command object or nil if not present
+  opts.cmd1!
+  opts.cmd2!
+  
+  opts.subcommand!  # Returns the sub-command object or nil if not present
+  opts.subcommand   # Returns the sub-command's identifier (eg. :cmd1!)
+```
+
+It is used like this
+
+```ruby
+  case opts.subcommand
+    when :cmd1 
+      # opts.cmd1 is defined here
+    when :cmd2
+      # opts.cmd2 is defined here
+    end
   end
-end
 ```
 
-This calls the block for each option in the same order as on the command line
-and return the remaining non-option args. It also sets up the `ShellOpts.error` and
-`ShellOpts.fail` methods. Please note that you need to call `ShellOpts.reset`
-if you want to process another command line
+Sub-commands have options and even sub-sub-commands of their own. They can be
+nested to any depth (which is not recommended, btw.)
 
-If `ShellOpts.process` is called without a block it returns a
-`ShellOpts::ShellOpts` object. It can be used to process more than one command
-line at a time and to inspect the grammar and AST
+The module methods `::usage`, `::brief`, and `::help` prints documentation with
+increasing detail. `::usage` lists the options and commands without any comments,
+`::brief` includes source text that starts with a '@', and `::help` the full
+documentation in a man-page like format. Example
 
 ```ruby
-shellopts = ShellOpts.process(USAGE, ARGV)  # Returns a ShellOpts::ShellOpts object
-shellopts.each { |opt, arg| ... }           # Access options
-args = shellopts.args                       # Access remaining arguments
-shellopts.error "Something went wrong"      # Emit an error message and exit
+  SPEC = "-h --help"
+  opts, args = ShellOpts.process(SPEC, ARGV)
+
+  if opts.h?
+    ShellOpts.brief
+    exit
+  elsif opts.help?
+    ShellOpts.help
+    exit
+  end
 ```
 
-## Usage string
+The module methods `::error` and `::failure` are used to report errors in a common
+format and then terminate the program with status 1. `::error` is used to report
+errors that the user can correct and prints a usage description as a reminder.
+`::failure` is used to report errors within the program so the usage descriptionn
+is not printed:
 
-A usage string, typically named `USAGE`, is a list of option and command
-definitions separated by whitespace. It can span multiple lines. A double
-dash (`--`) marks the end of the definition, anything after that is not
-interpreted but copied verbatim in error messages
+```ruby
+  SPEC = "--var=VAR"
+  opts, args = ShellOpts.process(SPEC, ARGV)
 
-The general [syntax](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form) is
+  # --var is a mandatory 'option'
+  opts.var? or error "Missing --var 'option'"
 
-```EBNF
-options { command options } [ "--" anything ]
+  # later during processing
+  condition or failure "Memory overflow"
+```
+
+
+## Specification
+
+The specification is possibly multi-line string, typically named `SPEC`, that
+is a mix of option or command definitions and related documentation.
+Indentation is used to nest the elements and '@' is used to tag an option or
+command with a brief description
+
+The specifiction is parsed line-by-line: Lines matching and initial '-', or
+'--' are considered option definitions and lines starting with a word
+immediately followed by an exclamation mark is a command definition (like 'cmd!
+...'). Text following a '@' (except in paragraphs) is a brief comment, the rest
+is paragraphs
+
+```
+  -a,alpha @ Brief comment for -a and --alpha options
+    Longer description of the option that is used by `::help`
+
+  cmd! 
+    @ Alternative style of brief comment
+
+    Longer description of the command
+```
+
+Text starting with '--' follow by a blank character is a free-text description
+of the command-line arguments. It is not parsed but used in documentation and
+error messages:
+
+```ruby
+  SPEC = "-a cmd! -- ARG1 ARG2"
 ```
 
 ## Options
 
-An option is defined by a list of comma-separated names optionally prefixed by a
-`+` and/or followed by a `=` and a set of flags. The syntax is
+The general syntax for options is
 
-```EBNF
-[ "+" ] name-list [ "=" [ "#" | "$" ] [ label ] [ "?" ] ]
+```
+  <prefix><optionlist>[=argspec][?]
 ```
 
-#### Flags
+The option list is a comma-separated list of option names. It is prefixed with
+a '-' if the option list starts with a short option name and '--' if the option
+list starts with a long name. '-' and '--' can be replaced with '+' or '++' to
+indicate that the option can be repeated
 
-There are the following flags:
-
-|Flag|Effect|
-|---|---|
-|+|Repeated option (prefix)|
-|=|Argument. Mandatory unless `?` is also used|
-|#|Integer argument|
-|$|Floating point argument|
-|?|Optional argument|
-
-#### Repeated options
-
-Options are unique by default and the user will get an error if an option is
-used more than once. You can tell the parser to allow several instances of the
-same option by prefixing the option names with a `+`. A typical use case is to
-let the user repeat a 'verbose' option to increase verbosity: `+v,verbose`
-allows `-vvv` or `--verbose --verbose --verbose`. `ShellOpts::process` yields
-an entry for each usage so should handle repeated options like this
-
-```ruby
-verbosity_level = 0
-
-args = ShellOpts.process(USAGE, ARGV) do |opt, arg|
-  case opt
-    when '-v', '--verbose'; verbosity_level += 1
-    # other options
-  end
-end
+```
+  -a,alpha      @ -a and --alpha
+  ++beta        @ --beta, can be repeated
+  --gamma=ARG?  @ --gamma, takes an optional argument
 ```
 
-#### Option names
 
-Option names are a comma-separated list of names. Names can consist of one or more
-ASCII letters (a-zA-Z), digits, underscores ('\_') and dashes ('-').  A name
-can't start with a dash, though
+An option argument has a name and a type. The type can be specified as '#'
+(integer), '$' (float), or as a comma-separated list of allowed values. It can
+also be defined by a keyword that expects a file or directory argument:
 
-Names that are one character long are considered 'short options' and are
-prefixed with a single dash on the command line (eg. '-a'). Names with two or
-more characters are 'long options' and are used with two dashes (eg. '--all').
-Note that short and long names handles arguments differently
+  | Keyword   | Type |
+  | --------- | ---- |
+  | FILE      | A file if present or in an existing directory if not |
+  | DIR       | A directory if present or in an existing directory if not |
+  | PATH      | Either a FILE or DIR |
+  | EFILE     | An existing file |
+  | EDIR      | An existing directory |
+  | EPATH     | Either an EFILE or EDIR |
+  | NFILE     | A new file |
+  | NDIR      | A new directory |
+  | NPATH     | A new file or  directory |
 
-Examples:
+By default the option name is inferred from the type but it can be specified explicitly by separating it from the type with a ':'. Examples:
+
 ```
-a               # -a
-all             # --all
-a,all           # -a or --all
-r,R,recursive   # -r, -R, or --recursive
+  -a=#                  @ -a takes an integer argument
+  -b=MONEY:$            @ -b takes a float argument. Is shown as '-b=MONEY' in messages
+  -c=red,blue,green     @ -c takes one of the listed words
+  -d=FILE               @ Fails if file exists and is not a file
+  -d=EDIR               @ Fails if directory doesn't exist or is not a directory
+  -d=INPUT:EFILE        @ Takes and existing file. Shown as '-d=INPUT' in messages
 ```
-
-#### Option argument
-
-An option that takes an an argument is declared with a `=` after the name list.
-By default the type of an option is a `String` but a integer argument can be
-specified by the `#` flag and a float argument by the `$` flag.  
-
-You can label a option value that will be used in help texts and error
-messages. A usage string like `file=FILE` will be displayed as `--file=FILE`
-and `file=FILE?` like `--file[=FILE]`. If no label is given, `INT` will be used
-for integer arguments, `FLOAT` for floating point, and else `ARG`
-
-Arguments are mandatory by default but can be made optional by suffixing a `?`
 
 ## Commands
 
-Sub-commands (like `git clone`) are defined by a name (or a dot-separated list
-of names) followed by an exclamation mark. All options following a command are
-local to that command. It is not possible to 'reset' this behaviour so global
-options should always come before the first command. Nested commands are
-specified using a dot-separated "path" to the nested sub-command
-
-Examples
-```
-g,global clone! t,template=
-g,global clone! t,template= clone.list! v,verbose
-```
-
-The last example could be called like `program -g clone list -v`. You may split
-the usage string to improve readability:
+Commands are specified as lines starting with the name of the command
+immediately followed by a '!' like `cmd!`. Commands can have options and even
+subcommands of their own, in the multi-line format they're indented under the
+command line like this
 
 ```
-g,global 
-    clone! t,template= 
-        clone.list! v,verbose
+  -a @ Program level option
+  cmd!
+    -b @ Command level option
+    subcmd!
+      -c @ Sub-command level option 
 ```
 
-#### Command processing
-
-Commands are treated like options but with a value that is an array of options (and 
-sub-commands) to the command:
-
-```ruby
-USAGE = "a cmd! b c"
-
-args = ShellOpts.process(USAGE, ARGV) { |opt, arg|
-  case opt
-    when '-a'; # Handle -a
-    when 'cmd'
-      arg.each { |opt, arg|
-        case opt
-          when '-b'; # Handle -b
-          when '-c'; # Handle -c
-        end
-      }
-  end
-}
-```
-
-## Parsing
-
-Parsing of the command line follows the UNIX traditions for short and long
-options. Short options are one letter long and prefixed by a `-`. Short options
-can be grouped so that `-abc` is the same as `-a -b -c`.  Long options are
-prefixed with a `--` and can't be grouped
-
-Mandatory arguments to short options can be separated by a whitespace (`-f
-/path/to/file`) but optional arguments needs to come immediately after the
-option: `-f/path/to/file`. Long options also allow a space separator for
-mandatory arguments but use `=` to separate the option from optional arguments:
-`--file=/path/to/file`
-
-Examples
-```
-f=              # -farg or -f arg
-f=?             # -farg
-
-file=           # --file=arg or --file arg
-file=?          # --file=arg
-```
-
-#### Error handling
-
-If the command line is invalid, it's a user error and the program exits with
-status 1 and prints an error message on STDERR 
-
-If there is an error in the usage string, ShellOpts raises a
-`ShellOpts::CompileError`. Note that this exception signals an error by the
-application developer and shouldn't be catched. If there is an internal error
-in the library, a ShellOpts::InternalError is raised and you should look for a
-newer version of `ShellOpts` or file a bug-report
-
-All ShellOpt exceptions derive from ShellOpt::Error
-
-#### Error handling methods
-
-ShellOpts provides two methods that can be used by the application to
-generate error messages in the style of ShellOpts: `ShellOpts.error` and
-`ShellOpts.fail`. Both write an error message on STDERR and terminates the
-program with status 1. 
-
-`error` is intended to respond to user errors (like giving a file name that
-doesn't exist) and prints a short usage summary to remind the user:
+In single-line format, subcommands are specified by prefixing the supercommand's name:
 
 ```
-<PROGRAM>: <MESSAGE>
-Usage: <PROGRAM> <USAGE>
+  -a cmd! -b cmd.subcmd! -c
 ```
-The usage string is a prettyfied version of the usage definition given to
-ShellOpts
-
-`fail` is used to report that something is wrong with the assumptions about the
-system (eg. disk full) and omits the usage summary
-```
-<PROGRAM>: <MESSAGE>
-```
-
-The methods are defined as instance methods on `ShellOpts::ShellOpts` and as
-class methods on `ShellOpts`. They can also be included in the global scope by
-`include ShellOpts::Utils`
-
-#### Usage string
-
-The error handling methods prints a prettified version of the usage string
-given to `ShellOpts.parse`. The usage string can be overridden by assigning to
-`ShellOpts.usage`. A typical use case is when you want to split the usage
-description over multiple lines:
-
-```ruby
-
-USAGE="long-and-complex-usage-string"
-ShellOpts.usage = <<~EOD
-  usage explanation
-  split over
-  multiple lines
-EOD
-```
-
-Note that this only affects the module-level `ShellOpts.error` method and not
-object-level `ShellOpts::ShellOpts#error` method. This is considered a bug and
-will fixed at some point
 
 ## Example
 
-The rm(1) command could be implemented like this
+The rm(1) command could be specified like this:
+
 ```ruby
 
 require 'shellopts'
 
 # Define options
-USAGE = %{
-  f,force i I interactive=WHEN? r,R,recusive d,dir 
-  one-file-system no-preserve-root preserve-root 
-  v,verbose help version
-}
+SPEC = %(
+  -f,force            @ ignore nonexisten files and arguments, never prompt
+  -i                  @ prompt before every removal
 
-# Define defaults
-force = false
-prompt = false
-prompt_once = false
-interactive = false
-interactive_when = nil
-recursive = false
-remove_empty_dirs = false
-one_file_system = false
-preserve_root = true
-verbose = false
+  -I                  
+      @ prompt once
 
-# Process command line
-args = ShellOpts.process(USAGE, ARGV) { |opt, arg|
-  case opt
-    when '-f', '--force';           force = true
-    when '-i';                      prompt = true
-    when '-I';                      prompt_once = true
-    when '--interactive';           interactive = true; interactive_when = arg
-    when '-r', '-R', '--recursive'; recursive = true
-    when '-d', '--dir';             remove_empty_dirs = true
-    when '--one-file-system';       one_file_system = true
-    when '--preserve-root';         preserve_root = true
-    when '--no-preserve-root';      preserve_root = false
-    when '--verbose';               verbose = true
-    when '--help';                  print_help; exit
-    when '--version';               puts VERSION; exit
-  end
-end
+      prompt once before removing more than three files, or when  removing
+      recursively;  less  intrusive than -i, while still giving protection
+      against most mistakes
 
-# Remaining arguments are files or directories
-files = args
+  --interactive=WHEN:never,once,always
+      @ prompt according to WHEN
+
+      prompt according to WHEN: never, once (-I), or always (-i); without WHEN, prompt always
+
+  --one-file-system
+      @ stay on fuile system
+
+      when  removing  a hierarchy recursively, skip any directory that is on a file system different from
+      that of the corresponding command line argument
+
+  --no-preserve-root    @ do not treat '/' specially
+  --preserve-root       @ do not remove '/' (default)
+  -r,R,recursive        @ remove directories and their contents recursively
+  -d,dir                @ remove empty directories
+  -v,verbose            @ explain what is being done
+  --help                @ display this help and exit
+  --version             @ output version information and exit
+
+  -- FILE...
+)
 ```
-
 
 ## See also
 

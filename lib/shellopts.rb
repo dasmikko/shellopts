@@ -1,232 +1,475 @@
-require "shellopts/version"
 
-require 'shellopts/compiler.rb'
+$quiet = nil
+$verb = nil
+$debug = nil
+$shellopts = nil
+
+require 'indented_io'
+
+#$LOAD_PATH.unshift "../constrain/lib"
+require 'constrain'
+include Constrain
+
+require 'ext/array.rb'
+require 'ext/forward_to.rb'
+require 'ext/lcs.rb'
+include ForwardTo
+
+require 'shellopts/version.rb'
+
+require 'shellopts/stack.rb'
+require 'shellopts/token.rb'
+require 'shellopts/grammar.rb'
+require 'shellopts/program.rb'
+require 'shellopts/lexer.rb'
+require 'shellopts/argument_type.rb'
 require 'shellopts/parser.rb'
-require 'shellopts/utils.rb'
+require 'shellopts/analyzer.rb'
+require 'shellopts/interpreter.rb'
+require 'shellopts/ansi.rb'
+require 'shellopts/renderer.rb'
+require 'shellopts/formatter.rb'
+require 'shellopts/dump.rb'
 
-# ShellOpts is a library for parsing command line options and sub-commands. The
-# library API consists of the methods {ShellOpts.process}, {ShellOpts.error},
-# and {ShellOpts.fail} and the result class {ShellOpts::ShellOpts}
-#
-# ShellOpts inject the constant PROGRAM into the global scope. It contains the 
-# name of the program
-#
+
 module ShellOpts
-  # Return the hidden +ShellOpts::ShellOpts+ object (see .process)
-  def self.shellopts()
-    @shellopts
-  end
-
-  # Prettified usage string used by #error and #fail. Default is +usage+ of
-  # the current +ShellOpts::ShellOpts+ object
-  def self.usage() @usage || @shellopts&.usage end
-
-  # Set the usage string
-  def self.usage=(usage) @usage = usage end
-  
-  # Process command line options and arguments.  #process takes a usage string
-  # defining the options and the array of command line arguments to be parsed
-  # as arguments
+  # Base error class
   #
-  # If called with a block, the block is called with name and value of each
-  # option or command and #process returns a list of remaining command line
-  # arguments. If called without a block a ShellOpts::ShellOpts object is
-  # returned
-  # 
-  # The value of an option is its argument, the value of a command is an array
-  # of name/value pairs of options and subcommands. Option values are converted
-  # to the target type (String, Integer, Float) if specified
+  # Note that errors in the usage of the ShellOpts library are reported using
+  # standard exceptions
   #
-  # Example
-  #
-  #   # Define options
-  #   USAGE = 'a,all g,global +v,verbose h,help save! snapshot f,file=FILE h,help'
-  #
-  #   # Define defaults
-  #   all = false
-  #   global = false
-  #   verbose = 0
-  #   save = false
-  #   snapshot = false
-  #   file = nil
-  #
-  #   # Process options
-  #   argv = ShellOpts.process(USAGE, ARGV) do |name, value|
-  #     case name
-  #       when '-a', '--all'; all = true
-  #       when '-g', '--global'; global = value
-  #       when '-v', '--verbose'; verbose += 1
-  #       when '-h', '--help'; print_help(); exit(0)
-  #       when 'save'
-  #         save = true
-  #         value.each do |name, value|
-  #           case name
-  #             when '--snapshot'; snapshot = true
-  #             when '-f', '--file'; file = value
-  #             when '-h', '--help'; print_save_help(); exit(0)
-  #           end
-  #         end
-  #     else
-  #       raise "Not a user error. The developer forgot or misspelled an option"
-  #     end
-  #   end
-  #
-  #   # Process remaining arguments
-  #   argv.each { |arg| ... }
-  #
-  # If an error is encountered while compiling the usage string, a
-  # +ShellOpts::Compiler+ exception is raised. If the error happens while
-  # parsing the command line arguments, the program prints an error message and
-  # exits with status 1. Failed assertions raise a +ShellOpts::InternalError+
-  # exception
-  #
-  # Note that you can't process more than one command line at a time because
-  # #process saves a hidden {ShellOpts::ShellOpts} class variable used by the
-  # class methods #error and #fail. Call #reset to clear the global object if
-  # you really need to parse more than one command line. Alternatively you can
-  # create +ShellOpts::ShellOpts+ objects yourself and also use the object methods
-  # #error and #fail:
-  #
-  #   shellopts = ShellOpts::ShellOpts.new(USAGE, ARGS)
-  #   shellopts.each { |name, value| ... }
-  #   shellopts.args.each { |arg| ... }
-  #   shellopts.error("Something went wrong")
-  #
-  # Use #shellopts to get the hidden +ShellOpts::ShellOpts+ object
-  #
-  def self.process(usage, argv, program_name: PROGRAM, &block)
-    if !block_given?
-      ShellOpts.new(usage, argv, program_name: program_name)
-    else
-      @shellopts.nil? or raise InternalError, "ShellOpts class variable already initialized"
-      @shellopts = ShellOpts.new(usage, argv, program_name: program_name)
-      @shellopts.each(&block)
-      @shellopts.args
+  class ShellOptsError < StandardError
+    attr_reader :token
+    def initialize(token)
+      super
+      @token = token
     end
   end
 
-  # Reset the hidden +ShellOpts::ShellOpts+ class variable so that you can process
-  # another command line
-  def self.reset()
-    @shellopts = nil
-    @usage = nil
-  end
-
-  # Print error message and usage string and exit with status 1. It use the
-  # current ShellOpts object if defined. This method should be called in
-  # response to user-errors (eg. specifying an illegal option)
+  # Raised on syntax errors on the command line (eg. unknown option). When
+  # ShellOpts handles the exception a message with the following format is
+  # printed on standard error:
   #
-  # If there is no current ShellOpts object +error+ will look for USAGE to make
-  # it possible to use +error+ before the command line is processed and also as
-  # a stand-alone error reporting method
-  def self.error(*msgs)
-    program = @shellopts&.program_name || PROGRAM
-    usage_string = usage || (defined?(USAGE) && USAGE ? Grammar.compile(PROGRAM, USAGE).usage : nil)
-    emit_and_exit(program, @usage.nil?, usage_string, *msgs)
-  end
+  #   <program>: <message>
+  #   Usage: <program> ...
+  #
+  class Error < ShellOptsError; end 
 
-  # Print error message and exit with status 1. It use the current ShellOpts
-  # object if defined. This method should not be called in response to
-  # user-errors but system errors (like disk full)
-  def self.fail(*msgs)
-    program = @shellopts&.program_name || PROGRAM
-    emit_and_exit(program, false, nil, *msgs)
-  end
+  # Default class for program failures. Failures are raised on missing files or
+  # illegal paths. When ShellOpts handles the exception a message with the
+  # following format is printed on standard error:
+  #
+  #   <program>: <message>
+  #
+  class Failure < Error; end
 
-  # The compilation object
+  # ShellOptsErrors during compilation. These errors are caused by syntax errors in the
+  # source. Messages are formatted as '<file> <lineno>:<charno> <message>' when
+  # handled by ShellOpts
+  class CompilerError < ShellOptsError; end
+  class LexerError < CompilerError; end 
+  class ParserError < CompilerError; end
+  class AnalyzerError < CompilerError; end
+
+  # Internal errors. These are caused by bugs in the ShellOpts library
+  class InternalError < ShellOptsError; end
+
   class ShellOpts
-    # Name of program
-    attr_reader :program_name
+    using Ext::Array::ShiftWhile
+    using Ext::Array::PopWhile
 
-    # Prettified usage string used by #error and #fail. Shorthand for +grammar.usage+
-    def usage() @grammar.usage end
+    # Name of program. Defaults to the name of the executable
+    attr_reader :name
 
-    # The grammar compiled from the usage string. If #ast is defined, it's
-    # equal to ast.grammar
+    # Specification (String). Initialized by #compile
+    attr_reader :spec
+
+    # Array of arguments. Initialized by #interpret
+    attr_reader :argv 
+
+    # Grammar. Grammar::Program object. Initialized by #compile
     attr_reader :grammar
 
-    # The AST resulting from parsing the command line arguments
-    attr_reader :ast
+    # Resulting ShellOpts::Program object containing options and optional
+    # subcommand. Initialized by #interpret
+    def program() @program end
 
-    # List of remaining non-option command line arguments. Shorthand for ast.arguments
-    def args() @ast.arguments end
+    # Array of remaining arguments. Initialized by #interpret
+    attr_reader :args
 
-    # Compile a usage string into a grammar and use that to parse command line
+    # Compiler flags
+    attr_accessor :stdopts
+    attr_accessor :msgopts
+
+    # Interpreter flags
+    attr_accessor :float
+
+    # True if ShellOpts lets exceptions through instead of writing an error
+    # message and exit
+    attr_accessor :exception
+
+    # File of source
+    attr_reader :file
+
+    # Debug: Internal variables made public
+    attr_reader :tokens
+    alias_method :ast, :grammar # Oops - defined earlier FIXME
+
+    def initialize(name: nil, stdopts: true, msgopts: false, float: true, exception: false)
+      @name = name || File.basename($PROGRAM_NAME)
+      @stdopts, @msgopts, @float, @exception = stdopts, msgopts, float, exception
+    end
+
+    # Compile source and return grammar object. Also sets #spec and #grammar.
+    # Returns the grammar
+    def compile(spec)
+      handle_exceptions {
+        @oneline = spec.index("\n").nil?
+        @spec = spec.sub(/^\s*\n/, "")
+        @file = find_caller_file
+        @tokens = Lexer.lex(name, @spec, @oneline)
+        ast = Parser.parse(tokens)
+        # TODO: Add standard and message options and their handlers
+        @grammar = Analyzer.analyze(ast)
+      }
+      self
+    end
+
+    # Use grammar to interpret arguments. Return a ShellOpts::Program and
+    # ShellOpts::Args tuple
+    #
+    def interpret(argv)
+      handle_exceptions { 
+        @argv = argv.dup
+        @program, @args = Interpreter.interpret(grammar, argv, float: float, exception: exception)
+      }
+      self
+    end
+
+    # Compile +spec+ and interpret +argv+. Returns a tuple of a
+    # ShellOpts::Program and ShellOpts::Args object
+    #
+    def process(spec, argv)
+      compile(spec)
+      interpret(argv)
+      self
+    end
+
+    # Create a ShellOpts object and sets the global instance, then process the
+    # spec and arguments. Returns a tuple of a ShellOpts::Program with the
+    # options and subcommands and a ShellOpts::Args object with the remaining
     # arguments
     #
-    # +usage+ is the usage string, and +argv+ the command line (typically the
-    # global ARGV array). +program_name+ is the name of the program and is
-    # used in error messages. It defaults to the basename of the program
+    def self.process(spec, argv, **opts)
+      ::ShellOpts.instance = shellopts = ShellOpts.new(**opts)
+      shellopts.process(spec, argv)
+      [shellopts.program, shellopts.argv]
+    end
+
+    # Write short usage and error message to standard error and terminate
+    # program with status 1
     #
-    # Errors in the usage string raise a CompilerError exception. Errors in the
-    # argv arguments terminates the program with an error message
-    def initialize(usage, argv, program_name: File.basename($0))
-      @program_name = program_name
+    # #error is supposed to be used when the user made an error and the usage
+    # is written to help correcting the error
+    #
+    def error(subject = nil, message)
+      saved = $stdout
+      $stdout = $stderr
+      $stderr.puts "#{name}: #{message}"
+      Formatter.usage(program)
+      exit 1
+    ensure
+      $stdout = saved
+    end
+
+    # Write error message to standard error and terminate program with status 1
+    #
+    # #failure is supposed to be used the used specified the correct arguments
+    # but something went wrong during processing. Since the used didn't cause
+    # the problem, only the error message is written
+    #
+    def failure(message)
+      $stderr.puts "#{name}: #{message}"
+      exit 1
+    end
+
+    # Print usage
+    def usage() Formatter.usage(@grammar) end
+
+    # Print brief help
+    def brief() Formatter.brief(@grammar) end
+
+    # Print help for the given subject or the full documentation if +subject+
+    # is nil 
+    #
+    def help(subject = nil)
+      node = (subject ? @grammar[subject] : @grammar) or
+          raise ArgumentError, "No such command: '#{subject&.sub(".", " ")}'"
+      Formatter.help(node)
+    end
+
+    def self.usage() ::ShellOpts.instance.usage end
+    def self.brief() ::ShellOpts.instance.brief end
+    def self.help(subject = nil) ::ShellOpts.instance.help(subject) end
+
+  private
+    def handle_exceptions(&block)
+      return yield if exception
       begin
-        @grammar = Grammar.compile(program_name, usage)
-        @ast = Ast.parse(@grammar, argv)
-      rescue Grammar::Compiler::Error => ex
-        raise CompilerError.new(5, ex.message)
-      rescue Ast::Parser::Error => ex
+        yield
+      rescue Error => ex
         error(ex.message)
+      rescue Failure => ex
+        failure(ex.message)
+      rescue CompilerError => ex
+        filename = file =~ /\// ? file : "./#{file}"
+        lineno, charno = find_spec_in_file
+        charno = 1 if !@oneline
+        $stderr.puts "#{filename}:#{ex.token.pos(lineno, charno)} #{ex.message}"
+        exit(1)
       end
     end
 
-    # Unroll the AST into a nested array
-    def to_a
-      @ast.values
+    def find_caller_file
+      caller.reverse.select { |line| line !~ /^\s*#{__FILE__}:/ }.last.sub(/:.*/, "").sub(/^\.\//, "")
     end
 
-    # Iterate the result as name/value pairs. See {ShellOpts.process} for a
-    # detailed description
-    def each(&block)
-      if block_given?
-        to_a.each { |*args| yield(*args) }
+    def self.compare_lines(text, spec)
+      return true if text == spec
+      return true if text =~ /[#\$\\]/
+      false
+    end
+
+  public
+    # Find line and char index of spec in text. Returns [nil, nil] if not found
+    def self.find_spec_in_text(text, spec, oneline)
+      text_lines = text.split("\n")
+      spec_lines = spec.split("\n")
+      spec_lines.pop_while { |line| line =~ /^\s*$/ }
+
+      if oneline
+        line_i = nil
+        char_i = nil
+        char_z = 0
+
+        (0 ... text_lines.size).each { |text_i|
+          curr_char_i, curr_char_z = 
+              LCS.find_longest_common_substring_index(text_lines[text_i], spec_lines.first.strip)
+          if curr_char_z > char_z
+            line_i = text_i
+            char_i = curr_char_i
+            char_z = curr_char_z
+          end
+        }
+        line_i ? [line_i, char_i] : [nil, nil]
       else
-        to_a # FIXME: Iterator
+        spec_string = spec_lines.first.strip
+        line_i = (0 ... text_lines.size - spec_lines.size + 1).find { |text_i|
+          (0 ... spec_lines.size).all? { |spec_i|
+            compare_lines(text_lines[text_i + spec_i], spec_lines[spec_i])
+          }
+        } or return [nil, nil]
+        char_i, char_z = 
+            LCS.find_longest_common_substring_index(text_lines[line_i], spec_lines.first.strip)
+        [line_i, char_i || 0]
       end
     end
 
-    # Print error message and usage string and exit with status 1. This method
-    # should be called in response to user-errors (eg. specifying an illegal
-    # option)
-    def error(*msgs)
-      ::ShellOpts.emit_and_exit(program_name, true, usage, msgs)
+    def find_spec_in_file
+      self.class.find_spec_in_text(IO.read(@file), @spec, @oneline).map { |i| (i || 0) + 1 }
     end
 
-    # Print error message and exit with status 1. This method should not be
-    # called in response to user-errors but system errors (like disk full)
-    def fail(*msgs)
-      ::ShellOpts.emit_and_exit(program_name, false, nil, msgs)
+    def lookup(name)
+      a = name.split(".")
+      cmd = grammar
+      while element = a.shift
+        cmd = cmd.commands[element]
+      end
+      cmd
+    end
+
+    def find_subject(obj)
+      case obj
+        when String; lookup(obj)
+        when Ast::Command; Command.grammar(obj) # FIXME
+        when Grammar::Command; obj
+        when NilClass; grammar
+      else
+        raise Internal, "Illegal object: #{obj.class}"
+      end
     end
   end
 
-  # Base class for ShellOpts exceptions
-  class Error < RuntimeError; end
+  def self.process(spec, argv, msgopts: false, **opts)
+    msgopts ||= Messages.is_included?
+    ShellOpts.process(spec, argv, msgopts: msgopts, **opts)
+  end
 
-  # Raised when an error is detected in the usage string
-  class CompilerError < Error
-    def initialize(start, message)
-      super(message)
-      set_backtrace(caller(start))
+  @instance = nil
+  def self.instance?() !@instance.nil? end
+  def self.instance() @instance or raise Error, "ShellOpts is not initialized" end
+  def self.instance=(instance) @instance = instance end
+
+  forward_self_to :instance, :error, :failure
+
+  # The Include module brings the reporting methods into the namespace when
+  # included
+  module Messages
+    @is_included = false
+    def self.is_included?() @is_included end
+    def self.include(...)
+      @is_included = true
+      super
+    end
+
+    def notice(message)
+      $stderr.puts "#{name}: #{message}" if !quiet?
+    end
+
+    def mesg(message)
+      $stdout.puts message if !quiet?
+    end
+
+    def verb(level = 1, message)
+      $stdout.puts message if level <= @verbose
+    end
+
+    def debug(message)
+      $stdout.puts message if debug?
     end
   end
 
-  # Raised when an internal error is detected
-  class InternalError < Error; end
-
-private
-  @shellopts = nil
-
-  def self.emit_and_exit(program, use_usage, usage, *msgs)
-    $stderr.puts "#{program}: #{msgs.join}"
-    if use_usage
-      $stderr.puts "Usage: #{program} #{usage}" if usage
-    else
-      $stderr.puts usage if usage
-    end
-    exit 1
+  module ErrorHandling
+    # TODO: Set up global exception handlers
   end
 end
 
-PROGRAM = File.basename($PROGRAM_NAME)
+
+
+
+
+
+
+
+__END__
+
+require "shellopts/version"
+
+require "ext/algorithm.rb"
+require "ext/ruby_env.rb"
+
+require "shellopts/constants.rb"
+require "shellopts/exceptions.rb"
+
+require "shellopts/grammar/analyzer.rb"
+require "shellopts/grammar/lexer.rb"
+require "shellopts/grammar/parser.rb"
+require "shellopts/grammar/command.rb"
+require "shellopts/grammar/option.rb"
+
+require "shellopts/ast/parser.rb"
+require "shellopts/ast/command.rb"
+require "shellopts/ast/option.rb"
+
+require "shellopts/args.rb"
+require "shellopts/formatter.rb"
+
+if RUBY_ENV == "development"
+  require "shellopts/grammar/dump.rb"
+  require "shellopts/ast/dump.rb"
+end
+
+$verb = nil
+$quiet = nil
+$shellopts = nil
+
+module ShellOpts
+  class ShellOpts
+    attr_reader :name # Name of program. Defaults to the name of the executable
+    attr_reader :spec
+    attr_reader :argv
+
+    attr_reader :grammar
+    attr_reader :program
+    attr_reader :arguments
+
+    def initialize(spec, argv, name: nil, exception: false)
+      @name = name || File.basename($PROGRAM_NAME)
+      @spec, @argv = spec, argv.dup
+      exprs = Grammar::Lexer.lex(@spec)
+      commands = Grammar::Parser.parse(@name, exprs)
+      @grammar = Grammar::Analyzer.analyze(commands)
+
+      begin
+        @program, @arguments = Ast::Parser.parse(@grammar, @argv)
+      rescue Error => ex
+        raise if exception
+        error(ex.subject, ex.message)
+      end
+    end
+
+    def error(subject = nil, message)
+      $stderr.puts "#{name}: #{message}"
+      usage(subject, device: $stderr)
+      exit 1
+    end
+
+    def fail(message)
+      $stderr.puts "#{name}: #{message}"
+      exit 1
+    end
+
+    def usage(subject = nil, device: $stdout, levels: 1, margin: "")
+      subject = find_subject(subject)
+      device.puts Formatter.usage_string(subject, levels: levels, margin: margin)
+    end
+
+    def help(subject = nil, device: $stdout, levels: 10, margin: "", tab: "  ")
+      subject = find_subject(subject)
+      device.puts Formatter.help_string(subject, levels: levels, margin: margin, tab: tab)
+    end
+
+  private
+    def lookup(name)
+      a = name.split(".")
+      cmd = grammar
+      while element = a.shift
+        cmd = cmd.commands[element]
+      end
+      cmd
+    end
+
+    def find_subject(obj)
+      case obj
+        when String; lookup(obj)
+        when Ast::Command; Command.grammar(obj)
+        when Grammar::Command; obj
+        when NilClass; grammar
+      else
+        raise Internal, "Illegal object: #{obj.class}"
+      end
+    end
+  end
+
+  def self.process(spec, argv, name: nil, exception: false)
+    $shellopts = ShellOpts.new(spec, argv, name: name, exception: exception)
+    [$shellopts.program, $shellopts.arguments]
+  end
+
+  def self.error(subject = nil, message)
+    $shellopts.error(subject, message)
+  end
+
+  def self.fail(message)
+    $shellopts.fail(message)
+  end
+
+  def self.help(subject = nil, device: $stdout, levels: 10, margin: "", tab: "  ")
+    $shellopts.help(subject, device: device, levels: levels, margin: margin, tab: tab)
+  end
+
+  def self.usage(subject = nil, device: $stdout, levels: 1, margin: "")
+    $shellopts.usage(subject, device: device, levels: levels, margin: margin)
+  end
+end
+
