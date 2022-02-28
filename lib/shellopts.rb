@@ -21,6 +21,7 @@ require 'shellopts/stack.rb'
 require 'shellopts/token.rb'
 require 'shellopts/grammar.rb'
 require 'shellopts/program.rb'
+require 'shellopts/args.rb'
 require 'shellopts/lexer.rb'
 require 'shellopts/argument_type.rb'
 require 'shellopts/parser.rb'
@@ -163,7 +164,7 @@ module ShellOpts
     def self.process(spec, argv, **opts)
       ::ShellOpts.instance = shellopts = ShellOpts.new(**opts)
       shellopts.process(spec, argv)
-      [shellopts.program, shellopts.argv]
+      [shellopts.program, shellopts.args]
     end
 
     # Write short usage and error message to standard error and terminate

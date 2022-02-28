@@ -32,7 +32,7 @@ module ShellOpts
           end
         end
       end
-      [@expr, @args += @argv]
+      [@expr, Args.new(@args + @argv)]
     end
 
     def self.interpret(grammar, argv, **opts)

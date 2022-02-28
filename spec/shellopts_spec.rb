@@ -1,12 +1,22 @@
 include ShellOpts
 
-describe "shellopts" do
+describe "ShellOpts" do
   it 'has a version number' do
     expect(ShellOpts::VERSION).not_to be_nil
   end
 
-  it 'does something useful'
+  describe "::process" do
+    it "Returns a tuple of ShellOpts::Program and ShellOpts::Args objects" do
+      spec = "-a"
+      argv = %w(-a arg)
+      opts, args = ShellOpts::ShellOpts.process(spec, argv)
+      expect(opts.is_a?(ShellOpts::Program)).to eq true
+      expect(args).to be_a(ShellOpts::Args)
+    end
+  end
+end
 
+describe "ShellOpts::ShellOpts" do
   describe "find_spec_in_text" do
     def find(text, spec)
       oneline = spec.index("\n").nil?

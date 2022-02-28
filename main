@@ -19,13 +19,13 @@ SPEC = %(
 )
 
 opts, args = ShellOpts.process(SPEC, ARGV)
-puts "opts.alpha?: #{opts.alpha?.inspect}"
+#puts "opts.alpha?: #{opts.alpha?.inspect}"
 #puts "opts.alpha: #{opts.alpha.inspect}"
-puts "opts.beta?: #{opts.beta?.inspect}"
-puts "opts.beta: #{opts.beta.inspect}"
-exit
-ShellOpts::ShellOpts.brief
-exit
+#puts "opts.beta?: #{opts.beta?.inspect}"
+#puts "opts.beta: #{opts.beta.inspect}"
+#exit
+#ShellOpts::ShellOpts.brief
+#exit
 
 
 
@@ -277,11 +277,11 @@ shellopts.compile(SPEC)
 #shellopts.tokens.each(&:dump)
 #exit
 
-#shellopts.usage
+shellopts.usage
 #shellopts.brief
 #shellopts.help
 #shellopts.help("cmd")
-shellopts.help(ARGV.first)
+#shellopts.help(ARGV.first)
 
 #p shellopts.tokens
 

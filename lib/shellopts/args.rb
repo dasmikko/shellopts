@@ -3,12 +3,8 @@ module ShellOpts
   # Specialization of Array for arguments lists. Args extends Array with a
   # #extract and an #expect method to extract elements from the array. The
   # methods raise a ShellOpts::UserError exception in case of errors
+  #
   class Args < Array
-    def initialize(shellopts, *args)
-      @shellopts = shellopts
-      super(*args)
-    end
-
     # Remove and return elements from beginning of the array
     #
     # If +count_or_range+ is a number, that number of elements will be
@@ -19,6 +15,7 @@ module ShellOpts
     #
     # #extract raise a ShellOpts::UserError exception if there's is not enough
     # elements in the array to satisfy the request
+    #
     def extract(count_or_range, message = nil) 
       case count_or_range
         when Range
@@ -44,6 +41,7 @@ module ShellOpts
     #
     # #expect raise a ShellOpts::UserError exception if the array is not emptied 
     # by the operation
+    #
     def expect(count_or_range, message = nil)
       case count_or_range
         when Range
@@ -57,7 +55,7 @@ module ShellOpts
 
   private
     def inoa(message = nil) 
-      raise Error.new(nil), message || "Illegal number of arguments"
+      raise ArgumentError, message || "Illegal number of arguments"
     end
   end
 end
