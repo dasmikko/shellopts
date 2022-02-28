@@ -5,12 +5,12 @@ include ShellOpts::Grammar
 
 describe "ShellOpts" do
   describe "Grammar" do
-    def match(kind, node)
-      matcher = FileArgument.new(kind)
-      matcher.match?("opt", node) || false
-    end
-
     describe "FileArgument" do
+      def match(kind, node)
+        matcher = FileArgument.new(kind)
+        matcher.match?("opt", node) || false
+      end
+
       def root() Dir.getwd + "/spec/tmpdir" end
 
       def file() root + "/file" end
@@ -163,8 +163,38 @@ describe "ShellOpts" do
         end
       end
     end
+  
+    describe "EnumArgument" do
+      let(:e) { EnumArgument.new %w(alpha beta) }
+      describe "#values" do
+        it "returns a list of allowed values" do
+          expect(e.values).to eq %w(alpha beta) 
+        end
+      end
+      describe "#match?" do
+        it "returns true if the given value is an enum" do
+          expect(e.match?("name", "alpha")).to eq true
+        end
+        context "when the given value is not an enum" do
+          it "returns false" do
+            expect(e.match?("name", "futhark")).to eq false
+          end
+          it "sets the message of the ArgumentType" do
+            e.match?("name", "futhark")
+            expect(e.message).to eq "Illegal value in name: 'futhark'"
+          end
+        end
+      end
+      describe "#value?" do
+        it "returns true if the given value is an enum and false otherwise" do
+          expect(e.value?("alpha")).to eq true
+          expect(e.value?("futhark")).to eq false
+        end
+      end
+    end
   end
 end
+
 
 
 

@@ -14,8 +14,8 @@ module ShellOpts
       # safe for concurrent processing
       attr_reader :message
 
-      # Return true if .value is an "instance" of self (not used atm. See
-      # Command#[] and Grammar::Option#value?)
+      # Return true if .value is an "instance" of self. Ie. an Integer object
+      # if type is an IntegerArgument
       def value?(value) true end
 
       # Convert value to Ruby type
@@ -131,7 +131,7 @@ module ShellOpts
     class EnumArgument < ArgumentType
       attr_reader :values
       def initialize(values) @values = values.dup end
-      def match?(name, literal) literal?(literal) or set_message "Illegal value in #{name}: '#{literal}'" end
+      def match?(name, literal) value?(literal) or set_message "Illegal value in #{name}: '#{literal}'" end
       def value?(value) @values.include?(value) end
     end
   end
