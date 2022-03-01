@@ -90,11 +90,11 @@ describe "Formatter" do
         cmd1! Command 1
           Command description
 
-          -c      Brief C
-          -d      Brief D
+          -c                    Brief C
+          -d                    Brief D
 
-          cmd11!  Command 11
-          cmd12!  Command 12
+          cmd11!                Command 11
+          cmd12!                Command 12
 
         cmd2! Command 2
       )
@@ -119,12 +119,12 @@ describe "Formatter" do
           rspec cmd1 -c -d [cmd11|cmd12]
 
         Options 
-          -c      Brief C
-          -d      Brief D
+          -c                    Brief C
+          -d                    Brief D
 
         Commands
-          cmd11   Command 11
-          cmd12   Command 12
+          cmd11                 Command 11
+          cmd12                 Command 12
       )
       expect(str(s, :cmd1!)).to eq r
     end
