@@ -4,30 +4,33 @@
 module ShellOpts
   # Command represents a program or a subcommand. It is derived from
   # BasicObject to have only a minimum of inherited member methods.
-  # Additional methods defined in Command use the  '__<identifier>__' naming
-  # convention that doesn't collide with option or subcommand names but
-  # they're rarely used in application code
   #
   # The names of the inherited methods can't be used as options or
   # command namess. They are: instance_eval, instance_exec method_missing,
   # singleton_method_added, singleton_method_removed, and
-  # singleton_method_undefined
+  # singleton_method_undefined.
+  #
+  # Additional methods defined in Command use the  '__<identifier>__' naming
+  # convention that doesn't collide with option or subcommand names but
+  # they're rarely used in application code
   #
   # Command also defines #subcommand and #subcommand! but they can be
   # overshadowed by an option or command declaration. Their values can
   # still be accessed using the dashed name, though
   #
-  # Options and subcommands can be accessed using #[]
+  # Option and Command objects can be accessed using #[]. #key? is also defined
   #
   # The following methods are created dynamically for each declared option
   # with an attribute name
   #
-  #   def <identifier>(default = nil) self["<identifier>"] || default end
-  #   def <identifier>=(value) self["<identifier>"] = value end
-  #   def <identifier>?() self.key?("<identifier>") end
+  #   <identifier>(default = nil)
+  #   <identifier>=(value)
+  #   <identifier>?()
+  #
+  # The default value is used if the option or its value is missing
   #
   # Options without an an attribute can still be accessed using #[] or trough
-  # #__options__ or #__options_list__):
+  # #__option_values__, #__option_hash, or #__options_list__
   #
   # Each subcommand has a single method:
   #
@@ -42,9 +45,9 @@ module ShellOpts
 
     # These names can't be used as option or command names
     RESERVED_OPTION_NAMES = %w(
-        is_a
-        instance_eval instance_exec method_missing singleton_method_added
-        singleton_method_removed singleton_method_undefined)
+        is_a instance_eval instance_exec method_missing singleton_method_added
+        singleton_method_removed singleton_method_undefined
+    )
 
     # These methods can be overridden by an option (the value is not used -
     # this is just for informational purposes)
@@ -59,43 +62,25 @@ module ShellOpts
       object
     end
 
-    # Return command object or option argument value if present, otherwise nil
+    # Return command or option object if present, otherwise nil. Returns a
+    # possibly empty array of option objects if the option is repeatable
     #
     # The key is the name or identifier of the object or any any option
     # alias. Eg.  :f, '-f', :file, or '--file' are all usable as option keys
     # and :cmd!  or 'cmd' as command keys
-    #
-    # For options, the returned value is the argument given by the user
-    # optionally converted to Integer or Float or nil if the option doesn't
-    # take arguments. If the option takes an argument and it is repeatable
-    # the value is an array of the arguments. Repeatable options without
-    # arguments have the number of occurences as the value
     #
     def [](key)
       case object = __grammar__[key]
         when ::ShellOpts::Grammar::Command
           object.ident == __subcommand__!.__ident__ ? __subcommand__! : nil
         when ::ShellOpts::Grammar::Option
-          __options__[object.ident]
+          if object.repeatable?
+            __option_hash__[object.ident] || []
+          else
+            __option_hash__[object.ident]
+          end
         else
-          nil
-      end
-    end
-
-    # Assign a value to an existing option. This can be used to implement
-    # default values. #[]= doesn't currently check the type of the given
-    # value so take care. Note that the corresponding option(s) in
-    # #__option_list__ is not updated
-    def []=(key, value)
-      case object = __grammar__[key]
-        when ::ShellOpts::Grammar::Command
-          ::Kernel.raise ArgumentError, "#{key.inspect} is not an option"
-        when ::ShellOpts::Grammar::Option
-          object.argument? || object.repeatable? or
-              ::Kernel.raise ArgumentError, "#{key.inspect} is not assignable"
-          __options__[object.ident] = value
-        else
-          ::Kernel.raise ArgumentError, "Unknown option or command: #{key.inspect}"
+          ::Kernel.raise ::ArgumentError, "Unknown command or option: '#{key}'"
       end
     end
 
@@ -103,11 +88,11 @@ module ShellOpts
     def key?(key)
       case object = __grammar__[key]
         when ::ShellOpts::Grammar::Command
-          object.ident == __subcommand__!.ident ? __subcommand__! : nil
+          object.ident == __subcommand__
         when ::ShellOpts::Grammar::Option
-          __options__.key?(object.ident)
+          __option_hash__.key?(object.ident)
         else
-          nil
+          ::Kernel.raise ::ArgumentError, "Unknown command or option: '#{key}'"
       end
     end
       
@@ -153,13 +138,17 @@ module ShellOpts
     # depending on the option's type. Repeated options options without
     # arguments have the number of occurences as the value, with arguments
     # the value is an array of the given values
-    attr_reader :__options__
+    attr_reader :__option_values__
 
     # List of Option objects for the subcommand in the same order as
     # given by the user but note that options are reordered to come after
     # their associated subcommand if float is true. Repeated options are not
     # collapsed
     attr_reader :__option_list__
+
+    # Map from identifier to option object or to a list of option objects if
+    # the option is repeatable
+    attr_reader :__option_hash__
     
     # The subcommand identifier (a Symbol incl. the exclamation mark) or nil
     # if not present. Use #subcommand!, or the dynamically generated
@@ -172,9 +161,10 @@ module ShellOpts
   private
     def __initialize__(grammar)
       @__grammar__ = grammar
-      @__options__ = {}
+      @__option_values__ = {}
       @__option_list__ = [] 
-      @__options__ = {}
+      @__option_hash__ = {}
+      @__option_values__ = {}
       @__subcommand__ = nil
 
       __define_option_methods__
@@ -182,36 +172,34 @@ module ShellOpts
 
     def __define_option_methods__
       @__grammar__.options.each { |opt|
-        next if opt.attr.nil?
         if opt.argument? || opt.repeatable?
           if opt.optional?
             self.instance_eval %(
               def #{opt.attr}(default = nil)
-                if @__options__.key?(:#{opt.attr}) 
-                  @__options__[:#{opt.attr}] || default
+                if @__option_values__.key?(:#{opt.attr}) 
+                  @__option_values__[:#{opt.attr}]
                 else
-                  nil
+                  default
                 end
               end
             )
-          elsif !opt.argument?
+          elsif !opt.argument? # Repeatable w/o argument
             self.instance_eval %(
-              def #{opt.attr}(default = nil) 
-                if @__options__.key?(:#{opt.attr})
-                  value = @__options__[:#{opt.attr}] 
-                  value == 0 ? default : value
+              def #{opt.attr}(default = []) 
+                if @__option_values__.key?(:#{opt.attr})
+                  @__option_values__[:#{opt.attr}]
                 else
-                  nil
+                  default
                 end
               end
             )
           else
-            self.instance_eval("def #{opt.attr}() @__options__[:#{opt.attr}] end")
+            self.instance_eval("def #{opt.attr}() @__option_values__[:#{opt.attr}] end")
           end
-          self.instance_eval("def #{opt.attr}=(value) @__options__[:#{opt.attr}] = value end")
-          @__options__[opt.attr] = 0 if !opt.argument?
+          self.instance_eval("def #{opt.attr}=(value) @__option_values__[:#{opt.attr}] = value end")
+          @__option_values__[opt.attr] = 0 if !opt.argument?
         end
-        self.instance_eval("def #{opt.attr}?() @__options__.key?(:#{opt.attr}) end")
+        self.instance_eval("def #{opt.attr}?() @__option_values__.key?(:#{opt.attr}) end")
       }
 
       @__grammar__.commands.each { |cmd|
@@ -228,14 +216,15 @@ module ShellOpts
       ident = option.grammar.ident
       @__option_list__ << option
       if option.repeatable?
+        (@__option_hash__[ident] ||= []) << option
         if option.argument?
-          (@__options__[ident] ||= []) << option.argument
+          (@__option_values__[ident] ||= []) << option.argument
         else
-          @__options__[ident] ||= 0
-          @__options__[ident] += 1
+          @__option_values__[ident] = (@__option_values__[ident] || 0) + 1
         end
       else
-        @__options__[ident] = option.argument
+        @__option_hash__[ident] = option
+        @__option_values__[ident] = option.argument
       end
     end
 
@@ -254,7 +243,7 @@ module ShellOpts
 
   # Option models an option as given by the user on the subcommand line.
   # Compiled options (and possibly aggregated) options are stored in the
-  # Command#__options__ array
+  # Command#__option_values__ array
   class Option
     # Associated Grammar::Option object
     attr_reader :grammar
