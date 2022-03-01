@@ -7,18 +7,31 @@ require 'shellopts'
 
 include ShellOpts
 
+VERSION = "1.2.3"
 
-SPEC = %(
-  -a,alpha        @ Brief comment for -a and --alpha options
-      Longer and more elaborate description of the --alpha option
+SPEC = "-a"
+opts, args = ShellOpts::process(SPEC, ARGV, version: VERSION)
+#ShellOpts::ShellOpts.help
 
-  -b,beta=ARG
-      @ Alternative style of brief comment
 
-      Longer and more elaborate description of the --beta option
-)
 
-opts, args = ShellOpts.process(SPEC, ARGV)
+
+
+
+__END__
+
+
+#SPEC = %(
+# -a,alpha        @ Brief comment for -a and --alpha options
+#     Longer and more elaborate description of the --alpha option
+#
+# -b,beta=ARG
+#     @ Alternative style of brief comment
+#
+#     Longer and more elaborate description of the --beta option
+#)
+#
+#opts, args = ShellOpts.process(SPEC, ARGV)
 #puts "opts.alpha?: #{opts.alpha?.inspect}"
 #puts "opts.alpha: #{opts.alpha.inspect}"
 #puts "opts.beta?: #{opts.beta?.inspect}"
@@ -266,8 +279,9 @@ SPEC4 = %(
 
 SPEC5 = "cmd! cmd!"
 
-shellopts = ShellOpts::ShellOpts.new(exception: false)
+shellopts = ShellOpts::ShellOpts.new(exception: true)
 #shellopts.compile("cmd! cmd!")
+
 shellopts.compile(SPEC)
 #shellopts.compile(SPEC2)
 #shellopts.compile(SPEC3)
@@ -277,9 +291,9 @@ shellopts.compile(SPEC)
 #shellopts.tokens.each(&:dump)
 #exit
 
-shellopts.usage
+#shellopts.usage
 #shellopts.brief
-#shellopts.help
+shellopts.help
 #shellopts.help("cmd")
 #shellopts.help(ARGV.first)
 

@@ -221,11 +221,12 @@ module ShellOpts
     def brief() Formatter.brief(@grammar) end
 
     # Print help for the given subject or the full documentation if +subject+
-    # is nil 
+    # is nil. Clears the screen beforehand if :clear is true
     #
-    def help(subject = nil)
+    def help(subject = nil, clear: true)
       node = (subject ? @grammar[subject] : @grammar) or
           raise ArgumentError, "No such command: '#{subject&.sub(".", " ")}'"
+      print '[H[2J' if clear
       Formatter.help(node)
     end
 
