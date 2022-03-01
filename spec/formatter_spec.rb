@@ -6,7 +6,7 @@ describe "Formatter" do
     shellopts = ShellOpts::ShellOpts.new.compile(source)
     grammar = shellopts.compile(source)
     subject = subject ? shellopts.grammar[subject] : shellopts.grammar
-    capture { Formatter.send method, subject }
+    capture { ShellOpts::Formatter.send method, subject }
   end
 
   def capture(&block)
@@ -189,6 +189,23 @@ describe "Formatter" do
                   A subcommand
         )
         expect(str(source, "cmd")).to eq r
+      end
+    end
+
+    context "when given a long definition" do
+      def str(width)
+        src = "-a,a_long_a_option -b,a_long_b_option a_long_command_name! another_long_command_name!"
+        stub_const("ShellOpts::Formatter::USAGE_MAX_WIDTH", width)
+        method_str(:help, src).sub(/.*USAGE\s*\n\s*(.*?)\s*\n\s*OPTIONS.*/m, '\1')
+      end
+
+      it "tries to keep on one line by compacting" do
+        expect(str(80)).to eq "rspec -a -b [a_long_command_name|another_long_command_name]"
+      end
+
+      it "uses muliple lines otherwise" do
+        r = "rspec --a_long_a_option\n          --a_long_b_option\n          [COMMANDS]"
+        expect(str(40)).to eq r
       end
     end
   end

@@ -38,16 +38,17 @@ module ShellOpts
       using Ext::Array::Wrap
 
       def puts_usage(bol: false)
+        width = [Formatter.rest, Formatter::USAGE_MAX_WIDTH].min
         if descrs.size == 0
           print (lead = Formatter.command_prefix || "")
           indent(lead.size, ' ', bol: bol && lead == "") { 
-            puts render(:multi, Formatter::USAGE_MAX_WIDTH) 
+            puts render(:multi, width) 
           }
         else
           lead = Formatter.command_prefix || ""
           descrs.each { |descr|
             print lead
-            puts render(:single, Formatter::USAGE_MAX_WIDTH, args: [descr.text]) 
+            puts render(:single, width, args: [descr.text]) 
           } 
         end
       end
