@@ -200,8 +200,8 @@ module ShellOpts
     # Number of characters between columns in brief output
     BRIEF_COL_SEP = 2
 
-    # Maximum width of first column in brief option and command lists
-    BRIEF_COL1_MIN_WIDTH = 6
+    # Minimum width of first column in brief option and command lists
+    BRIEF_COL1_MIN_WIDTH = 20
 
     # Maximum width of first column in brief option and command lists
     BRIEF_COL1_MAX_WIDTH = 40

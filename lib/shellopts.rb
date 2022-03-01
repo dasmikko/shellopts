@@ -127,16 +127,13 @@ module ShellOpts
     # Compile source and return grammar object. Also sets #spec and #grammar.
     # Returns the grammar
     def compile(spec)
-      if stdopts
-        spec += "\n--version\n  Write version number and exit\n-h,help @ Write help text and exit\n  Write help text. -h prints a brief text, --help prints a longer man-style description of the command"
-      end
       handle_exceptions {
         @oneline = spec.index("\n").nil?
         @spec = spec.sub(/^\s*\n/, "")
         @file = find_caller_file
         @tokens = Lexer.lex(name, @spec, @oneline)
         ast = Parser.parse(tokens)
-        # TODO: Add standard and message options and their handlers
+        ast.add_stdopts if stdopts
         @grammar = Analyzer.analyze(ast)
       }
       self
@@ -197,7 +194,7 @@ module ShellOpts
       saved = $stdout
       $stdout = $stderr
       $stderr.puts "#{name}: #{message}"
-      Formatter.usage(program)
+      Formatter.usage(grammar)
       exit 1
     ensure
       $stdout = saved

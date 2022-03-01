@@ -122,6 +122,22 @@ module ShellOpts
       def self.parse(token)
         super(nil, token)
       end
+
+      def add_stdopts
+        option_token = Token.new(:option, 1, 1, "--version")
+        brief_token = Token.new(:brief, 1, 1, "Write version number and exit")
+        group = OptionGroup.new(self, option_token)
+        option = Option.parse(group, option_token)
+        brief = Brief.parse(group, brief_token)
+
+        option_token = Token.new(:option, 1, 1, "-h,help")
+        brief_token = Token.new(:brief, 1, 1, "Write help text and exit")
+        paragraph_token = Token.new(:text, 1, 1, "-h prints a brief help text, --help prints a longer man-style description of the command")
+        group = OptionGroup.new(self, option_token)
+        option = Option.parse(group, option_token)
+        brief = Brief.parse(group, brief_token)
+        paragraph = Paragraph.parse(group, paragraph_token)
+      end
     end
 
     class ArgSpec
@@ -145,6 +161,14 @@ module ShellOpts
       @tokens = tokens.dup # Array of token. Consumed by #parse
       @nodes = {}
     end
+
+#   def add_stdopts
+#     version_token = Token.new(:option, 1, 1, "--version")
+#     version_brief = Token.new(:brief, 1, 1, "Gryf gryf")
+#     group = Grammar::OptionGroup.new(@program, version_token)
+#     option = Grammar::Option.parse(group, version_token)
+#     brief = Grammr::Brief.parse(option, version_brief)
+#   end
 
     def parse()
       @program = Grammar::Program.parse(@tokens.shift)

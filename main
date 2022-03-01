@@ -9,7 +9,9 @@ include ShellOpts
 
 VERSION = "1.2.3"
 
-SPEC = "-a"
+SPEC = %(
+  -a @ An option
+)
 opts, args = ShellOpts::process(SPEC, ARGV, version: VERSION)
 #ShellOpts::ShellOpts.help
 
