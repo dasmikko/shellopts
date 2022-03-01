@@ -102,6 +102,9 @@ module ShellOpts
     attr_accessor :stdopts
     attr_accessor :msgopts
 
+    # Version of client program. This is only used if +stdopts+ is true
+    attr_reader :version
+
     # Interpreter flags
     attr_accessor :float
 
@@ -116,14 +119,17 @@ module ShellOpts
     attr_reader :tokens
     alias_method :ast, :grammar # Oops - defined earlier FIXME
 
-    def initialize(name: nil, stdopts: true, msgopts: false, float: true, exception: false)
+    def initialize(name: nil, stdopts: true, version: nil, msgopts: false, float: true, exception: false)
       @name = name || File.basename($PROGRAM_NAME)
-      @stdopts, @msgopts, @float, @exception = stdopts, msgopts, float, exception
+      @stdopts, @version, @msgopts, @float, @exception = stdopts, version, msgopts, float, exception
     end
 
     # Compile source and return grammar object. Also sets #spec and #grammar.
     # Returns the grammar
     def compile(spec)
+      if stdopts
+        spec += "\n--version\n  Write version number and exit\n-h,help @ Write help text and exit\n  Write help text. -h prints a brief text, --help prints a longer man-style description of the command"
+      end
       handle_exceptions {
         @oneline = spec.index("\n").nil?
         @spec = spec.sub(/^\s*\n/, "")
@@ -143,6 +149,20 @@ module ShellOpts
       handle_exceptions { 
         @argv = argv.dup
         @program, @args = Interpreter.interpret(grammar, argv, float: float, exception: exception)
+        if stdopts
+          if @program.version?
+            version or raise ArgumentError, "Version not specified"
+            puts version 
+            exit
+          elsif @program.help?
+            if @program[:help].name == "-h"
+              ShellOpts.brief
+            else
+              ShellOpts.help
+            end
+            exit
+          end
+        end
       }
       self
     end
@@ -310,6 +330,7 @@ module ShellOpts
   def self.instance?() !@instance.nil? end
   def self.instance() @instance or raise Error, "ShellOpts is not initialized" end
   def self.instance=(instance) @instance = instance end
+  def self.shellopts() instance end
 
   forward_self_to :instance, :error, :failure
 

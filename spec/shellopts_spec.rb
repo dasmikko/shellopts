@@ -13,6 +13,11 @@ describe "ShellOpts" do
       expect(opts.is_a?(ShellOpts::Program)).to eq true
       expect(args).to be_a(ShellOpts::Args)
     end
+    it "adds default --version and --help options is stdopts is true" do
+      spec = "-a"
+      opts, args = ShellOpts::ShellOpts.process(spec, [])
+      expect(ShellOpts.shellopts.grammar.options.map(&:ident)).to eq [:a, :version, :help]
+    end
   end
 end
 
