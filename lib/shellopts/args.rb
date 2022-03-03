@@ -2,18 +2,23 @@
 module ShellOpts
   # Specialization of Array for arguments lists. Args extends Array with a
   # #extract and an #expect method to extract elements from the array. The
-  # methods raise a ShellOpts::UserError exception in case of errors
+  # methods raise a ShellOpts::Error exception in case of errors
   #
   class Args < Array
+    # :call-seq:
+    #   extract(count, message = nil)
+    #   extract(range, message = nil)
+    #
     # Remove and return elements from beginning of the array
     #
     # If +count_or_range+ is a number, that number of elements will be
     # returned.  If the count is one, a simple value is returned instead of an
     # array. If the count is negative, the elements will be removed from the
     # end of the array. If +count_or_range+ is a range, the number of elements
-    # returned will be in that range. The range can't contain negative numbers 
+    # returned will be in that range. Note that the range can't contain
+    # negative numbers 
     #
-    # #extract raise a ShellOpts::UserError exception if there's is not enough
+    # #extract raise a ShellOpts::Error exception if there's is not enough
     # elements in the array to satisfy the request
     #
     def extract(count_or_range, message = nil) 
@@ -30,16 +35,16 @@ module ShellOpts
           count.abs <= self.size or inoa(message)
           start = count >= 0 ? 0 : size + count
           r = slice!(start, count.abs)
-          r.size <= 0 ? nil : (r.size == 1 ? r.first : r)
+          r.size == 1 ? r.first : r
         else
           raise ArgumentError
       end
     end
 
     # As #extract except it doesn't allow negative counts and that the array is
-    # expect to be emptied by the operation
+    # expected to be emptied by the operation
     #
-    # #expect raise a ShellOpts::UserError exception if the array is not emptied 
+    # #expect raise a ShellOpts::Error exception if the array is not emptied 
     # by the operation
     #
     def expect(count_or_range, message = nil)
@@ -55,7 +60,7 @@ module ShellOpts
 
   private
     def inoa(message = nil) 
-      raise ArgumentError, message || "Illegal number of arguments"
+      raise ShellOpts::Error, message || "Illegal number of arguments"
     end
   end
 end
