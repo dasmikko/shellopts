@@ -5,6 +5,11 @@ module ShellOpts
   # methods raise a ShellOpts::Error exception in case of errors
   #
   class Args < Array
+    def initialize(*args, exceptions: false)
+      super(*args)
+      @exceptions = exceptions
+    end
+
     # :call-seq:
     #   extract(count, message = nil)
     #   extract(range, message = nil)
@@ -21,7 +26,7 @@ module ShellOpts
     # #extract raise a ShellOpts::Error exception if there's is not enough
     # elements in the array to satisfy the request
     #
-    def extract(count_or_range, message = nil) 
+    def extract(count_or_range, message = nil)
       case count_or_range
         when Range
           range = count_or_range
@@ -59,8 +64,10 @@ module ShellOpts
     end
 
   private
-    def inoa(message = nil) 
-      raise ShellOpts::Error, message || "Illegal number of arguments"
+    def inoa(message = nil)
+      message ||= "Illegal number of arguments"
+      raise Error, message if @exceptions
+      ShellOpts.error(message)
     end
   end
 end

@@ -3,8 +3,8 @@ include ShellOpts
 
 describe "Args" do
   describe "#extract" do
-    let(:a) { Args.new %w(a b c d) }
-    let(:e) { Args.new [] }
+    let(:a) { Args.new %w(a b c d), exceptions: true }
+    let(:e) { Args.new [], exceptions: true }
 
     context "when given an integer argument" do
       context "when arg > 1" do
@@ -47,9 +47,9 @@ describe "Args" do
   end
 
   describe "#expect" do
-    let(:a) { Args.new %w(a b) }
-    let(:a1) { Args.new %w(a) }
-    let(:e) { Args.new [] }
+    let(:a) { Args.new %w(a b), exceptions: true }
+    let(:a1) { Args.new %w(a), exceptions: true }
+    let(:e) { Args.new [], exceptions: true }
 
 
     context "when given an integer argument" do
