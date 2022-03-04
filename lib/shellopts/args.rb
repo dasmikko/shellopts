@@ -67,7 +67,7 @@ module ShellOpts
     def inoa(message = nil)
       message ||= "Illegal number of arguments"
       raise Error, message if @exceptions
-      ShellOpts.error(message)
+      ::ShellOpts.error(message)
     end
   end
 end
