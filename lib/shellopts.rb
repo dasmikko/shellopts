@@ -1,12 +1,6 @@
 
-$quiet = nil
-$verb = nil
-$debug = nil
-$shellopts = nil
-
 require 'indented_io'
 
-#$LOAD_PATH.unshift "../constrain/lib"
 require 'constrain'
 include Constrain
 
@@ -98,14 +92,22 @@ module ShellOpts
     # Array of remaining arguments. Initialized by #interpret
     attr_reader :args
 
-    # Compiler flags
-    attr_accessor :stdopts
+    # Automatically add a -h and a --help option if true
+    attr_reader :help
+
+    # Version of client program. If not nil a --version option is added to the program
+    def version
+      return @version if @version
+      exe = caller.find { |line| line =~ /`<top \(required\)>'$/ }&.sub(/:.*/, "")
+      file = Dir.glob(File.dirname(exe) + "/../lib/*/version.rb").first
+      @version = IO.read(file).sub(/^.*VERSION\s*=\s*"(.*?)".*$/m, '\1') or
+          raise ArgumentError, "ShellOpts needs an explicit version"
+    end
+
+    # Add message options (TODO)
     attr_accessor :msgopts
 
-    # Version of client program. This is only used if +stdopts+ is true
-    attr_reader :version
-
-    # Interpreter flags
+    # Floating options
     attr_accessor :float
 
     # True if ShellOpts lets exceptions through instead of writing an error
@@ -117,11 +119,14 @@ module ShellOpts
 
     # Debug: Internal variables made public
     attr_reader :tokens
-    alias_method :ast, :grammar # Oops - defined earlier FIXME
+    alias_method :ast, :grammar
 
-    def initialize(name: nil, stdopts: true, version: nil, msgopts: false, float: true, exception: false)
+    def initialize(name: nil, help: true, version: true, msgopts: false, float: true, exception: false)
       @name = name || File.basename($PROGRAM_NAME)
-      @stdopts, @version, @msgopts, @float, @exception = stdopts, version, msgopts, float, exception
+      @help = help
+      @use_version = version ? true : false
+      @version = @use_version && @version != true ? @version : nil
+      @msgopts, @float, @exception = msgopts, float, exception
     end
 
     # Compile source and return grammar object. Also sets #spec and #grammar.
@@ -133,7 +138,8 @@ module ShellOpts
         @file = find_caller_file
         @tokens = Lexer.lex(name, @spec, @oneline)
         ast = Parser.parse(tokens)
-        ast.add_stdopts if stdopts
+        ast.add_version_option if @use_version
+        ast.add_help_options if @help
         @grammar = Analyzer.analyze(ast)
       }
       self
@@ -146,19 +152,16 @@ module ShellOpts
       handle_exceptions { 
         @argv = argv.dup
         @program, @args = Interpreter.interpret(grammar, argv, float: float, exception: exception)
-        if stdopts
-          if @program.version?
-            version or raise ArgumentError, "Version not specified"
-            puts version 
-            exit
-          elsif @program.help?
-            if @program[:help].name == "-h"
-              ShellOpts.brief
-            else
-              ShellOpts.help
-            end
-            exit
+        if @program.version?
+          puts version 
+          exit
+        elsif @program.help?
+          if @program[:help].name == "-h"
+            ShellOpts.brief
+          else
+            ShellOpts.help
           end
+          exit
         end
       }
       self
@@ -361,135 +364,6 @@ module ShellOpts
 
   module ErrorHandling
     # TODO: Set up global exception handlers
-  end
-end
-
-
-
-
-
-
-
-
-__END__
-
-require "shellopts/version"
-
-require "ext/algorithm.rb"
-require "ext/ruby_env.rb"
-
-require "shellopts/constants.rb"
-require "shellopts/exceptions.rb"
-
-require "shellopts/grammar/analyzer.rb"
-require "shellopts/grammar/lexer.rb"
-require "shellopts/grammar/parser.rb"
-require "shellopts/grammar/command.rb"
-require "shellopts/grammar/option.rb"
-
-require "shellopts/ast/parser.rb"
-require "shellopts/ast/command.rb"
-require "shellopts/ast/option.rb"
-
-require "shellopts/args.rb"
-require "shellopts/formatter.rb"
-
-if RUBY_ENV == "development"
-  require "shellopts/grammar/dump.rb"
-  require "shellopts/ast/dump.rb"
-end
-
-$verb = nil
-$quiet = nil
-$shellopts = nil
-
-module ShellOpts
-  class ShellOpts
-    attr_reader :name # Name of program. Defaults to the name of the executable
-    attr_reader :spec
-    attr_reader :argv
-
-    attr_reader :grammar
-    attr_reader :program
-    attr_reader :arguments
-
-    def initialize(spec, argv, name: nil, exception: false)
-      @name = name || File.basename($PROGRAM_NAME)
-      @spec, @argv = spec, argv.dup
-      exprs = Grammar::Lexer.lex(@spec)
-      commands = Grammar::Parser.parse(@name, exprs)
-      @grammar = Grammar::Analyzer.analyze(commands)
-
-      begin
-        @program, @arguments = Ast::Parser.parse(@grammar, @argv)
-      rescue Error => ex
-        raise if exception
-        error(ex.subject, ex.message)
-      end
-    end
-
-    def error(subject = nil, message)
-      $stderr.puts "#{name}: #{message}"
-      usage(subject, device: $stderr)
-      exit 1
-    end
-
-    def fail(message)
-      $stderr.puts "#{name}: #{message}"
-      exit 1
-    end
-
-    def usage(subject = nil, device: $stdout, levels: 1, margin: "")
-      subject = find_subject(subject)
-      device.puts Formatter.usage_string(subject, levels: levels, margin: margin)
-    end
-
-    def help(subject = nil, device: $stdout, levels: 10, margin: "", tab: "  ")
-      subject = find_subject(subject)
-      device.puts Formatter.help_string(subject, levels: levels, margin: margin, tab: tab)
-    end
-
-  private
-    def lookup(name)
-      a = name.split(".")
-      cmd = grammar
-      while element = a.shift
-        cmd = cmd.commands[element]
-      end
-      cmd
-    end
-
-    def find_subject(obj)
-      case obj
-        when String; lookup(obj)
-        when Ast::Command; Command.grammar(obj)
-        when Grammar::Command; obj
-        when NilClass; grammar
-      else
-        raise Internal, "Illegal object: #{obj.class}"
-      end
-    end
-  end
-
-  def self.process(spec, argv, name: nil, exception: false)
-    $shellopts = ShellOpts.new(spec, argv, name: name, exception: exception)
-    [$shellopts.program, $shellopts.arguments]
-  end
-
-  def self.error(subject = nil, message)
-    $shellopts.error(subject, message)
-  end
-
-  def self.fail(message)
-    $shellopts.fail(message)
-  end
-
-  def self.help(subject = nil, device: $stdout, levels: 10, margin: "", tab: "  ")
-    $shellopts.help(subject, device: device, levels: levels, margin: margin, tab: tab)
-  end
-
-  def self.usage(subject = nil, device: $stdout, levels: 1, margin: "")
-    $shellopts.usage(subject, device: device, levels: levels, margin: margin)
   end
 end
 

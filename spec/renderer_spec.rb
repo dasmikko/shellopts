@@ -4,7 +4,7 @@ include ShellOpts
 describe ShellOpts do
   describe Grammar::Command do
     def compile(source) 
-      shellopts = ShellOpts::ShellOpts.new(name: "rspec", stdopts: false)
+      shellopts = ShellOpts::ShellOpts.new(name: "rspec", help: false, version: false)
       shellopts.compile(source)
       shellopts.grammar
     end

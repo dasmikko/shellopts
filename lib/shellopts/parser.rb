@@ -123,13 +123,15 @@ module ShellOpts
         super(nil, token)
       end
 
-      def add_stdopts
+      def add_version_option
         option_token = Token.new(:option, 1, 1, "--version")
         brief_token = Token.new(:brief, 1, 1, "Write version number and exit")
         group = OptionGroup.new(self, option_token)
         option = Option.parse(group, option_token)
         brief = Brief.parse(group, brief_token)
+      end
 
+      def add_help_options
         option_token = Token.new(:option, 1, 1, "-h,help")
         brief_token = Token.new(:brief, 1, 1, "Write help text and exit")
         paragraph_token = Token.new(:text, 1, 1, 

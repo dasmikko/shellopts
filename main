@@ -7,12 +7,15 @@ require 'shellopts'
 
 include ShellOpts
 
+p ShellOpts::ShellOpts.default_version
+exit
+
 VERSION = "1.2.3"
 
 SPEC = %(
   -a @ An option
 )
-opts, args = ShellOpts::process(SPEC, ARGV, version: VERSION)
+opts, args = ShellOpts.process(SPEC, ARGV, version: VERSION)
 #ShellOpts::ShellOpts.help
 
 

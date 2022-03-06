@@ -3,7 +3,7 @@ include ShellOpts
 
 describe "Formatter" do
   def method_str(method, source, subject = nil)
-    shellopts = ShellOpts::ShellOpts.new(stdopts: false).compile(source)
+    shellopts = ShellOpts::ShellOpts.new(help: false, version: false).compile(source)
     grammar = shellopts.compile(source)
     subject = subject ? shellopts.grammar[subject] : shellopts.grammar
     capture { ShellOpts::Formatter.send method, subject }
