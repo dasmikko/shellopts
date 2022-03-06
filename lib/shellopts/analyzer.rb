@@ -28,10 +28,13 @@ module ShellOpts
         @options = option_groups.map(&:options).flatten
       end
 
-      # Move options before first command
+      # Move options before first command or before explicit COMMAND section
       def reorder_options
         if commands.any?
-          if i = children.find_index { |child| child.is_a?(Command) }
+          i = children.find_index { |child| 
+            child.is_a?(Command) || child.is_a?(Section) && child.name == "COMMAND"
+          }
+          if i
             options, rest = children[i+1..-1].partition { |child| child.is_a?(OptionGroup) }
             @children = children[0, i] + options + children[i..i] + rest
           end

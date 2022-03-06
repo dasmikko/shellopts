@@ -132,7 +132,8 @@ module ShellOpts
 
         option_token = Token.new(:option, 1, 1, "-h,help")
         brief_token = Token.new(:brief, 1, 1, "Write help text and exit")
-        paragraph_token = Token.new(:text, 1, 1, "-h prints a brief help text, --help prints a longer man-style description of the command")
+        paragraph_token = Token.new(:text, 1, 1, 
+            "-h prints a brief help text, --help prints a longer man-style description of the command")
         group = OptionGroup.new(self, option_token)
         option = Option.parse(group, option_token)
         brief = Brief.parse(group, brief_token)

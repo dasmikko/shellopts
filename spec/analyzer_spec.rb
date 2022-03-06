@@ -9,6 +9,16 @@ describe "ShellOpts" do
     grammar = Analyzer.analyze(ast)
   end
 
+  def names(source) 
+    prog(source).children.map { |child|
+      case child
+        when Grammar::OptionGroup; child.options.first.name
+        when Grammar::IdrNode; child.name
+        else child.token.source
+      end
+    }
+  end
+
   describe "Grammar" do
     describe "Command" do
     end
@@ -23,5 +33,27 @@ describe "ShellOpts" do
         expect { prog("--with-separator --with_separator") }.to raise_error AnalyzerError
       end
     end
+
+    describe "reorder_options" do
+      it "moves options before the first command" do
+        src = %(
+          -a
+          cmd!
+          -b
+        )
+        expect(names(src)).to eq %w(-a -b cmd)
+      end
+      it "moves options before the COMMAND section if present" do
+        src = %(
+          -a
+          COMMAND
+          cmd!
+          -b
+        )
+        expect(names(src)).to eq %w(-a -b COMMAND cmd)
+      end
+    end
+
+
   end
 end

@@ -151,6 +151,10 @@ module ShellOpts
     class OptionGroup < Node
       alias_method :command, :parent
 
+      # Duck typing for compatibility with IdrNode (TODO: maybe just make
+      # OptionGroup an IdrNode and be over with it)
+      def name() options.first&.name end
+
       # Array of options in declaration order
       attr_reader :options
 
@@ -352,6 +356,10 @@ module ShellOpts
     end
 
     class Section < Node
+      def initialize(parent, token)
+        constrain token.source, *%w(DESCRIPTION OPTION COMMAND)
+        super
+      end
       def name() token.source end
     end
 
