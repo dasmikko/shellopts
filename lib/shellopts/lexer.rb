@@ -45,7 +45,7 @@ module ShellOpts
     # Match ArgDescr words (should be at least two characters long)
     DESCR_RE = /^[^a-z]{2,}$/
 
-    SECTIONS = %w(DESCRIPTION OPTIONS COMMANDS)
+    SECTIONS = %w(DESCRIPTION OPTION OPTIONS COMMAND COMMANDS)
 
     using Ext::Array::ShiftWhile
 
@@ -109,7 +109,7 @@ module ShellOpts
 
         # Sections
         elsif SECTIONS.include?(line.text)
-          @tokens << Token.new(:section, line.lineno, line.charno, line.text)
+          @tokens << Token.new(:section, line.lineno, line.charno, line.text.sub(/S$/, ""))
 
         # Options, commands, usage, arguments, and briefs
         elsif line =~ DECL_RE

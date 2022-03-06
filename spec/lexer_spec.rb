@@ -103,6 +103,23 @@ describe "Lexer" do
       expect(make src, fields: :source).to eq %w(-a Explanation)
     end
 
+    it "creates section tokens" do
+      src = %(
+        COMMANDS
+        cmd!
+      )
+      expect(make src, fields: :kind).to eq [:section, :command]
+      expect(make src, fields: :source).to eq %w(COMMAND cmd!)
+    end
+
+    it "singularize section names" do
+      src = %(
+        COMMANDS
+      )
+      expect(make src, fields: :kind).to eq [:section]
+      expect(make src, fields: :source).to eq %w(COMMAND)
+    end
+
     it "considers lines starting with \ as comments" do
       src = %(
         -o
