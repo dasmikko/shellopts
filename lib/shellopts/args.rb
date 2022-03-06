@@ -5,9 +5,9 @@ module ShellOpts
   # methods raise a ShellOpts::Error exception in case of errors
   #
   class Args < Array
-    def initialize(*args, exceptions: false)
+    def initialize(*args, exception: false)
       super(*args)
-      @exceptions = exceptions
+      @exception = exception
     end
 
     # :call-seq:
@@ -66,8 +66,8 @@ module ShellOpts
   private
     def inoa(message = nil)
       message ||= "Illegal number of arguments"
-      raise Error, message if @exceptions
-      ShellOpts.error(message)
+      raise Error, message if @exception
+      ::ShellOpts.error(message)
     end
   end
 end
