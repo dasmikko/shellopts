@@ -163,14 +163,6 @@ module ShellOpts
       @nodes = {}
     end
 
-#   def add_stdopts
-#     version_token = Token.new(:option, 1, 1, "--version")
-#     version_brief = Token.new(:brief, 1, 1, "Gryf gryf")
-#     group = Grammar::OptionGroup.new(@program, version_token)
-#     option = Grammar::Option.parse(group, version_token)
-#     brief = Grammr::Brief.parse(option, version_brief)
-#   end
-
     def parse()
       @program = Grammar::Program.parse(@tokens.shift)
       oneline = @tokens.first.lineno == @tokens.last.lineno

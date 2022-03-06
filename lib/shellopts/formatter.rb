@@ -112,36 +112,33 @@ module ShellOpts
 
         section = {
           Paragraph => "DESCRIPTION",
-          OptionGroup => "OPTIONS",
-          Command => "COMMANDS"
+          OptionGroup => "OPTION",
+          Command => "COMMAND"
         }
 
+        seen_sections = {}
         newline = false # True if a newline should be printed before child 
         indent {
           children.each { |child|
-            if child.is_a?(Section) # Explicit section
-#             p :A
+            klass = child.is_a?(Section) ?  section.key(child.name) : child.class
+            if s = section[klass] # Implicit section
+              section.delete(klass)
+              section.delete(Paragraph)
+              if klass <= OptionGroup
+                s = s + "S" if options.size > 1
+              elsif klass <= Command
+                s = s + "S" if commands.size > 1 || commands.first&.commands&.size != 0
+              end
               puts
-              indent(-1).puts Ansi.bold child.name
-              section.delete_if { |_,v| v == child.name }
-              section.delete(Paragraph)
-              newline = false
-              next
-            elsif s = section[child.class] # Implicit section
-#             p :B
-              puts  
               indent(-1).puts Ansi.bold s
-              section.delete(child.class)
-              section.delete(Paragraph)
               newline = false
-            else # Any other node add a newline
-#             p :C
+              next if child.is_a?(Section)
+            else # Any other node adds a newline
               puts if newline
               newline = true
             end
 
             if child.is_a?(Command)
-#             prefix = child.parent != self ? nil : child.supercommand&.name
               prefix = child.supercommand == self ? nil : child.supercommand&.name
               child.puts_descr(prefix, brief: false, name: :path)
               newline = true

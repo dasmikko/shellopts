@@ -135,62 +135,187 @@ describe "Formatter" do
       method_str(:help, source, subject)
     end
 
-    source = %(
-      cmd!
-        A command
+    context "when subject is ..." do
+      source = %(
+        cmd!
+          A command
 
-        cmd.nested!
-          A nested command
+          cmd.nested!
+            A nested command
 
-      cmd.subcmd!
-        A subcommand
-    )
+        cmd.subcmd!
+          A subcommand
+      )
 
-    context "when given a program" do
-      it "keeps the indentation levels of subcommands" do
+      context "nil" do
+        it "keeps the indentation levels of subcommands" do
+          r = undent %(
+            NAME
+                rspec
+
+            USAGE
+                rspec [cmd]
+
+            COMMANDS
+                cmd [nested|subcmd]
+                    A command
+
+                    nested
+                        A nested command
+
+                cmd subcmd
+                    A subcommand
+
+          )
+          expect(str(source)).to eq r
+        end
+      end
+
+      context "a subcommand" do
+        it "keeps subcommands on the same level" do
+          r = undent %(
+            NAME
+                rspec cmd - A command
+
+            USAGE
+                rspec cmd [nested|subcmd]
+
+            DESCRIPTION
+                A command
+
+            COMMANDS
+                nested
+                    A nested command
+
+                subcmd
+                    A subcommand
+          )
+          expect(str(source, "cmd")).to eq r
+        end
+      end
+    end
+
+    context "when source contains sections" do
+      it "pluralizes the option section title if needed" do
+        source = %(
+          -a
+        )
         r = undent %(
           NAME
               rspec
 
           USAGE
-              rspec [cmd]
+              rspec -a
+
+          OPTION
+              -a
+        )
+        expect(str(source)).to eq r
+
+        source = %(
+          -a
+          -b
+        )
+        r = undent %(
+          NAME
+              rspec
+
+          USAGE
+              rspec -a -b
+
+          OPTIONS
+              -a
+
+              -b
+        )
+        expect(str(source)).to eq r
+      end
+
+      it "pluralizes the command section title if needed" do
+        source = %(
+          cmd1!
+        )
+        r = undent %(
+          NAME
+              rspec 
+
+          USAGE
+              rspec [cmd1]
+
+          COMMAND
+              cmd1
+        )
+        expect(str(source)).to eq r
+        
+        source = %(
+          cmd1!
+          cmd2!
+        )
+        r = undent %(
+          NAME
+              rspec 
+
+          USAGE
+              rspec [cmd1|cmd2]
 
           COMMANDS
-              cmd [nested|subcmd]
-                  A command
+              cmd1
 
-                  nested
-                      A nested command
-
-              cmd subcmd
-                  A subcommand
-
+              cmd2
         )
         expect(str(source)).to eq r
       end
     end
-    context "when given a subcommand" do
-      it "keeps subcommands on the same level" do
+
+    context "when source contains an explicit section" do
+      it "only outputs the section once" do
+        source = %(
+          -a
+          COMMANDS
+          text
+          cmd!
+        )
         r = undent %(
           NAME
-              rspec cmd - A command
+              rspec - text
 
           USAGE
-              rspec cmd [nested|subcmd]
+              rspec -a [cmd]
 
-          DESCRIPTION
-              A command
+          OPTION
+              -a
 
-          COMMANDS
-              nested
-                  A nested command
+          COMMAND
+              text
 
-              subcmd
-                  A subcommand
+              cmd
         )
-        expect(str(source, "cmd")).to eq r
+        expect(str(source)).to eq r
+      end
+      it "ignores plurality of the explicit section(s)" do
+        source = %(
+          OPTIONS
+          -a
+          COMMANDS
+          cmd!
+        )
+        r = undent %(
+          NAME
+              rspec 
+
+          USAGE
+              rspec -a [cmd]
+
+          OPTION
+              -a
+
+          COMMAND
+              cmd
+        )
+        expect(str(source)).to eq r
       end
     end
+
 
     context "when given a long definition" do
       def str(width)
