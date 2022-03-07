@@ -38,13 +38,19 @@ module ShellOpts
       #
       def render(format)
         constrain format, :enum, :long, :short
-        case format
-          when :enum; names.join(", ")
-          when :long; name
-          when :short; short_names.first || name
+        s = 
+            case format
+              when :enum; names.join(", ")
+              when :long; name
+              when :short; short_names.first || name
+            else
+              raise ArgumentError, "Illegal format: #{format.inspect}"
+            end 
+        if argument?
+          s + (optional? ? "[=#{argument_name}]" : "=#{argument_name}")
         else
-          raise ArgumentError, "Illegal format: #{format.inspect}"
-        end + (argument? ? "=#{argument_name}" : "")
+          s
+        end
       end
     end
 

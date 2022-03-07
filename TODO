@@ -1,18 +1,13 @@
 
-o Add brackets to optional option arguments: '--all=FILE?' -> '--all[=FILE]'
 o Ignore all text after ' # ' (doesn't conflict with option flag)
 o Command aliases
 o Add user-defined setions
 o Add a SOURCE section with link to git repo
 o Bullet-lists
 o Allow a USAGE section (and NAME)
-o Find source in code an adjust line number in error messages 
-o Rename line and char to lineno and charno
 o Client-defined argument types
 o Rename Expr -> ?
 o Find clean(er) procedural object model
-o Allow assignment to options (this makes practical stuff easier)
-o Special handling of --help arguments so that '--help command' is possible
 o Support for paging of help:
     begin 
       file = Tempfile.new("prick") 
@@ -23,6 +18,11 @@ o Support for paging of help:
       file.close 
     end 
 
++ Special handling of --help arguments so that '--help command' is possible
++ Allow assignment to options (this makes practical stuff easier)
++ Rename line and char to lineno and charno
++ Find source in code an adjust line number in error messages 
++ Add brackets to optional option arguments: '--all=FILE?' -> '--all[=FILE]'
 + Bold text output
 + Recursive format of commands
 + Rename Compiler -> Interpreter

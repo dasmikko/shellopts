@@ -2,13 +2,28 @@
 include ShellOpts
 
 describe ShellOpts do
-  describe Grammar::Command do
-    def compile(source) 
-      shellopts = ShellOpts::ShellOpts.new(name: "rspec", help: false, version: false)
-      shellopts.compile(source)
-      shellopts.grammar
+  def compile(source) 
+    shellopts = ShellOpts::ShellOpts.new(name: "rspec", help: false, version: false)
+    shellopts.compile(source)
+    shellopts.grammar
+  end
+
+  describe "Grammar::Option" do
+    def opt(source)
+      compile(source).options.first
     end
 
+    describe "#render" do
+      it "puts optional arguments in brackets" do
+        s = "-a,all=FILE?"
+        expect(opt(s).render(:enum)).to eq "-a, --all[=FILE]"
+        expect(opt(s).render(:long)).to eq "--all[=FILE]"
+        expect(opt(s).render(:short)).to eq "-a[=FILE]"
+      end
+    end
+  end
+
+  describe "Grammar::Command" do
     describe "render :single" do
       def str(source, width)
         compile(source).render(:single, width)
