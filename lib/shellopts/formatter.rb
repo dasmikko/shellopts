@@ -152,7 +152,7 @@ module ShellOpts
           (commands - children.select { |child| child.is_a?(Command) }).each { |cmd|
             puts if newline
             newline = true
-            prefix = cmd.supercommand == self ? nil : cmd.supercommand&.name
+            prefix = cmd.command == self ? nil : cmd.command&.name
             cmd.puts_descr(prefix, brief: false, name: path)
           }
         }

@@ -49,10 +49,10 @@ module ShellOpts
         singleton_method_removed singleton_method_undefined
     )
 
-    # These methods can be overridden by an option (the value is not used -
+    # These methods can be overridden by an option or a command (the value is not used -
     # this is just for informational purposes)
-    OVERRIDEABLE_METHODS = %w(
-        subcommand
+    OVERRIDEABLE_METHOD_NAMES = %w(
+        subcommand subcommand! supercommand!
     )
 
     # Redefine ::new to call #__initialize__
@@ -107,6 +107,7 @@ module ShellOpts
     #
     # Note: Can be overridden by option, in that case use #__subcommand__ or
     # ShellOpts.subcommand(object) instead
+    #
     def subcommand() __subcommand__ end
 
     # The subcommand object or nil if not present. Per-subcommand methods
@@ -120,7 +121,12 @@ module ShellOpts
     def subcommand!() __subcommand__! end
 
     # The parent command or nil. Initialized by #add_command
-    attr_accessor :__supercommand__
+    #
+    # Note: Can be overridden by a subcommand declaration (but not an
+    # option), in that case use #__supercommand__! or
+    # ShellOpts.supercommand!(object) instead
+    #
+    def supercommand!() __supercommand__ end
 
     # UID of command/program
     def __uid__() @__grammar__.uid end
@@ -149,6 +155,9 @@ module ShellOpts
     # Map from identifier to option object or to a list of option objects if
     # the option is repeatable
     attr_reader :__option_hash__
+
+    # The parent command or nil. Initialized by #add_command
+    attr_accessor :__supercommand__
     
     # The subcommand identifier (a Symbol incl. the exclamation mark) or nil
     # if not present. Use #subcommand!, or the dynamically generated
