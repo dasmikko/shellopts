@@ -20,10 +20,6 @@ module ShellOpts
     end
 
     class Command
-      def set_supercommand
-        commands.each { |child| child.instance_variable_set(:@supercommand, self) }
-      end
-
       def collect_options
         @options = option_groups.map(&:options).flatten
       end
@@ -76,30 +72,43 @@ module ShellOpts
       @grammar = grammar
     end
 
-    # Move commands that are nested within a different command than it belongs to
-    def move_commands
+    # Link up commands with supercommands. This is only done for commands that
+    # are nested within a different command than it belongs to. The
+    # parent/child relationship is not changed Example:
+    #
+    #   cmd!
+    #   cmd.subcmd! 
+    #
+    # Here subcmd is added to cmd's list of commands. It keeps its position in
+    # the parent/child relationship so that documentation will print the
+    # commands in the given order and with the given indentation level
+    #
+    def link_commands
       # We can't use Command#[] at this point so we collect the commands here
       h = {}
       @grammar.traverse(Grammar::Command) { |command|
         h[command.path] = command
+        # TODO: Pick up parent-less commands
       }
 
-      # Find commands to move
+      # Find commands to link
       #
-      # Commands are moved in two steps because the behaviour of #traverse is
-      # not defined when the data structure changes beneath it
-      move = []
+      # Commands are linked in two steps because the behaviour of #traverse is
+      # not defined when the data structure changes beneath it. (FIXME: Does it
+      # change when we don't touch the parent/child relationship?)
+      link = []
       @grammar.traverse(Grammar::Command) { |command|
         if command.path.size > 1 && command.parent && command.parent.path != command.path[0..-2]
-          move << command
+          link << command
         else
           command.instance_variable_set(:@command, command.parent)
         end
       }
 
       # Move commands but do not change parent/child relationship
-      move.each { |command|
-        supercommand = h[command.path[0..-2]] or analyzer_error "Can't find #{command.ident}!"
+      link.each { |command|
+        path = command.path[0..-2]
+        path.pop while (supercommand = h[path]).nil?
         command.parent.commands.delete(command)
         supercommand.commands << command
         command.instance_variable_set(:@command, supercommand)
@@ -107,10 +116,9 @@ module ShellOpts
     end
 
     def analyze()
-      move_commands
+      link_commands
 
       @grammar.traverse(Grammar::Command) { |command|
-        command.set_supercommand
         command.reorder_options
         command.collect_options
         command.compute_option_hashes

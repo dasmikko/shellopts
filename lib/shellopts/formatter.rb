@@ -139,7 +139,7 @@ module ShellOpts
             end
 
             if child.is_a?(Command)
-              prefix = child.supercommand == self ? nil : child.supercommand&.name
+              prefix = child.path[path.size..-2].map { |sym| sym.to_s.sub(/!/, "") }
               child.puts_descr(prefix, brief: false, name: :path)
               newline = true
              else
