@@ -45,9 +45,9 @@ module ShellOpts
     end
 
     class IdrNode < Node
-      # Command of this object. This is different from #parent when a
-      # subcommand is nested on a higher level than its supercommand.
-      # Initialized by the analyzer
+      # Command of this object (nil for the top-level Program object). This is
+      # different from #parent when a subcommand is nested textually on a
+      # higher level than its supercommand.  Initialized by the analyzer
       attr_reader :command
 
       # Unique identifier of node (String) within the context of a program. nil
@@ -191,7 +191,8 @@ module ShellOpts
     class Command < IdrNode
       # Supercommand or nil if this is the top-level Program object.
       # Initialized by the analyzer
-      attr_reader :supercommand
+      alias_method :supercommand, :command
+#     attr_reader :supercommand
 
       # Brief description of command
       attr_accessor :brief
