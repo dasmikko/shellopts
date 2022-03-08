@@ -81,17 +81,19 @@ module ShellOpts
       COMMANDS_ABBR = "[COMMANDS]"
       DESCRS_ABBR = "ARGS..."
 
-      # Format can be one of :single, :enum, or :multi. :single force one-line
-      # output and compacts options and commands if needed. :enum outputs a
-      # :single line for each argument specification/description, :multi tries
-      # one-line output but wrap options if needed. Multiple argument
-      # specifications/descriptions are always compacted
+      # Format can be one of :abbr, :single, :enum, or :multi. :abbr
+      # lists the command on one line with options abbreviated. :single force
+      # one-line output and compacts options and commands if needed. :enum
+      # outputs a :single line for each argument specification/description,
+      # :multi tries one-line output but wrap options if needed. Multiple
+      # argument specifications/descriptions are always compacted
       #
       def render(format, width, root: false, **opts)
         case format
+          when :abbr; render_abbr
           when :single; render_single(width, **opts)
           when :enum; render_enum(width, **opts)
-          when :multi; render_multi2(width, **opts)
+          when :multi; render_multi(width, **opts)
         else
           raise ArgumentError, "Illegal format: #{format.inspect}"
         end
@@ -102,6 +104,21 @@ module ShellOpts
       end
 
     protected
+      # TODO: Refactor and implement recursive detection of any argument
+      def get_args(args: nil)
+        case descrs.size
+          when 0; []
+          when 1; [descrs.first.text]
+          else [DESCRS_ABBR]
+        end
+      end
+
+      # Force one line and compact options to "[OPTIONS]"
+      def render_abbr
+        args = get_args 
+        ([name] + [options.empty? ? nil : "[OPTIONS]"] + args).compact.join(" ")
+      end
+
       # Force one line. Compact options, commands, arguments if needed
       def render_single(width, args: nil)
         long_options = options.map { |option| option.render(:long) }
@@ -110,13 +127,7 @@ module ShellOpts
         short_commands = commands.empty? ? [] : ["[#{commands.map(&:name).join("|")}]"]
         compact_commands = commands.empty? ? [] : [COMMANDS_ABBR]
 
-        # TODO: Refactor and implement recursive detection of any argument
-        args ||= 
-            case descrs.size
-              when 0; args = []
-              when 1; [descrs.first.text]
-              else [DESCRS_ABBR]
-            end
+        args ||= get_args
 
         begin # to be able to use 'break' below
           words = [name] + long_options + short_commands + args
@@ -155,36 +166,8 @@ module ShellOpts
         short_options = options.map { |option| option.render(:short) }
         short_commands = commands.empty? ? [] : ["[#{commands.map(&:name).join("|")}]"]
         compact_commands = [COMMANDS_ABBR]
-        args ||= self.descrs.size != 1 ? [DESCRS_ABBR] : descrs.map(&:text)
 
-        # On one line
-        words = long_options + short_commands + args
-        return [words.join(" ")] if pass?(words, width)
-        words = short_options + short_commands + args
-        return [words.join(" ")] if pass?(words, width)
-
-        # On multiple lines
-        options = long_options.wrap(width)
-        commands = [[short_commands, args].join(" ")]
-        return options + commands if pass?(commands, width)
-        options + [[compact_commands, args].join(" ")]
-      end
-
-      # Try to keep on one line but wrap options if needed. Multiple argument
-      # specifications/descriptions are always compacted
-      def render_multi2(width, args: nil)
-        long_options = options.map { |option| option.render(:long) }
-        short_options = options.map { |option| option.render(:short) }
-        short_commands = commands.empty? ? [] : ["[#{commands.map(&:name).join("|")}]"]
-        compact_commands = [COMMANDS_ABBR]
-
-        # TODO: Refactor and implement recursive detection of any argument
-        args ||= 
-            case descrs.size
-              when 0; args = []
-              when 1; [descrs.first.text]
-              else [DESCRS_ABBR]
-            end
+        args ||= get_args
 
         # On one line
         words = [name] + long_options + short_commands + args

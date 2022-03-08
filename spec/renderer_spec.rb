@@ -24,6 +24,17 @@ describe ShellOpts do
   end
 
   describe "Grammar::Command" do
+    describe "render :abbr" do
+      def str(source, width)
+        compile(source).render(:abbr, width)
+      end
+
+      it "abbreviates options" do
+        s = "-a,alpha -b,beta -- ARG1 ARG2"
+        r = "rspec [OPTIONS] ARG1 ARG2"
+        expect(str(s, r.size)).to eq r
+      end
+    end
     describe "render :single" do
       def str(source, width)
         compile(source).render(:single, width)

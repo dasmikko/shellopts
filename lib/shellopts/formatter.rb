@@ -81,7 +81,15 @@ module ShellOpts
       end
 
       def puts_descr(prefix, brief: !self.brief.nil?, name: :path)
-        puts Ansi.bold([prefix, render(:single, Formatter.rest)].flatten.compact.join(" "))
+        # Use one-line mode if all options are declared on one line
+        if options.all? { |option| option.token.lineno == token.lineno }
+          puts Ansi.bold([prefix, render(:single, Formatter.rest)].flatten.compact.join(" "))
+          puts_options = false
+        else
+          puts Ansi.bold([prefix, render(:abbr, Formatter.rest)].flatten.compact.join(" "))
+          puts_options = true
+        end
+
         indent {
           if brief
             puts self.brief.words.wrap(Formatter.rest)
@@ -93,7 +101,10 @@ module ShellOpts
 
               if child.is_a?(Command)
                 child.puts_descr(prefix, name: :path)
-               else
+              elsif child.is_a?(OptionGroup)
+                child.puts_descr if puts_options
+                newline = false
+              else
                 child.puts_descr
               end
             }

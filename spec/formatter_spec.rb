@@ -292,6 +292,7 @@ describe "Formatter" do
         )
         expect(str(source)).to eq r
       end
+
       it "ignores plurality of the explicit section(s)" do
         source = %(
           OPTIONS
@@ -316,7 +317,6 @@ describe "Formatter" do
       end
     end
 
-
     context "when given a long definition" do
       def str(width)
         src = "-a,a_long_a_option -b,a_long_b_option a_long_command_name! another_long_command_name!"
@@ -334,10 +334,78 @@ describe "Formatter" do
       end
     end
 
-    def put_recur(command)
-      puts "command: #{command.name.inspect}, #{command.path}, #{command.token}"
-      indent { command.commands.each { |cmd| put_recur(cmd) } }
+    context "when subcommands contains options" do
+      context "when the options are declared on the same line as the subcommand" do
+        it "list them one the same line as the command" do
+          source = %(
+            cmd! -a,alpha -b,beta -- ARG
+          )
+          r = undent %(
+          NAME
+              rspec
+
+          USAGE
+              rspec [cmd]
+
+          COMMAND
+              cmd --alpha --beta ARG
+          )
+          expect(str(source)).to eq r
+        end
+      end
+      context "when the options are declared separately" do
+        it "lists them separately" do
+          source = %(
+            cmd! 
+              -a,alpha
+                A description of --alpha
+              -b,beta 
+                A description of --beta
+              -- ARG
+          )
+          r = undent %(
+            NAME
+                rspec
+
+            USAGE
+                rspec [cmd]
+
+            COMMAND
+                cmd [OPTIONS] ARG
+                    -a, --alpha 
+                        A description of --alpha
+                    -b, --beta
+                        A description of --beta
+          )
+          expect(str(source)).to eq r
+        end
+      end
+      it "should be more clever about inline vs. outlined options" # do
+#       source = %(
+#         cmd! -a,alpha
+#           Description
+#
+#           -b,beta
+#             Option description
+#       )
+#       r = undent %(
+#         NAME
+#             rspec
+#
+#         USAGE
+#             rspec [cmd]
+#
+#         COMMAND
+#             cmd -a [OPTIONS] ARG
+#               Description
+#
+#               -b, --beta
+#                   Option description
+#       )
+#       expect(str(source)).to eq r
+#     end
     end
+
 
     it "Handles commands with virtual supercommand" do
       s = %(
