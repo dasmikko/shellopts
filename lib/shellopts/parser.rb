@@ -16,9 +16,9 @@ module ShellOpts
     class IdrNode
       # Assumes that @name and @path has been defined
       def parse
-        @ident = @path.last || :!
-        @attr = ::ShellOpts::Command::RESERVED_OPTION_NAMES.include?(ident.to_s) ? nil : ident
-        @uid = parent && @path.join(".").sub(/!\./, ".") # uid is nil for the Program object
+#       @ident = @path.last || :!
+#       @attr = ::ShellOpts::Command::RESERVED_OPTION_NAMES.include?(ident.to_s) ? nil : ident
+#       @uid = parent && @path.join(".").sub(/!\./, ".") # uid is nil for the Program object
       end
     end
 
@@ -56,8 +56,9 @@ module ShellOpts
         @long_names = names.map { |name| "--#{name}" }
         @long_idents = names.map { |name| name.tr("-", "_").to_sym }
 
-        @name = @long_names.first || @short_names.first
-        @path = command.path + [@long_idents.first || @short_idents.first]
+        set_name(
+          @long_names.first || @short_names.first,
+          command.path + [@long_idents.first || @short_idents.first])
 
         @argument = !arg.nil?
 
@@ -108,11 +109,11 @@ module ShellOpts
       def parse
         if parent
           path_names = token.source.sub("!", "").split(".")
-          @name = path_names.last
-          @path = path_names.map { |cmd| "#{cmd}!".to_sym }
+          set_name(
+              path_names.last,
+              path_names.map { |cmd| "#{cmd}!".to_sym })
         else
-          @path = []
-          @name = token.source
+          set_name(token.source, [])
         end
         super
       end

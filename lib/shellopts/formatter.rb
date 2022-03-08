@@ -125,9 +125,9 @@ module ShellOpts
               section.delete(klass)
               section.delete(Paragraph)
               if klass <= OptionGroup
-                s = s + "S" if options.size > 1
+                s += "S" if options.size > 1
               elsif klass <= Command
-                s = s + "S" if commands.size > 1 || commands.first&.commands&.size != 0
+                s += "S" if commands.size > 1 || commands.size == 1 && commands.first.commands.size > 1
               end
               puts
               indent(-1).puts Ansi.bold s
@@ -150,6 +150,7 @@ module ShellOpts
 
           # Also emit commands not declared in nested scope
           (commands - children.select { |child| child.is_a?(Command) }).each { |cmd|
+            next if cmd.parent.nil? # Skip implicit commands
             puts if newline
             newline = true
             prefix = cmd.command == self ? nil : cmd.command&.name

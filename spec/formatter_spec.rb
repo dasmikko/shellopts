@@ -333,6 +333,12 @@ describe "Formatter" do
         expect(str(40)).to eq r
       end
     end
+
+    def put_recur(command)
+      puts "command: #{command.name.inspect}, #{command.path}, #{command.token}"
+      indent { command.commands.each { |cmd| put_recur(cmd) } }
+    end
+
     it "Handles commands with virtual supercommand" do
       s = %(
         cmd.cmd1!
@@ -342,7 +348,7 @@ describe "Formatter" do
             rspec
 
         USAGE
-            rspec [cmd1]
+            rspec [cmd]
 
         COMMAND
             cmd cmd1

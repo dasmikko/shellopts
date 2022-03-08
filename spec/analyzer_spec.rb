@@ -26,8 +26,27 @@ describe "ShellOpts" do
 
   describe "Grammar" do
     describe "Command" do
+#     describe "#compute_command_hashes" do
+#       it "Handles duplicate subcommands" do
+#         src = %(
+#           cmd1!
+#             cmd!
+#           cmd2!
+#             cmd!
+#         )
+#         expect { compile(src) }.not_to raise_error
+#       end
+#       it "Handles duplicate subcommands with undeclared parents" do
+#         src = %(
+#           cmd1.cmd!
+#           cmd2.cmd!
+#         )
+#         expect { compile(src) }.not_to raise_error
+#       end
+#     end
     end
   end
+
 
   describe "Analyzer" do
     describe "#analyze" do
@@ -74,21 +93,26 @@ describe "ShellOpts" do
         expect(cmd11.name).to eq "cmd11"
         expect(cmd11.command).to eq cmd1
       end
+
+      it "creates implicit commands" do
+        src = %(
+          cmd.cmd1!
+        )
+        grammar = compile(src)
+        expect(grammar.commands.size).to eq 1
+        cmd = grammar.commands.first
+        expect(cmd.path).to eq [:cmd!]
+        expect(cmd.commands.size).to eq 1
+        cmd1 = cmd.commands.first
+        expect(cmd1.name).to eq "cmd1"
+      end
+
       it "keeps documentation order" do
         src = %(
           cmd1!
           cmd1.cmd11!
         )
         expect(names(src)).to eq %w(cmd1 cmd11)
-      end
-      it "handles non-existing supercommands" do
-        src = %(
-          cmd1.cmd11!
-        )
-        expect(names(src)).to eq %w(cmd11)
-        prog = compile(src)
-        cmd11 = prog.commands.first
-        expect { compile(src) }.not_to raise_error
       end
     end
   end

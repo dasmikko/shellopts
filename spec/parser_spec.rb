@@ -212,20 +212,6 @@ describe "Parser" do
 
 #     spec = "-a -b=something -- ARG1 cmd! -- ARG2" # TODO: Make it possible to say "-a -b ARG1 cmd! ARG2"
 #     spec = "-a -b -- ARG1 ARG2 ARG3 ARG4 cmd1! cmd2! cmd3! cmd4!" # FIXME
-
-end
-
-describe "Command#parse" do
-  it "sets uid" do
-    source = "cmd1!"
-    tokens = Lexer.lex("main", source, true)
-    program = Parser.parse(tokens)
-    expect(program.uid).to eq nil
-    expect(program.path).to eq []
-    command = program.commands.first
-    expect(command.uid).to eq "cmd1!"
-    expect(command.path).to eq [:cmd1!]
-  end
 end
 
 describe "Option#parse" do

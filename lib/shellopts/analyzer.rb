@@ -50,9 +50,9 @@ module ShellOpts
         }
       end
 
+      # TODO Check for dash-collision
       def compute_command_hashes
         commands.each { |command|
-          # TODO Check for dash-collision
           !@commands_hash.key?(command.name) or 
               analyzer_error command.token, "Duplicate command name: #{command.name}"
           @commands_hash[command.name] = command
@@ -72,6 +72,12 @@ module ShellOpts
       @grammar = grammar
     end
 
+    def create_implicit_commands(cmd)
+      path = cmd.path[0..-2]
+
+      
+    end
+
     # Link up commands with supercommands. This is only done for commands that
     # are nested within a different command than it belongs to. The
     # parent/child relationship is not changed Example:
@@ -80,7 +86,7 @@ module ShellOpts
     #   cmd.subcmd! 
     #
     # Here subcmd is added to cmd's list of commands. It keeps its position in
-    # the parent/child relationship so that documentation will print the
+    # the program's parent/child relationship so that documentation will print the
     # commands in the given order and with the given indentation level
     #
     def link_commands
@@ -91,25 +97,40 @@ module ShellOpts
         # TODO: Pick up parent-less commands
       }
 
+      # Command to link
+      link = []
+
+      # Create implicit commands
+      h.sort { |l,r| l.size <=> r.size }.each { |path, command|
+        path = path[0..-2]
+        while !h.key?(path)
+          cmd = Grammar::Command.new(nil, command.token)
+          cmd.set_name(path.last.to_s.sub(/!/, ""), path.dup)
+          link << cmd
+          h[cmd.path] = cmd
+          path.pop
+        end
+      }
+
       # Find commands to link
       #
       # Commands are linked in two steps because the behaviour of #traverse is
       # not defined when the data structure changes beneath it. (FIXME: Does it
       # change when we don't touch the parent/child relationship?)
-      link = []
       @grammar.traverse(Grammar::Command) { |command|
         if command.path.size > 1 && command.parent && command.parent.path != command.path[0..-2]
+#       if command.path.size > 1 && command.parent.path != command.path[0..-2]
           link << command
         else
           command.instance_variable_set(:@command, command.parent)
         end
       }
 
-      # Move commands but do not change parent/child relationship
+      # Link commands but do not change parent/child relationship
       link.each { |command|
         path = command.path[0..-2]
         path.pop while (supercommand = h[path]).nil?
-        command.parent.commands.delete(command)
+        command.parent.commands.delete(command) if command.parent
         supercommand.commands << command
         command.instance_variable_set(:@command, supercommand)
       }

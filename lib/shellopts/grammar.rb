@@ -51,10 +51,12 @@ module ShellOpts
       attr_reader :command
 
       # Unique identifier of node (String) within the context of a program. nil
-      # for the Program object. It is the list of path elements concatenated
-      # with '.' and with internal '!' removed (eg. "cmd.opt" or "cmd.cmd!").
-      # Initialized by the parser
-      attr_reader :uid
+      # for the Program object. It is the dot-joined elements of path with
+      # internal exclamation marks removed (eg. "cmd.opt" or "cmd.cmd!").
+      # Initialize by the analyzer
+      def uid() 
+        @uid ||= command && [command.uid, ident].compact.join(".").sub(/!\./, ".") 
+      end
 
       # Path from Program object and down to this node. Array of identifiers.
       # Empty for the Program object. Initialized by the parser
@@ -83,6 +85,13 @@ module ShellOpts
       # The associated attribute (Symbol) in the parent command object. nil if
       # #ident is a reserved word. Initialized by the parser
       attr_reader :attr
+
+      def set_name(name, path)
+        @name = name.to_s
+        @path = path
+        @ident = @path.last || :!
+        @attr = ::ShellOpts::Command::RESERVED_OPTION_NAMES.include?(@ident.to_s) ? nil : @ident
+      end
 
     protected
       def lookup(path)
