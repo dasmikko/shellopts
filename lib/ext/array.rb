@@ -41,7 +41,9 @@ module Ext
 
     module Wrap
       refine ::Array do
-        # Concatenate strings into lines that are at most +width+ characters wide
+        # Concatenate array of words into lines that are at most +width+
+        # characters wide. +curr+ is the initial number of characters already
+        # used on the first line
         def wrap(width, curr = 0)
           lines = [[]]
           curr -= 1 # Simplifies conditions below
