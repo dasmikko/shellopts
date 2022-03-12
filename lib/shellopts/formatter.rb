@@ -1,12 +1,5 @@
 require 'terminfo'
 
-# TODO: Move to ext/indented_io.rb
-module IndentedIO
-  class IndentedIO
-    def margin() combined_indent.size end
-  end
-end
-
 module ShellOpts
   module Grammar
     class Node
@@ -226,28 +219,20 @@ module ShellOpts
 
     # Usage string in error messages
     def self.usage(subject)
-      subject = Grammar::Command.command(subject)
-      @command_prefix = subject.ancestors.map { |node| node.name + " " }.join
+      command = Grammar::Command.command(subject)
+      @command_prefix = command.ancestors.map { |node| node.name + " " }.join
       setup_indent(1) {
         print lead = "#{USAGE_STRING}: "
-        indent(lead.size, ' ', bol: false) { subject.puts_usage }
+        indent(lead.size, ' ', bol: false) { command.puts_usage }
       }
     end
 
-#   # TODO
-#   def self.usage=(usage_lambda)
-#   end
-
     # When the user gives a -h option
-    def self.brief(command)
-      command = Grammar::Command.command(command)
+    def self.brief(subject)
+      command = Grammar::Command.command(subject)
       @command_prefix = command.ancestors.map { |node| node.name + " " }.join
       setup_indent(BRIEF_INDENT) { command.puts_brief }
     end
-
-#   # TODO
-#   def self.brief=(brief_lambda)
-#   end
 
     # When the user gives a --help option
     def self.help(subject)
@@ -261,18 +246,6 @@ module ShellOpts
       constrain obj, Grammar::Command, ::ShellOpts::Program
       obj.is_a?(Grammar::Command) ? obj : obj.__grammar__
     end
-
-#   # TODO
-#   def self.help_w_lambda(program)
-#     if @help_lambda
-#       #
-#     else
-#       program = Grammar::Command.command(program)
-#       setup_indent(HELP_INDENT) { program.puts_descr }
-#     end
-#   end
-#
-#   def self.help=(help_lambda) @help_lambda end
 
     def self.puts_columns(widths, fields)
       l = []
@@ -317,7 +290,7 @@ module ShellOpts
       @width ||= TermInfo.screen_width - MARGIN_RIGHT
     end
 
-    def self.rest() width - $stdout.margin end
+    def self.rest() width - $stdout.tab end
 
   private
     # TODO Get rid of?
