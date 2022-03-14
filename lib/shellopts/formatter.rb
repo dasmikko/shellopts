@@ -209,7 +209,10 @@ module ShellOpts
     BRIEF_COL1_MAX_WIDTH = 40
 
     # Minimum width of second column in brief option and command lists
-    BRIEF_COL2_MAX_WIDTH = 50
+    BRIEF_COL2_MIN_WIDTH = 30
+
+    # Maximum width of second column in brief option and command lists
+    BRIEF_COL2_MAX_WIDTH = 70
 
     # Indent to use in help output
     HELP_INDENT = 4
@@ -257,37 +260,44 @@ module ShellOpts
           puts first
           indent(first_width + BRIEF_COL_SEP, ' ') { puts second.wrap(second_width) } if second
         elsif second
-          printf "%-#{first_width + BRIEF_COL_SEP}s", first
-          indent(first_width, bol: false) { puts second.wrap(second_width) }
+          indent_size = first_width + BRIEF_COL_SEP
+          printf "%-#{indent_size}s", first
+          indent(indent_size, ' ', bol: false) { puts second.wrap(second_width) }
         else
           puts first
         end
       end
     end
 
+    # Returns a tuple of [first-column-width, second-column-width]. +width+ is
+    # the maximum width of the colunms and the BRIEF_COL_SEP separator.
+    # +fields+ is an array of [subject-string, descr-text] tuples where the
+    # descr is an array of words
     def self.compute_columns(width, fields)
-      first_max = [
-        (fields.map { |first, _| first.size } + [BRIEF_COL1_MIN_WIDTH]).max, 
-        BRIEF_COL1_MAX_WIDTH
-      ].min
-      second_max = fields.map { |_, second| second ? second&.map(&:size).sum + second.size - 1: 0 }.max
-
-      if first_max + BRIEF_COL_SEP + second_max <= width
-        first_width = first_max
-        second_width = second_max
-      elsif first_max + BRIEF_COL_SEP + BRIEF_COL2_MAX_WIDTH <= width
-        first_width = first_max
-        second_width = width - first_width - BRIEF_COL_SEP
+      first_max = 
+          fields.map { |first, _| first.size }.select { |size| size <= BRIEF_COL1_MAX_WIDTH }.max ||
+          BRIEF_COL1_MIN_WIDTH
+      second_max = fields.map { |_, second| second ? second&.map(&:size).sum + second.size - 1 : 0 }.max
+      first_width = [[first_max, BRIEF_COL1_MIN_WIDTH].max, BRIEF_COL1_MAX_WIDTH].min
+      rest = width - first_width - BRIEF_COL_SEP
+      second_min = [BRIEF_COL2_MIN_WIDTH, second_max].min
+      if rest < second_min
+        first_width = [first_max, width - second_min - BRIEF_COL_SEP].max
+        second_width = [width - first_width - BRIEF_COL_SEP, BRIEF_COL2_MIN_WIDTH].max
       else
-        first_width = [width - BRIEF_COL_SEP - BRIEF_COL2_MAX_WIDTH, BRIEF_COL1_MAX_WIDTH].min
-        second_width = BRIEF_COL2_MAX_WIDTH
+        second_width = [[rest, BRIEF_COL2_MIN_WIDTH].max, BRIEF_COL2_MAX_WIDTH].min
       end
-
       [first_width, second_width]
     end
 
     def self.width()
       @width ||= TermInfo.screen_width - MARGIN_RIGHT
+      @width
+    end
+
+    # Used in rspec
+    def self.width=(width)
+      @width = width
     end
 
     def self.rest() width - $stdout.tab end

@@ -1,5 +1,10 @@
 
-include ShellOpts
+include ShellOpts # FIXME: Dont
+
+#module ShellOpts
+# class Formatter
+# end
+#end
 
 describe "Formatter" do
   def method_str(method, source, subject = nil)
@@ -17,6 +22,69 @@ describe "Formatter" do
       $stdout.string
     ensure
       $stdout = save
+    end
+  end
+
+# l = w.size * count + count - 1
+# l = count * (w.size + 1) - 1
+# (l + 1) / (w.size + 1) = count
+
+  describe "::compute_columns" do
+    def words(width)
+      word = "w"
+      words = [word] * ((width - 1) / (word.size + 1) + 1)
+      if word.size * words.size + words.size - 1 < width
+        words[-1] += word
+      end
+      words
+    end
+
+    def doit(col1_width, col2_width, width: 80)
+      col1 = "c" * col1_width
+      col2 = words(col2_width)
+      Formatter.compute_columns(width, [[col1, col2]])
+    end
+
+    it "sets first column to the length of the longest tuple element" do
+      col1_size = Formatter::BRIEF_COL1_MIN_WIDTH + 1
+      col1, col2 = doit col1_size, 1
+      expect(col1).to eq col1_size
+    end
+    it "sets first column to at least BRIEF_COL1_MIN_WIDTH" do
+      col1, col2 = doit 1, 1
+      expect(col1).to eq Formatter::BRIEF_COL1_MIN_WIDTH
+    end
+    it "sets first column to at most BRIEF_COL1_MAX_WIDTH before compacting" do
+      col1_size = Formatter::BRIEF_COL1_MAX_WIDTH
+      col1, col2 = doit col1_size, 1
+      expect(col1).to eq Formatter::BRIEF_COL1_MAX_WIDTH
+
+      col1, col2 = doit col1_size + 1, 1
+      expect(col1).to eq Formatter::BRIEF_COL1_MIN_WIDTH
+    end
+
+    it "sets second column to the remaining width" do
+      width = 70
+      col2_size= Formatter::BRIEF_COL2_MIN_WIDTH + 5
+      col1, col2 = doit 1, col2_size, width: 70
+      expect(col2).to eq (width - Formatter::BRIEF_COL1_MIN_WIDTH - Formatter::BRIEF_COL_SEP)
+    end
+
+    it "sets second column to at least BRIEF_COL2_MIN_WIDTH" do
+      width = 10
+      col1, col2 = doit 1, 1, width: width
+      expect(col2).to eq Formatter::BRIEF_COL2_MIN_WIDTH
+    end
+
+    it "sets second column to at most BRIEF_COL2_MAX_WIDTH" do
+      width = 100
+      col2_size = Formatter::BRIEF_COL2_MAX_WIDTH + 1
+      col1, col2 = doit 1, col2_size, width: width
+      expect(col2).to eq Formatter::BRIEF_COL2_MAX_WIDTH
+    end
+
+    context "when width it too small" do
+      it "shrinks option/command column" 
     end
   end
 
@@ -128,6 +196,34 @@ describe "Formatter" do
       )
       expect(str(s, :cmd1!)).to eq r
     end
+
+    context "when given a very long command brief MARK" do
+      def brief(source, subject = nil)
+        method_str(:brief, source, subject)
+      end
+      it "breaks line the right way" do
+        src = %(
+          cmd!
+              this is a very long brief this is a very long brief  this is a very long brief this is a very long brief this is a very long brief this is a very long brief 
+        )
+        r = undent %(
+          Usage
+            rspec [cmd]
+
+          Commands
+            cmd                   this is a very long brief this is a
+                                  very long brief this is a very long
+                                  brief this is a very long brief this
+                                  is a very long brief this is a very
+                                  long brief
+
+        )
+        Formatter.width = 60
+        expect(brief(src)).to eq r
+        Formatter.width = nil
+      end
+    end
+
   end
 
   describe "::help" do
