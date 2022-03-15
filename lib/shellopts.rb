@@ -192,23 +192,23 @@ module ShellOpts
     #
     # #error is supposed to be used when the user made an error and the usage
     # is written to help correcting the error
-    #
     def error(subject = nil, message)
-      saved = $stdout
-      $stdout = $stderr
       $stderr.puts "#{name}: #{message}"
-      Formatter.usage(grammar)
-      exit 1
-    ensure
-      $stdout = saved
+      saved = $stdout
+      begin
+        $stdout = $stderr
+        Formatter.usage(grammar)
+        exit 1
+      ensure
+        $stdout = saved
+      end
     end
 
     # Write error message to standard error and terminate program with status 1
     #
-    # #failure is supposed to be used the used specified the correct arguments
-    # but something went wrong during processing. Since the used didn't cause
-    # the problem, only the error message is written
-    #
+    # #failure doesn't print the program usage because is supposed to be used
+    # when the user specified the correct arguments but something else went
+    # wrong during processing
     def failure(message)
       $stderr.puts "#{name}: #{message}"
       exit 1
@@ -222,7 +222,6 @@ module ShellOpts
 
     # Print help for the given subject or the full documentation if +subject+
     # is nil. Clears the screen beforehand if :clear is true
-    #
     def help(subject = nil, clear: true)
       node = (subject ? @grammar[subject] : @grammar) or
           raise ArgumentError, "No such command: '#{subject&.sub(".", " ")}'"
@@ -333,7 +332,17 @@ module ShellOpts
   def self.instance=(instance) @instance = instance end
   def self.shellopts() instance end
 
-  forward_self_to :instance, :error, :failure
+  def self.error(subject = nil, message)
+    instance.error(subject, message) if instance? # Never returns
+    $stderr.puts "#{File.basename($PROGRAM_NAME)}: #{message}"
+    exit 1
+  end
+
+  def self.failure(message)
+    instance.failure(message) if instance?
+    $stderr.puts "#{File.basename($PROGRAM_NAME)}: #{message}"
+    exit 1
+  end
 
   # The Include module brings the reporting methods into the namespace when
   # included

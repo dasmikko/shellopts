@@ -19,7 +19,64 @@ describe "ShellOpts" do
 end
 
 describe "ShellOpts::ShellOpts" do
-  describe "find_spec_in_text" do
+  describe ".error" do
+    before(:each) { ShellOpts.instance = nil }
+    context "when no ShellOpts object has been initialized" do
+      it "prints '<program>: <message>' on stderr and exits the program with status 1" do
+        expect {
+          expect { ShellOpts.error("msg") }.to raise_error(SystemExit) { |error|
+            expect(error.status).to eq 1
+          }
+        }.to output("rspec: msg\n").to_stderr
+      end
+    end
+    context "when a ShellOpts object has been initialized" do
+      it "calls #error in the instance" do
+        spec = "-a -- FILE"
+        ShellOpts.process(spec, [])
+        hold = $stderr
+        begin
+          $stderr = File.open("/dev/null", "w")
+          expect(ShellOpts.instance).to receive(:error)
+          ShellOpts.error("msg")
+        rescue SystemExit
+          ;
+        ensure 
+          $stderr = hold
+        end
+      end
+    end
+  end
+
+  describe ".failure" do
+    context "when no ShellOpts object has been initialized" do
+      it "prints '<program>: <message>' on stderr and exits the program with status 1" do
+        expect {
+          expect { ShellOpts.failure("msg") }.to raise_error(SystemExit) { |failure|
+            expect(failure.status).to eq 1
+          }
+        }.to output("rspec: msg\n").to_stderr
+      end
+    end
+    context "when a ShellOpts object has been initialized" do
+      it "calls #failure in the instance" do
+        spec = "-a -- FILE"
+        ShellOpts.process(spec, [])
+        hold = $stderr
+        begin
+          $stderr = File.open("/dev/null", "w")
+          expect(ShellOpts.instance).to receive(:failure)
+          ShellOpts.failure("msg")
+        rescue SystemExit
+          ;
+        ensure 
+          $stderr = hold
+        end
+      end
+    end
+  end
+
+  describe ".find_spec_in_text" do
     def find(text, spec)
       oneline = spec.index("\n").nil?
       spec = spec.sub(/^\s*\n/, "")
