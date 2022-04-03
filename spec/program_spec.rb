@@ -58,4 +58,24 @@ describe "Command" do
       expect { opts[:cmd3!] }.to raise_error ArgumentError
     end
   end
+  describe "::to_h" do
+    let(:opts) { 
+      spec = "-a -b=VAL -c"
+      argv = %w(-a -bvalue)
+      opts, args = ShellOpts::ShellOpts.process(spec, argv)
+      opts
+    }
+
+    it "returns the used options as a hash" do
+      expect(opts.to_h).to eq a: nil, b: "value"
+    end
+    context "when given a list of options" do
+      it "returns the given options as a hash" do
+        expect(opts.to_h :a).to eq a: nil
+      end
+      it "ignores missing options" do
+        expect(opts.to_h :a, :b, :c).to eq a: nil, b: "value"
+      end
+    end
+  end
 end

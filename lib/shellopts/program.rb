@@ -45,12 +45,12 @@ module ShellOpts
 
     # These names can't be used as option or command names
     RESERVED_OPTION_NAMES = %w(
-        is_a instance_eval instance_exec method_missing singleton_method_added
+        is_a to_h instance_eval instance_exec method_missing singleton_method_added
         singleton_method_removed singleton_method_undefined
     )
 
-    # These methods can be overridden by an option or a command (the value is not used -
-    # this is just for informational purposes)
+    # These methods can be overridden by an option or a command (this constant
+    # is not used - it is just for informational purposes)
     OVERRIDEABLE_METHOD_NAMES = %w(
         subcommand subcommand! supercommand!
     )
@@ -96,6 +96,19 @@ module ShellOpts
       end
     end
       
+    # Returns a hash of the given options if defined. Returns all options if no
+    # options are given
+    def to_h(*keys)
+      keys = ::Kernel::Array(keys).flatten
+      if keys.empty?
+        @__option_values__
+      else
+        keys.map { |key|
+          @__option_values__.key?(key) ? [key, @__option_values__[key]] : nil
+        }.compact.to_h
+      end
+    end
+
     # Subcommand identifier or nil if not present. #subcommand is often used in
     # case statement to branch out to code that handles the given subcommand:
     #
