@@ -1,4 +1,6 @@
 
+o Fix formatting error in long arguments (see ms2pg)
+o Macro that can be used in the SPEC for the program name (eg. <PROGRAM>)
 o Ignore all text after ' # ' (doesn't conflict with option flag)
 o Command aliases
 o Add user-defined setions
