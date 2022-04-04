@@ -1,4 +1,5 @@
 
+o Limit text width to -10 chars of what it is today (same as stackexchange width in characters)
 o Fix formatting error in long arguments (see ms2pg)
 o Macro that can be used in the SPEC for the program name (eg. <PROGRAM>)
 o Ignore all text after ' # ' (doesn't conflict with option flag)
