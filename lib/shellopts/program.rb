@@ -194,33 +194,36 @@ module ShellOpts
 
     def __define_option_methods__
       @__grammar__.options.each { |opt|
+        if opt.argument?
+          self.instance_eval %(
+            def #{opt.attr}(default = nil)
+              if @__option_values__.key?(:#{opt.attr}) 
+                @__option_values__[:#{opt.attr}]
+              else
+                default
+              end
+            end
+          )
+
+        elsif opt.repeatable?
+          self.instance_eval %(
+            def #{opt.attr}(default = 0) 
+              if default > 0 && @__option_values__[:#{opt.attr}] == 0
+                default
+              else
+                @__option_values__[:#{opt.attr}]
+              end
+            end
+          )
+        else
+          self.instance_eval("def #{opt.attr}() @__option_values__[:#{opt.attr}] end")
+        end
+
         if opt.argument? || opt.repeatable?
-          if opt.optional?
-            self.instance_eval %(
-              def #{opt.attr}(default = nil)
-                if @__option_values__.key?(:#{opt.attr}) 
-                  @__option_values__[:#{opt.attr}]
-                else
-                  default
-                end
-              end
-            )
-          elsif !opt.argument? # Repeatable w/o argument
-            self.instance_eval %(
-              def #{opt.attr}(default = []) 
-                if @__option_values__.key?(:#{opt.attr})
-                  @__option_values__[:#{opt.attr}]
-                else
-                  default
-                end
-              end
-            )
-          else
-            self.instance_eval("def #{opt.attr}() @__option_values__[:#{opt.attr}] end")
-          end
           self.instance_eval("def #{opt.attr}=(value) @__option_values__[:#{opt.attr}] = value end")
           @__option_values__[opt.attr] = 0 if !opt.argument?
         end
+
         self.instance_eval("def #{opt.attr}?() @__option_values__.key?(:#{opt.attr}) end")
       }
 

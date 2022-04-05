@@ -20,6 +20,7 @@ describe "Command" do
       expect { opts.key?(:not_there) }.to raise_error ArgumentError 
     end
   end
+
   describe "#[]" do
     let(:opts) { 
       spec = "-a -b +c=IDX +d cmd1! cmd2!"
@@ -58,6 +59,40 @@ describe "Command" do
       expect { opts[:cmd3!] }.to raise_error ArgumentError
     end
   end
+
+  describe "#<option>" do
+    let(:opts) { 
+      spec = "-a -b -c=VAR -d=VAR +e +f +g=IDX +i=IDX -j=VAR? -k=VAR?"
+      argv = %w(-a -cVAR -e -e -gVAR1 -gVAR2 -i -iVAR) 
+      opts, args = ShellOpts::ShellOpts.process(spec, argv)
+      opts
+    }
+
+    it "returns the option value" do
+      expect(opts.c).to eq "VAR"
+    end
+
+    context "when the option is not present" do
+      it "returns nil" do
+        expect(opts.d).to eq nil
+      end
+    end
+
+    context "when the option has an argument" do
+      it "may take a default value" do
+        expect(opts.c).to eq "VAR"
+        expect(opts.d("default")).to eq "default"
+      end
+    end
+
+    context "when the option is repeatable" do
+      it "may take a default count" do
+        expect(opts.e).to eq 2
+        expect(opts.f(3)).to eq 3
+      end
+    end
+  end
+
   describe "::to_h" do
     let(:opts) { 
       spec = "-a -b=VAL -c"
