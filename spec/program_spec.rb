@@ -93,6 +93,10 @@ describe "Command" do
     end
   end
 
+  describe "#subcommand!" do
+    it "returns the subcommand object"
+  end
+
   describe "::to_h" do
     let(:opts) { 
       spec = "-a -b=VAL -c"
