@@ -153,10 +153,10 @@ module ShellOpts
     # Grammar object
     attr_reader :__grammar__
 
-    # Hash from identifier to value. Can be Integer, Float, or String
-    # depending on the option's type. Repeated options options without
-    # arguments have the number of occurences as the value, with arguments
-    # the value is an array of the given values
+    # Hash from identifier to value. Can be Integer, Float, or String depending
+    # on the option's type. Repeated options options without arguments have the
+    # number of occurences as value and with arguments the value is an array of
+    # the given values
     attr_reader :__option_values__
 
     # List of Option objects for the subcommand in the same order as
@@ -194,7 +194,48 @@ module ShellOpts
 
     def __define_option_methods__
       @__grammar__.options.each { |opt|
-        if opt.argument?
+        if !opt.repeatable?
+          self.instance_eval %(
+            def #{opt.attr}?() 
+              @__option_values__.key?(:#{opt.attr}) 
+            end
+          )
+        end
+        
+        if opt.repeatable?
+          if opt.argument?
+            self.instance_eval %(
+              def #{opt.attr}?() 
+                (@__option_values__[:#{opt.attr}]&.size || 0) > 0 
+              end
+            )
+            self.instance_eval %(
+              def #{opt.attr}(default = [])
+                if @__option_values__.key?(:#{opt.attr}) 
+                  @__option_values__[:#{opt.attr}]
+                else
+                  default
+                end
+              end
+            )
+          else
+            self.instance_eval %(
+              def #{opt.attr}?() 
+                (@__option_values__[:#{opt.attr}] || 0) > 0 
+              end
+            )
+            self.instance_eval %(
+              def #{opt.attr}(default = 0) 
+                if default > 0 && (@__option_values__[:#{opt.attr}] || 0) == 0
+                  default
+                else
+                  @__option_values__[:#{opt.attr}] || 0
+                end
+              end
+            )
+          end
+
+        elsif opt.argument?
           self.instance_eval %(
             def #{opt.attr}(default = nil)
               if @__option_values__.key?(:#{opt.attr}) 
@@ -205,26 +246,13 @@ module ShellOpts
             end
           )
 
-        elsif opt.repeatable?
+        else
           self.instance_eval %(
-            def #{opt.attr}(default = 0) 
-              if default > 0 && @__option_values__[:#{opt.attr}] == 0
-                default
-              else
-                @__option_values__[:#{opt.attr}]
-              end
+            def #{opt.attr}() 
+              @__option_values__.key?(:#{opt.attr}) 
             end
           )
-        else
-          self.instance_eval("def #{opt.attr}() @__option_values__[:#{opt.attr}] end")
         end
-
-        if opt.argument? || opt.repeatable?
-          self.instance_eval("def #{opt.attr}=(value) @__option_values__[:#{opt.attr}] = value end")
-          @__option_values__[opt.attr] = 0 if !opt.argument?
-        end
-
-        self.instance_eval("def #{opt.attr}?() @__option_values__.key?(:#{opt.attr}) end")
       }
 
       @__grammar__.commands.each { |cmd|

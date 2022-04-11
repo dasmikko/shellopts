@@ -31,6 +31,14 @@ describe "Parser" do
   end
 
   describe "::parse" do
+    it "parses -a" do
+      s = "-a"
+      expect(struct s).to eq undent %(
+        !
+          -a
+      )
+    end
+
     it "parses cmd!" do
       s = "cmd!"
       expect(struct s).to eq undent %(

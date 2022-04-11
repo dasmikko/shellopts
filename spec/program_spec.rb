@@ -60,35 +60,119 @@ describe "Command" do
     end
   end
 
-  describe "#<option>" do
+  describe "Generic #<option> and #<option>? methods" do
+    let(:spec) { "" }
+    let(:argv) { [] }
     let(:opts) { 
-      spec = "-a -b -c=VAR -d=VAR +e +f +g=IDX +i=IDX -j=VAR? -k=VAR?"
-      argv = %w(-a -cVAR -e -e -gVAR1 -gVAR2 -i -iVAR) 
       opts, args = ShellOpts::ShellOpts.process(spec, argv)
       opts
     }
 
-    it "returns the option value" do
-      expect(opts.c).to eq "VAR"
-    end
-
-    context "when the option is not present" do
-      it "returns nil" do
-        expect(opts.d).to eq nil
+    context "when the option is not repeatable" do
+      context "when the option doesn't take an argument" do
+        let(:spec) { "-a -b" }
+        let(:argv) { %w(-a) }
+        it "#<option>? returns true iff present" do
+          expect(opts.a?).to eq true
+          expect(opts.b?).to eq false
+        end
+        it "#<option> returns true iff present" do
+          expect(opts.a).to eq true
+          expect(opts.b).to eq false
+        end
       end
-    end
-
-    context "when the option has an argument" do
-      it "may take a default value" do
-        expect(opts.c).to eq "VAR"
-        expect(opts.d("default")).to eq "default"
+      context "when the option has an optional argument" do
+        let(:spec) { "-a=VAR? -b=VAR? -c=VAR?" }
+        let(:argv) { %w(-aAVAR -b) }
+        it "#<option>? returns true iff present" do
+          expect(opts.a?).to eq true
+          expect(opts.b?).to eq true
+          expect(opts.c?).to eq false
+        end
+        it "#<option> returns the value if given" do
+          expect(opts.a).to eq "AVAR"
+        end
+        it "#<option> returns nil if value is missing" do
+          expect(opts.b).to eq nil
+        end
+        it "#<option> returns nil if option not present" do
+          expect(opts.c).to eq nil
+        end
+      end
+      context "when the option has a mandatory argument" do
+        let(:spec) { "-a=VAR -b=VAR" }
+        let(:argv) { %w(-aAVAR) }
+        it "#<option>? returns true iff present" do
+          expect(opts.a?).to eq true
+          expect(opts.b?).to eq false
+        end
+        it "#<option> returns the value if option is present" do
+          expect(opts.a).to eq "AVAR"
+        end
+        it "#<option> returns nil if option is not present" do
+          expect(opts.b).to eq nil
+        end
       end
     end
 
     context "when the option is repeatable" do
-      it "may take a default count" do
-        expect(opts.e).to eq 2
-        expect(opts.f(3)).to eq 3
+      context "when the option doesn't take an argument" do
+        let(:spec) { "+a +b +c" }
+        let(:argv) { %w(-a -b -b) }
+        it "#<option>? returns true iff present" do
+          expect(opts.a?).to eq true
+          expect(opts.b?).to eq true
+          expect(opts.c?).to eq false
+        end
+        it "#<option> returns count of occurrences" do
+          expect(opts.a).to eq 1
+          expect(opts.b).to eq 2
+          expect(opts.c).to eq 0
+        end
+      end
+      context "when the option has an optional argument" do
+        let(:spec) { "+a=VAR? +b=VAR? +c=VAR? +d=VAR? +e=VAR?" }
+        let(:argv) { %w(-aAVAR -bBVAR1 -bBVAR2 -c -d -d) }
+        it "#<option>? returns true iff present" do
+          expect(opts.a?).to eq true
+          expect(opts.b?).to eq true
+          expect(opts.c?).to eq true
+          expect(opts.d?).to eq true
+          expect(opts.e?).to eq false
+        end
+        context "when the option is present" do
+          it "#<option> returns an array of values or nil if missing" do
+            expect(opts.a).to eq %w(AVAR)
+            expect(opts.b).to eq %w(BVAR1 BVAR2)
+            expect(opts.c).to eq [nil]
+            expect(opts.d).to eq [nil, nil]
+          end
+        end
+        context "when the option is not present" do
+          it "#<option> returns the empty array" do
+            expect(opts.e).to eq []
+          end
+        end
+      end
+      context "when the option has a mandatory argument" do
+        let(:spec) { "+a=VAR +b=VAR +c=VAR" }
+        let(:argv) { %w(-aAVAR -bBVAR1 -bBVAR2) }
+        it "#<option>? returns true iff present" do
+          expect(opts.a?).to eq true
+          expect(opts.b?).to eq true
+          expect(opts.c?).to eq false
+        end
+        context "when the option is present" do
+          it "#<option> returns an array of values" do
+            expect(opts.a).to eq %w(AVAR)
+            expect(opts.b).to eq %w(BVAR1 BVAR2)
+          end
+        end
+        context "when the option is not present" do
+          it "#<option> returns the empty array" do
+            expect(opts.c).to eq []
+          end
+        end
       end
     end
   end
