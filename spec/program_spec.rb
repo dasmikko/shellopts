@@ -30,7 +30,7 @@ describe "Command" do
     }
 
     context "when the key is an option" do
-      it "returns the associated option" do
+      it "returns the associated option object" do
         expect(opts[:a]).to be_a ShellOpts::Option
       end
       it "returns nil if the option wasn't present" do
@@ -181,7 +181,7 @@ describe "Command" do
     it "returns the subcommand object"
   end
 
-  describe "::to_h" do
+  describe "#to_h" do
     let(:opts) { 
       spec = "-a -b=VAL -c"
       argv = %w(-a -bvalue)
@@ -189,15 +189,15 @@ describe "Command" do
       opts
     }
 
-    it "returns the used options as a hash" do
-      expect(opts.to_h).to eq a: nil, b: "value"
+    it "returns the used options and their values as a hash" do
+      expect(opts.to_h).to eq a: true, b: "value"
     end
     context "when given a list of options" do
       it "returns the given options as a hash" do
-        expect(opts.to_h :a).to eq a: nil
+        expect(opts.to_h :a).to eq a: true
       end
       it "ignores missing options" do
-        expect(opts.to_h :a, :b, :c).to eq a: nil, b: "value"
+        expect(opts.to_h :a, :b, :c).to eq a: true, b: "value"
       end
     end
   end

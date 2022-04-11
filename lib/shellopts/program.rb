@@ -101,10 +101,10 @@ module ShellOpts
     def to_h(*keys)
       keys = ::Kernel::Array(keys).flatten
       if keys.empty?
-        @__option_values__
+        self.to_h(@__grammar__.options.map(&:ident))
       else
         keys.map { |key|
-          @__option_values__.key?(key) ? [key, @__option_values__[key]] : nil
+          self.__send__("#{key}?".to_sym) ? [key, self.__send__(key)] : nil
         }.compact.to_h
       end
     end
@@ -155,8 +155,8 @@ module ShellOpts
 
     # Hash from identifier to value. Can be Integer, Float, or String depending
     # on the option's type. Repeated options options without arguments have the
-    # number of occurences as value and with arguments the value is an array of
-    # the given values
+    # number of occurences as value, repeated option with arguments have the
+    # array of values as value
     attr_reader :__option_values__
 
     # List of Option objects for the subcommand in the same order as
