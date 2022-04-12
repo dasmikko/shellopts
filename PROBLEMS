@@ -1,0 +1,41 @@
+
+# Subcommand options are not recognized unless there exists an option on the
+# program level (try to remove -a below)
+
+SPEC = %(
+  Foreign data wrapper maintenance tool
+
+  -a,an-option
+    Gryf
+
+  list.servers! -- DATABASE
+    List foreign servers
+
+  create.server! -- DATABASE FDW-SERVER MSSQL-DATABASE [MSSQL-HOST [MSSQL-PORT]]
+    Create a new FDW server
+
+    -c,credentials=EFILE
+      Credentials file. The credentials file is a YAML formatted file that can
+      define the fields 'user', 'password', 'host', and 'port'
+
+  drop.server! -- DATABASE FDW-SERVER
+    Drop a FDW server. This cascades to FDW users too
+
+  list.users! -- DATABASE
+    List FDW users. 'users' in this context is postgres users that have an
+    associated FDW user mapping
+
+    --servers @ Also list the user's FDW servers
+
+  create.user! -- DATABASE FDW-SERVER [FDW-USER [FDW-PASSWORD]]
+    Create a FDW user. The user has to exist beforehand, this command only adds
+    a user mapping to the user and grants the usage privilege
+
+    -c,credentials=EFILE
+      Credentials file
+
+  drop.user! -- DATABASE FDW-USER
+    Drops a FDW user. The postgres user is not dropped but the user's user
+    mapping and grants are
+)
+
