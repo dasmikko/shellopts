@@ -52,7 +52,7 @@ module ShellOpts
     # These methods can be overridden by an option or a command (this constant
     # is not used - it is just for informational purposes)
     OVERRIDEABLE_METHOD_NAMES = %w(
-        subcommand subcommand! supercommand!
+        subcommand subcommand! subcommands subcommands! supercommand!
     )
 
     # Redefine ::new to call #__initialize__
@@ -133,6 +133,13 @@ module ShellOpts
     #
     def subcommand!() __subcommand__! end
 
+    # Returns the concatenated identifier of subcommands (eg. :cmd.subcmd!)
+    def subcommands() __subcommands__ end
+
+    # Returns the subcommands in an array. This doesn't include the top-level
+    # program object
+    def subcommands!() __subcommands__! end
+
     # The parent command or nil. Initialized by #add_command
     #
     # Note: Can be overridden by a subcommand declaration (but not an
@@ -179,6 +186,16 @@ module ShellOpts
 
     # The actual subcommand object or nil if not present
     def __subcommand__!() @__subcommand__ end
+
+    # Implementation of the #subcommands method
+    def __subcommands__()
+      __subcommands__!.last&.__uid__&.to_sym
+    end
+
+    # Implementation of the #subcommands! method
+    def __subcommands__!()
+      ::Algorithm.follow(self.__subcommand__!, :__subcommand__!).to_a
+    end
 
   private
     def __initialize__(grammar)

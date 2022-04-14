@@ -5,6 +5,7 @@ require 'constrain'
 include Constrain
 
 require 'ext/array.rb'
+require 'ext/follow.rb'
 require 'ext/forward_to.rb'
 require 'ext/lcs.rb'
 include ForwardTo

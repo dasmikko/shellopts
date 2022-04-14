@@ -178,7 +178,72 @@ describe "Command" do
   end
 
   describe "#subcommand!" do
-    it "returns the subcommand object"
+    let(:opts) { 
+      spec = "cmd1! cmd2!"
+      argv = %w(cmd1)
+      opts, args = ShellOpts::ShellOpts.process(spec, argv)
+      opts
+    }
+
+    it "returns the subcommand object" do
+      expect(opts.subcommand!.is_a? ShellOpts::Command).to eq true
+    end
+  end
+
+  describe "#subcommand" do
+    let(:opts) { 
+      spec = "cmd1! cmd2!"
+      argv = %w(cmd1)
+      opts, args = ShellOpts::ShellOpts.process(spec, argv)
+      opts
+    }
+
+    it "returns the subcommand identifier" do
+      expect(opts.subcommand).to eq :cmd1!
+    end
+  end
+
+  describe "#subcommands!" do
+    let(:argv) { %w(cmd1 cmd2) }
+    let(:opts) { 
+      spec = "cmd1! cmd2!"
+      opts, args = ShellOpts::ShellOpts.process(spec, argv)
+      opts
+    }
+
+    it "returns the subcommand objects" do
+      expect(opts.subcommands!.all? { |cmd| cmd.is_a?(ShellOpts::Command) }).to eq true
+    end
+
+    context "when no subcommand was present" do
+      let(:argv) { [] }
+
+      it "returns the empty array" do
+        expect(opts.subcommands!).to eq []
+      end
+    end
+  end
+
+  describe "#subcommands" do
+    let(:argv) { %w(cmd1 cmd2) }
+    let(:opts) { 
+      spec = "cmd1! cmd1.cmd2!"
+      opts, args = ShellOpts::ShellOpts.process(spec, argv)
+      opts
+    }
+
+    it "returns the subcommand uid" do
+      expect(opts.subcommands).to eq :"cmd1.cmd2!"
+    end
+
+    context "when no subcommand is present" do
+      let(:argv) { [] }
+
+      it "returns nil" do
+        expect(opts.subcommands).to eq nil
+      end
+      
+    end
   end
 
   describe "#to_h" do
