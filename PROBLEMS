@@ -39,3 +39,14 @@ SPEC = %(
     mapping and grants are
 )
 
+###########################
+
+# If option is only defined on a subcommand, it doesn't flow before the subcommand. This should be legal:
+ 
+cmd -c sub
+
+# Only this is legal today
+
+cmd sub -c
+
+

@@ -30,7 +30,7 @@ module ShellOpts
       def ancestors() parents.reverse end
 
       def inspect
-        "#{self.class}"
+        self.class.to_s
       end
 
     protected
@@ -241,7 +241,7 @@ module ShellOpts
       def [](key)
         case key
           when String; lookup(key.split("."))
-          when Symbol; lookup(key.to_s.sub(".", "!.").split(".").map(&:to_sym))
+          when Symbol; lookup(key.to_s.gsub(".", "!.").split(".").map(&:to_sym))
           when Array; lookup(key)
         else
           nil

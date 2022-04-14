@@ -62,40 +62,28 @@ module ShellOpts
       object
     end
 
-    # Return command or option object if present, otherwise nil. Returns a
-    # possibly empty array of option objects if the option is repeatable
+    # Returns the command or option object identified by the UID if present and
+    # otherwise nil. Returns a possibly empty array of option objects if the
+    # option is repeatable. Raise an ArgumentError if the key doesn't exists
     #
-    # The key is the name or identifier of the object or any any option
-    # alias. Eg.  :f, '-f', :file, or '--file' are all usable as option keys
-    # and :cmd!  or 'cmd' as command keys
+    # The +key+ is the symbolic UID of the object. Eg. :command.option or
+    # :command.subcommand!
     #
-    def [](key)
-      case object = __grammar__[key]
-        when ::ShellOpts::Grammar::Command
-          object.ident == __subcommand__!.__ident__ ? __subcommand__! : nil
-        when ::ShellOpts::Grammar::Option
-          if object.repeatable?
-            __option_hash__[object.ident] || []
+    def [](uid)
+      __grammar__.key?(uid) or ::Kernel.raise ::ArgumentError, "'#{uid}' is not a valid UID"
+      idents = uid.to_s.gsub(/\./, "!.").split(/\./).map(&:to_sym)
+      idents.inject(self) { |cmd, ident|
+        case ident.to_s
+          when /!$/
+            return nil if cmd.__subcommand__ != ident
+            cmd = cmd.__subcommand__!
           else
-            __option_hash__[object.ident]
-          end
-        else
-          ::Kernel.raise ::ArgumentError, "Unknown command or option: '#{key}'"
-      end
+            opt = cmd.__option_hash__[ident]
+            opt.nil? && cmd.__grammar__[ident].repeatable? ? [] : opt
+        end
+      }
     end
 
-    # Return true if the given command or option is present
-    def key?(key)
-      case object = __grammar__[key]
-        when ::ShellOpts::Grammar::Command
-          object.ident == __subcommand__
-        when ::ShellOpts::Grammar::Option
-          __option_hash__.key?(object.ident)
-        else
-          ::Kernel.raise ::ArgumentError, "Unknown command or option: '#{key}'"
-      end
-    end
-      
     # Returns a hash of the given options if defined. Returns all options if no
     # options are given
     def to_h(*keys)
@@ -148,7 +136,7 @@ module ShellOpts
     #
     def supercommand!() __supercommand__ end
 
-    # UID of command/program
+    # UID of command/program (String)
     def __uid__() @__grammar__.uid end
 
     # Identfier including the exclamation mark (Symbol)
