@@ -124,7 +124,7 @@ module ShellOpts
         super(nil, token)
       end
 
-      def add_option(decl, brief, paragraph = nil)
+      def inject_option(decl, brief, paragraph = nil)
         option_token = Token.new(:option, 1, 1, decl)
         brief_token = Token.new(:brief, 1, 1, brief)
         group = OptionGroup.new(self, option_token)
@@ -135,36 +135,6 @@ module ShellOpts
           paragraph = Paragraph.parse(group, paragraph_token)
         end
       end
-
-#     def add_version_option
-#       add_option("--version", "Write version number and exit")
-
-#       option_token = Token.new(:option, 1, 1, "--version")
-#       brief_token = Token.new(:brief, 1, 1, "Write version number and exit")
-#       group = OptionGroup.new(self, option_token)
-#       option = Option.parse(group, option_token)
-#       brief = Brief.parse(group, brief_token)
-#     end
-
-#     def add_help_options
-#       add_option("-h,help", "Write help text and exit",
-#           "-h prints a brief help text, --help prints a longer man-style description of the command")
-
-#       option_token = Token.new(:option, 1, 1, "-h,help")
-#       brief_token = Token.new(:brief, 1, 1, "Write help text and exit")
-#       group = OptionGroup.new(self, option_token)
-#       option = Option.parse(group, option_token)
-#       brief = Brief.parse(group, brief_token)
-#       paragraph_token = Token.new(:text, 1, 1, 
-#           "-h prints a brief help text, --help prints a longer man-style description of the command")
-#       paragraph = Paragraph.parse(group, paragraph_token)
-#     end
-
-#     def add_message_options
-#       add_option("-q,quiet", "Quiet", "Do not write anything to standard output")
-#       add_option("+v,verbose", "Increase verbosity", "Write verbose output")
-#       add_option("--debug", "Write debug information")
-#     end
     end
 
     class ArgSpec

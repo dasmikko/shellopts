@@ -166,13 +166,13 @@ module ShellOpts
 
         # TODO If @help is true use "-h,help", if @help is a String use that string
 
-        ast.add_option("-h,help", "Write short or long help",
+        ast.inject_option("-h,help", "Write short or long help",
             "-h prints a brief help text, --help prints a longer man-style description of the command") \
             if @help
-        ast.add_option("--version", "Write version number and exit") if @use_version
-        ast.add_option("-q,quiet", "Quiet", "Do not write anything to standard output") if @quiet
-        ast.add_option("+v,verbose", "Increase verbosity", "Write verbose output") if @verbose
-        ast.add_option("--debug", "Write debug information") if @debug
+        ast.inject_option("--version", "Write version number and exit") if @use_version
+        ast.inject_option("-q,quiet", "Quiet", "Do not write anything to standard output") if @quiet
+        ast.inject_option("+v,verbose", "Increase verbosity", "Write verbose output") if @verbose
+        ast.inject_option("--debug", "Write debug information") if @debug
 
         @grammar = Analyzer.analyze(ast)
       }
