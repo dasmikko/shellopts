@@ -96,7 +96,7 @@ module ShellOpts
     # Automatically add a -h and a --help option if true
     attr_reader :help
 
-    # Version of client program. If not nil a --version option is added to the program
+    # Version of client program. If not nil, a --version option is added to the program
     def version
       return @version if @version
       exe = caller.find { |line| line =~ /`<top \(required\)>'$/ }&.sub(/:.*/, "")
@@ -105,8 +105,14 @@ module ShellOpts
           raise ArgumentError, "ShellOpts needs an explicit version"
     end
 
-    # Add message options (TODO)
-    attr_accessor :msgopts
+    # Automatically add a -q and a --quiet option if true
+    attr_reader :quiet
+
+    # Automatically add a -v and a --verbose option if true
+    attr_reader :verbose
+
+    # Automatically add a --debug option if true
+    attr_reader :debug
 
     # Floating options
     attr_accessor :float
@@ -122,12 +128,30 @@ module ShellOpts
     attr_reader :tokens
     alias_method :ast, :grammar
 
-    def initialize(name: nil, help: true, version: true, msgopts: false, float: true, exception: false)
+    def initialize(name: nil, 
+        # Options
+        help: true, 
+        version: true, 
+        quiet: nil, # 
+        verbose: nil,
+        debug: nil,
+
+        # Floating options
+        float: true,
+
+        # Let exceptions through
+        exceptions: false
+      )
+        
       @name = name || File.basename($PROGRAM_NAME)
       @help = help
       @use_version = version ? true : false
       @version = @use_version && @version != true ? @version : nil
-      @msgopts, @float, @exception = msgopts, float, exception
+      @quiet = quiet
+      @verbose = verbose && 0
+      @debug = debug
+      @float = float
+      @exception = exception
     end
 
     # Compile source and return grammar object. Also sets #spec and #grammar.
@@ -139,8 +163,17 @@ module ShellOpts
         @file = find_caller_file
         @tokens = Lexer.lex(name, @spec, @oneline)
         ast = Parser.parse(tokens)
-        ast.add_version_option if @use_version
-        ast.add_help_options if @help
+
+        # TODO If @help is true use "-h,help", if @help is a String use that string
+
+        ast.add_option("-h,help", "Write short or long help",
+            "-h prints a brief help text, --help prints a longer man-style description of the command") \
+            if @help
+        ast.add_option("--version", "Write version number and exit") if @use_version
+        ast.add_option("-q,quiet", "Quiet", "Do not write anything to standard output") if @quiet
+        ast.add_option("+v,verbose", "Increase verbosity", "Write verbose output") if @verbose
+        ast.add_option("--debug", "Write debug information") if @debug
+
         @grammar = Analyzer.analyze(ast)
       }
       self
@@ -322,9 +355,13 @@ module ShellOpts
     end
   end
 
-  def self.process(spec, argv, msgopts: false, **opts)
-    msgopts ||= Messages.is_included?
-    ShellOpts.process(spec, argv, msgopts: msgopts, **opts)
+
+  def self.process(spec, argv, quiet: nil, verbose: nil, debug: nil, **opts)
+    constrain quiet, String, true, false, nil
+    quiet = quiet.nil? ? Message.is_included? || Verbose.is_included? : quiet
+    verbose = verbose.nil? ? ::ShellOpts::Verbose.is_included? : verbose
+    debug = debug.nil? ? Debug.is_included? : debug
+    ShellOpts.process(spec, argv, quiet: quiet, verbose: verbose, debug: debug, **opts)
   end
 
   @instance = nil
@@ -345,31 +382,46 @@ module ShellOpts
     exit 1
   end
 
-  # The Include module brings the reporting methods into the namespace when
-  # included
-  module Messages
+  def self.notice(message)
+    $stderr.puts "#{instance.program.__grammar__.name}: #{message}" \
+        if !instance.quiet || !instance.program.quiet?
+  end
+
+  def self.mesg(message)
+    $stdout.puts message if !instance.quiet || !instance.program.quiet?
+  end
+
+  def self.verb(level = 1, message)
+    $stdout.puts message if instance.verbose && level <= instance.program.verbose
+  end
+
+  def self.debug(message)
+    $stdout.puts message if instance.debug && instance.program.debug?
+  end
+
+  module Message
     @is_included = false
     def self.is_included?() @is_included end
-    def self.include(...)
-      @is_included = true
-      super
-    end
+    def self.included(...) @is_included = true; super end
 
-    def notice(message)
-      $stderr.puts "#{name}: #{message}" if !quiet?
-    end
+    def notice(message) ::ShellOpts.notice(message) end
+    def mesg(message) ::ShellOpts.mesg(message) end
+  end
 
-    def mesg(message)
-      $stdout.puts message if !quiet?
-    end
+  module Verbose
+    @is_included = false
+    def self.is_included?() @is_included end
+    def self.included(...) @is_included = true; super end
 
-    def verb(level = 1, message)
-      $stdout.puts message if level <= @verbose
-    end
+    def verb(level = 1, message) ::ShellOpts.verb(level, message) end
+  end
 
-    def debug(message)
-      $stdout.puts message if debug?
-    end
+  module Debug
+    @is_included = false
+    def self.is_included?() @is_included end
+    def self.included(...) @is_included = true; super end
+
+    def debug(message) ::ShellOpts.debug(message) end
   end
 
   module ErrorHandling
