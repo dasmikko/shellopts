@@ -184,7 +184,7 @@ module ShellOpts
                 short_option && "#{short_option} prints a brief help text",
                 long_option && "#{long_option} prints a longer man-style description of the command"
               ].compact.join(", ")
-            }
+            } if @help
         @version_option = 
             ast.inject_option(version_spec, "Write version number and exit") if @version
 
@@ -289,8 +289,8 @@ module ShellOpts
 
   private
     def find_version_number
-      exe = caller.find { |line| line =~ /`<top \(required\)>'$/ }&.sub(/:.*/, "")
-      file = Dir.glob(File.dirname(exe) + "/../lib/*/version.rb").first
+      exe = caller.find { |line| line =~ /`<top \(required\)>'$/ }&.sub(/:.*/, "") or return nil
+      file = Dir.glob(File.dirname(exe) + "/../lib/*/version.rb").first or return nil
       IO.read(file).sub(/^.*VERSION\s*=\s*"(.*?)".*$/m, '\1') or
           raise ArgumentError, "ShellOpts needs an explicit version"
     end
