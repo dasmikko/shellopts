@@ -18,12 +18,12 @@ SPEC = %(
     An option
 )
 
-opts, args = ShellOpts.process(SPEC, ARGV, verbose: false)
+opts, args = ShellOpts.process(SPEC, ARGV, version: "--ver", version_number: "1.2.3", help: "-?,help")
 
 verb "Verbose default"
 (0..3).each { |i| verb i, "Verbose #{i}" }
 mesg "Message"
 notice "Notice"
-debug "Debug"
+#debug "Debug"
 
 

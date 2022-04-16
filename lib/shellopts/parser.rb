@@ -23,7 +23,7 @@ module ShellOpts
     end
 
     class Option
-      SHORT_NAME_RE = /[a-zA-Z0-9]/
+      SHORT_NAME_RE = /[a-zA-Z0-9?]/
       LONG_NAME_RE = /[a-zA-Z0-9][a-zA-Z0-9_-]*/
       NAME_RE = /(?:#{SHORT_NAME_RE}|#{LONG_NAME_RE})(?:,#{LONG_NAME_RE})*/
 
@@ -124,16 +124,18 @@ module ShellOpts
         super(nil, token)
       end
 
-      def inject_option(decl, brief, paragraph = nil)
+      def inject_option(decl, brief, paragraph = nil, &block)
         option_token = Token.new(:option, 1, 1, decl)
         brief_token = Token.new(:brief, 1, 1, brief)
         group = OptionGroup.new(self, option_token)
         option = Option.parse(group, option_token)
         brief = Brief.parse(group, brief_token)
+        paragraph ||= yield(option) if block_given?
         if paragraph
           paragraph_token = Token.new(:text, 1, 1, paragraph)
           paragraph = Paragraph.parse(group, paragraph_token)
         end
+        option
       end
     end
 

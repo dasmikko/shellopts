@@ -97,13 +97,7 @@ module ShellOpts
     attr_reader :help
 
     # Version of client program. If not nil, a --version option is added to the program
-    def version
-      return @version if @version
-      exe = caller.find { |line| line =~ /`<top \(required\)>'$/ }&.sub(/:.*/, "")
-      file = Dir.glob(File.dirname(exe) + "/../lib/*/version.rb").first
-      @version = IO.read(file).sub(/^.*VERSION\s*=\s*"(.*?)".*$/m, '\1') or
-          raise ArgumentError, "ShellOpts needs an explicit version"
-    end
+    attr_reader :version
 
     # Automatically add a -q and a --quiet option if true
     attr_reader :quiet
@@ -113,6 +107,9 @@ module ShellOpts
 
     # Automatically add a --debug option if true
     attr_reader :debug
+
+    # Version number (this is usually detected dynamically)
+    attr_reader :version_number
 
     # Floating options
     attr_accessor :float
@@ -132,9 +129,12 @@ module ShellOpts
         # Options
         help: true, 
         version: true, 
-        quiet: nil, # 
+        quiet: nil,
         verbose: nil,
         debug: nil,
+
+        # Version number (usually detected)
+        version_number: nil,
 
         # Floating options
         float: true,
@@ -145,11 +145,11 @@ module ShellOpts
         
       @name = name || File.basename($PROGRAM_NAME)
       @help = help
-      @use_version = version ? true : false
-      @version = @use_version && @version != true ? @version : nil
+      @version = version || (version.nil? && !version_number.nil?)
       @quiet = quiet
-      @verbose = verbose && 0
+      @verbose = verbose
       @debug = debug
+      @version_number = version_number || find_version_number
       @float = float
       @exception = exception
     end
@@ -164,15 +164,29 @@ module ShellOpts
         @tokens = Lexer.lex(name, @spec, @oneline)
         ast = Parser.parse(tokens)
 
-        # TODO If @help is true use "-h,help", if @help is a String use that string
+        help_spec = (@help == true ? "-h,help" : @help)
+        version_spec = (@version == true ? "--version" : @version)
+        quiet_spec = (@quiet == true ? "-q,quiet" : @quiet)
+        verbose_spec = (@verbose == true ? "+v,verbose" : @verbose)
+        debug_spec = (@debug == true ? "--debug" : @debug)
 
-        ast.inject_option("-h,help", "Write short or long help",
-            "-h prints a brief help text, --help prints a longer man-style description of the command") \
-            if @help
-        ast.inject_option("--version", "Write version number and exit") if @use_version
-        ast.inject_option("-q,quiet", "Quiet", "Do not write anything to standard output") if @quiet
-        ast.inject_option("+v,verbose", "Increase verbosity", "Write verbose output") if @verbose
-        ast.inject_option("--debug", "Write debug information") if @debug
+        @quiet_option = 
+            ast.inject_option(quiet_spec, "Quiet", "Do not write anything to standard output") if @quiet
+        @verbose_option = 
+            ast.inject_option(verbose_spec, "Increase verbosity", "Write verbose output") if @verbose
+        @debug_option = 
+            ast.inject_option(debug_spec, "Write debug information") if @debug
+        @help_option = 
+            ast.inject_option(help_spec, "Write short or long help") { |option|
+              short_option = option.short_names.first 
+              long_option = option.long_names.first
+              [
+                short_option && "#{short_option} prints a brief help text",
+                long_option && "#{long_option} prints a longer man-style description of the command"
+              ].compact.join(", ")
+            }
+        @version_option = 
+            ast.inject_option(version_spec, "Write version number and exit") if @version
 
         @grammar = Analyzer.analyze(ast)
       }
@@ -186,16 +200,22 @@ module ShellOpts
       handle_exceptions { 
         @argv = argv.dup
         @program, @args = Interpreter.interpret(grammar, argv, float: float, exception: exception)
-        if @program.version?
-          puts version 
-          exit
-        elsif @program.help?
-          if @program[:help].name == "-h"
-            ShellOpts.brief
-          else
+
+        # Process standard options (that may have been renamed)
+        if @program.__send__(:"#{@help_option.ident}?")
+          if @program[:help].name =~ /^--/
             ShellOpts.help
+          else
+            ShellOpts.brief
           end
           exit
+        elsif @program.__send__(:"#{@version_option.ident}?")
+          puts version_number
+          exit
+        else
+          @program.__quiet__ = @program.__send__(:"#{@quiet_option.ident}?") if @quiet
+          @program.__verbose__ = @program.__send__(:"#{@verbose_option.ident}") if @verbose
+          @program.__debug__ = @program.__send__(:"#{@debug_option.ident}?") if @debug
         end
       }
       self
@@ -268,6 +288,13 @@ module ShellOpts
     def self.help(subject = nil) ::ShellOpts.instance.help(subject) end
 
   private
+    def find_version_number
+      exe = caller.find { |line| line =~ /`<top \(required\)>'$/ }&.sub(/:.*/, "")
+      file = Dir.glob(File.dirname(exe) + "/../lib/*/version.rb").first
+      IO.read(file).sub(/^.*VERSION\s*=\s*"(.*?)".*$/m, '\1') or
+          raise ArgumentError, "ShellOpts needs an explicit version"
+    end
+
     def handle_exceptions(&block)
       return yield if exception
       begin
@@ -388,15 +415,24 @@ module ShellOpts
   end
 
   def self.mesg(message)
-    $stdout.puts message if !instance.quiet || !instance.program.quiet?
+    $stdout.puts message if !instance.quiet || !instance.program.__quiet__
   end
 
   def self.verb(level = 1, message)
-    $stdout.puts message if instance.verbose && level <= instance.program.verbose
+    $stdout.puts message if instance.verbose && level <= instance.program.__verbose__
   end
 
   def self.debug(message)
-    $stdout.puts message if instance.debug && instance.program.debug?
+    $stdout.puts message if instance.debug && instance.program.__debug__
+  end
+
+  def self.quiet_flag
+  end
+
+  def self.verbose_flag
+  end
+
+  def self.debug_flag
   end
 
   module Message
@@ -413,6 +449,8 @@ module ShellOpts
     def self.is_included?() @is_included end
     def self.included(...) @is_included = true; super end
 
+    def notice(message) ::ShellOpts.notice(message) end
+    def mesg(message) ::ShellOpts.mesg(message) end
     def verb(level = 1, message) ::ShellOpts.verb(level, message) end
   end
 

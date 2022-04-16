@@ -72,7 +72,7 @@ module ShellOpts
       # Note that the analyzer fails with an an error if both --with-separator
       # and --with_separator are used because they would both map to
       # :with_separator
-      attr_reader :ident
+      attr_accessor :ident
 
       # Canonical name (String) of the object
       #
