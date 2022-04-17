@@ -84,17 +84,16 @@ module ShellOpts
       }
     end
 
-    # Returns a hash of the given options if defined. Returns all options if no
-    # options are given
+    # Returns a hash from option ident to value
+    #
+    # The value depends on the option type: If it is not repeatable, the vaue
+    # is the argument or nil if not present (or allowed). If the option is
+    # repeatable and has an argument, the value is an array of the arguments,
+    # if it doesn't have an argument, the value is the number of occurrences
+    #
     def to_h(*keys)
       keys = ::Kernel::Array(keys).flatten
-      if keys.empty?
-        self.to_h(@__grammar__.options.map(&:ident))
-      else
-        keys.map { |key|
-          self.__send__("#{key}?".to_sym) ? [key, self.__send__(key)] : nil
-        }.compact.to_h
-      end
+      __option_values__.select { |key,_| keys.empty? || keys.include?(key) }
     end
 
     # Subcommand identifier or nil if not present. #subcommand is often used in
