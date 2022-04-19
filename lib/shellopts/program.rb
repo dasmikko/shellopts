@@ -101,7 +101,7 @@ module ShellOpts
     def to_h?(*keys)
       keys = ::Kernel::Array(keys).flatten
       keys = keys.empty? ? __option_values__.keys : keys
-      keys.map { |key| [key, self.__send__(key)] }.to_h
+      keys.filter_map { |key| __option_values__.key?(key) && [key, self.__send__(key)] }.to_h
     end
 
 
