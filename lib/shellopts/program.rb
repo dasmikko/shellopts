@@ -86,7 +86,7 @@ module ShellOpts
 
     # Returns a hash from option ident to value
     #
-    # The value depends on the option type: If it is not repeatable, the vaue
+    # The value depends on the option type: If it is not repeatable, the value
     # is the argument or nil if not present (or allowed). If the option is
     # repeatable and has an argument, the value is an array of the arguments,
     # if it doesn't have an argument, the value is the number of occurrences
@@ -95,6 +95,15 @@ module ShellOpts
       keys = ::Kernel::Array(keys).flatten
       __option_values__.select { |key,_| keys.empty? || keys.include?(key) }
     end
+
+    # Like #to_h but present options without arguments have a true value
+    #
+    def to_h?(*keys)
+      keys = ::Kernel::Array(keys).flatten
+      keys = keys.empty? ? __option_values__.keys : keys
+      keys.map { |key| [key, self.__send__(key)] }.to_h
+    end
+
 
     # Subcommand identifier or nil if not present. #subcommand is often used in
     # case statement to branch out to code that handles the given subcommand:

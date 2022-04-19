@@ -382,7 +382,6 @@ module ShellOpts
     end
   end
 
-
   def self.process(spec, argv, quiet: nil, verbose: nil, debug: nil, **opts)
     constrain quiet, String, true, false, nil
     quiet = quiet.nil? ? Message.is_included? || Verbose.is_included? : quiet

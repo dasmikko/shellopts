@@ -242,7 +242,7 @@ describe "Command" do
     end
   end
 
-  describe "#to_h_2" do
+  describe "#to_h" do
     let(:spec) { "-a -b -c=VAR -d=VAR -e=VAR? -f=VAR? -g=VAR?" }
     let(:argv) { %w(-a -cCVAR -eEVAR -f) }
     let(:opts) { 
@@ -260,6 +260,79 @@ describe "Command" do
         context "when the option has no argument" do
           it "the value is nil" do
             expect(hash[:a]).to eq nil
+          end
+        end
+        context "when the option has a mandatory argument" do
+          it "the value is the argument" do
+            expect(hash[:c]).to eq "CVAR"
+          end
+        end
+        context "when the option has a optional argument" do
+          it "the value is the argument if present" do
+            expect(hash[:e]).to eq "EVAR"
+          end
+          it "the value is nil if the argument is missing" do
+            expect(hash[:f]).to eq nil
+          end
+        end
+      end
+
+      context "when the option is repeatable" do
+        context "when the option has no argument" do
+          let(:spec) { "+a +b" }
+          let(:argv) { %w(-a -a -b) }
+          
+          it "the value is the number of occurrences" do
+            expect(hash).to eq a: 2, b: 1
+          end
+        end
+        context "when the option has a mandatory argument" do
+          let(:spec) { "+a=VAR +b=VAR" }
+          let(:argv) { %w(-aAVAR -bBVAR1 -bBVAR2) }
+          it "the value is an array of arguments" do
+            expect(hash).to eq a: %w(AVAR), b: %w(BVAR1 BVAR2)
+          end
+        end
+        context "when the option has an optional argument" do
+          def hash(a = argv)
+            opts, args = ShellOpts.process(spec, a)
+            opts.to_h
+          end
+
+          context "the value is an array of arguments" do
+            let(:spec) { "+a=VAR? +b=VAR?" }
+            context "the array element" do
+              it "is the option argument if present" do
+                expect(hash %w(-aAVAR -bBVAR1 -bBVAR2)).to eq a: %w(AVAR), b: %w(BVAR1 BVAR2)
+              end
+              it "is nil if the argument is missing" do
+                expect(hash %w(-a -b -b)).to eq a: [nil], b: [nil, nil]
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  describe "#to_h?" do
+    let(:spec) { "-a -b -c=VAR -d=VAR -e=VAR? -f=VAR? -g=VAR?" }
+    let(:argv) { %w(-a -cCVAR -eEVAR -f) }
+    let(:opts) { 
+      opts, args = ShellOpts::ShellOpts.process(spec, argv)
+      opts
+    }
+    let(:hash) { opts.to_h? }
+
+    context "returns a Hash of options" do
+      it "with a key for each option on the command line"
+
+      context "when the option is not repeatable" do
+        let(:spec) { "-a -b -c=VAR -d=VAR -e=VAR? -f=VAR? -g=VAR?" }
+
+        context "when the option has no argument" do
+          it "the value is true" do
+            expect(hash[:a]).to eq true
           end
         end
         context "when the option has a mandatory argument" do

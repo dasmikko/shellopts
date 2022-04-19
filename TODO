@@ -1,3 +1,19 @@
+
+o Make opts[] point at the main object
+    opts[].subcommand is the direct subcommand of main
+o Make opts be the aggrated set of options in a subcommand
+    opts.subcommand is the concatenated path of subcommands
+o Make opts[:some_command] be the set of options for that subcommand (already done)
+o Sub-command options can overshadow options of outer commands but it is an
+  error to access them using opts. Use opts[] or opts[:some_command] instead
+
+o Add a default argument to extract:
+    def extract(range, *defaults)
+    end
+
+    extract(3..4, 'dbo')
+
+o More strict parsing of option and command lines
 o --option can't be escaped if on the start of a block line?
 o Use require_relative
 o In the following list is a command with a mandatory sub-command
