@@ -409,8 +409,7 @@ module ShellOpts
   end
 
   def self.notice(message)
-    $stderr.puts "#{instance.program.__grammar__.name}: #{message}" \
-        if !instance.quiet || !instance.program.quiet?
+    $stderr.puts message if !instance.quiet || !instance.program.quiet?
   end
 
   def self.mesg(message)
