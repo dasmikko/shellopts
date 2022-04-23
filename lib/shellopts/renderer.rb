@@ -15,9 +15,9 @@ require 'terminfo'
 #
 # Command rendering
 #   cmd --all --beta [cmd1|cmd2] ARG1 ARG2    # Single-line formats (:single)
-#   cmd --all --beta [cmd1|cmd2] ARGS...     
+#   cmd --all --beta [cmd1|cmd2] ARGS...      # Not used
 #   cmd -a -b [cmd1|cmd2] ARG1 ARG2
-#   cmd -a -b [cmd1|cmd2] ARGS...
+#   cmd -a -b [cmd1|cmd2] ARGS...             # Not used
 #
 #   cmd -a -b [cmd1|cmd2] ARG1 ARG2           # One line for each argument description (:enum)
 #   cmd -a -b [cmd1|cmd2] ARG3 ARG4           # (used in the USAGE section)
@@ -108,7 +108,7 @@ module ShellOpts
       def get_args(args: nil)
         case descrs.size
           when 0; []
-          when 1; [descrs.first.text]
+          when 1; descrs.first.text.split(' ')
           else [DESCRS_ABBR]
         end
       end
@@ -120,6 +120,7 @@ module ShellOpts
       end
 
       # Force one line. Compact options, commands, arguments if needed
+      #
       def render_single(width, args: nil)
         long_options = options.map { |option| option.render(:long) }
         short_options = options.map { |option| option.render(:short) }
@@ -164,6 +165,7 @@ module ShellOpts
       def render_multi(width, args: nil)
         long_options = options.map { |option| option.render(:long) }
         short_options = options.map { |option| option.render(:short) }
+        compact_options = options.empty? ? [] : [OPTIONS_ABBR]
         short_commands = commands.empty? ? [] : ["[#{commands.map(&:name).join("|")}]"]
         compact_commands = [COMMANDS_ABBR]
 
@@ -174,22 +176,13 @@ module ShellOpts
         return [words.join(" ")] if pass?(words, width)
         words = [name] + short_options + short_commands + args
         return [words.join(" ")] if pass?(words, width)
+        words = [name] + compact_options + short_commands + args
+        return [words.join(" ")] if pass?(words, width)
 
         # On multiple lines
         lead = name + " "
-        options = long_options.wrap(width - lead.size)
-        options = [lead + options[0]] + indent_lines(lead.size, options[1..-1])
-
-        begin
-          words = short_commands + args
-          break if pass?(words, width)
-          words = compact_commands + args
-          break if pass?(words, width)
-          words = compact_commands + [DESCRS_ABBR]
-        end while false
-
-        cmdargs = words.empty? ? [] : [words.join(" ")]
-        options + indent_lines(lead.size, cmdargs)
+        words = (long_options + short_commands + args).wrap(width - lead.size)
+        lines = [lead + words[0]] + indent_lines(lead.size, words[1..-1])
       end
 
     protected

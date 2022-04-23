@@ -41,7 +41,7 @@ module ShellOpts
           lead = Formatter.command_prefix || ""
           descrs.each { |descr|
             print lead
-            puts render(:single, width, args: [descr.text]) 
+            puts render(:multi, width, args: descr.text.split(' ')) 
           } 
         end
       end
