@@ -30,8 +30,8 @@ module ShellOpts
     class Command
       using Ext::Array::Wrap
 
-      def puts_usage(bol: false)
-        width = [Formatter.rest, Formatter::USAGE_MAX_WIDTH].min
+      def puts_usage(bol: false, max_width: Formatter::USAGE_MAX_WIDTH)
+        width = [Formatter.rest, max_width].min
         if descrs.size == 0
           print (lead = Formatter.command_prefix || "")
           indent(lead.size, ' ', bol: bol && lead == "") { 
@@ -58,7 +58,7 @@ module ShellOpts
         end
 
         puts "Usage"
-        indent { puts_usage(bol: true) }
+        indent { puts_usage(bol: true, max_width: Formatter::HELP_MAX_WIDTH) }
 
         if options.any?
           puts
@@ -112,7 +112,7 @@ module ShellOpts
         puts
 
         puts Ansi.bold "USAGE"
-        indent { puts_usage(bol: true) }
+        indent { puts_usage(bol: true, max_width: Formatter::HELP_MAX_WIDTH) }
 
         section = {
           Paragraph => "DESCRIPTION",
@@ -216,6 +216,9 @@ module ShellOpts
 
     # Indent to use in help output
     HELP_INDENT = 4
+
+    # Max. width of help text (not including indent)
+    HELP_MAX_WIDTH = 85 
 
     # Command prefix when subject is a sub-command
     def self.command_prefix() @command_prefix end
