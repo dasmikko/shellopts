@@ -166,22 +166,28 @@ module ShellOpts
         long_options = options.map { |option| option.render(:long) }
         short_options = options.map { |option| option.render(:short) }
         compact_options = options.empty? ? [] : [OPTIONS_ABBR]
-        short_commands = commands.empty? ? [] : ["[#{commands.map(&:name).join("|")}]"]
-        compact_commands = [COMMANDS_ABBR]
+
+        # Only compact commands if they can't fit on one line
+        if commands.empty?
+          use_commands = []
+        else
+          short_command = "[#{commands.map(&:name).join("|")}]"
+          use_commands = [short_command.size > width ? COMMANDS_ABBR : short_command]
+        end
 
         args ||= get_args
 
         # On one line
-        words = [name] + long_options + short_commands + args
+        words = [name] + long_options + use_commands + args
         return [words.join(" ")] if pass?(words, width)
-        words = [name] + short_options + short_commands + args
+        words = [name] + short_options + use_commands + args
         return [words.join(" ")] if pass?(words, width)
-        words = [name] + compact_options + short_commands + args
+        words = [name] + compact_options + use_commands + args
         return [words.join(" ")] if pass?(words, width)
 
         # On multiple lines
         lead = name + " "
-        words = (long_options + short_commands + args).wrap(width - lead.size)
+        words = (long_options + use_commands + args).wrap(width - lead.size)
         lines = [lead + words[0]] + indent_lines(lead.size, words[1..-1])
       end
 

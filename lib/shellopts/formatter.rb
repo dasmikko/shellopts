@@ -119,7 +119,6 @@ module ShellOpts
           OptionGroup => "OPTION",
           Command => "COMMAND"
         }
-
         seen_sections = {}
         newline = false # True if a newline should be printed before child 
         indent {
@@ -173,7 +172,10 @@ module ShellOpts
     end
 
     module WrappedNode
-      def puts_descr(width = Formatter.rest) puts lines(width) end
+      def puts_descr
+        width = [Formatter.rest, Formatter::HELP_MAX_WIDTH].min
+        puts lines(width) 
+      end
     end
 
     class Code
