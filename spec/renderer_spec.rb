@@ -125,12 +125,6 @@ describe ShellOpts do
         r = ["rspec --alpha", "      --beta"]
         expect(str(s, r.first.size)).to eq r
       end
-
-      it "compacts commands if needed" do
-        s = "-a,alpha -b,beta -- ARG1 ARG2 cmd1! cmd2! cmd3!"
-        r = ["rspec --alpha --beta", "      [COMMANDS] ARG1 ARG2"]
-        expect(str(s, r.first.size)).to eq r
-      end
     end
   end
 end
