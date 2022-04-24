@@ -28,8 +28,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "ruby-terminfo"
   spec.add_dependency "indented_io"
 
-  spec.add_development_dependency "bundler", "~> 2.2.10"
-  spec.add_development_dependency "rake", ">= 12.3.3"
-  spec.add_development_dependency "rspec", "~> 3.0"
+  spec.add_development_dependency "rake"
+  spec.add_development_dependency "rspec"
   spec.add_development_dependency "simplecov"
 end
