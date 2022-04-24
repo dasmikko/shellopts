@@ -140,7 +140,7 @@ module ShellOpts
         float: true,
 
         # Let exceptions through
-        exceptions: false
+        exception: false
       )
         
       @name = name || File.basename($PROGRAM_NAME)
