@@ -18,7 +18,8 @@ module ShellOpts
       # if type is an IntegerArgument
       def value?(value) true end
 
-      # Convert value to Ruby type
+      # Convert value to Ruby type. This method can also be used to translate
+      # special keywords
       def convert(value) value end
 
       # String representation. Equal to #name
@@ -65,8 +66,12 @@ module ShellOpts
       end
 
       def match?(name, literal)
+        # Special-case '-' keyword
+        if literal == '-' && [:ifile, :ofile].include?(kind)
+          true
+
         # Special-case standard I/O files
-        if %w(/dev/stdin /dev/stdout /dev/stderr /dev/null).include?(literal)
+        elsif %w(/dev/stdin /dev/stdout /dev/stderr /dev/null).include?(literal)
           case kind
             when :file, :path, :efile, :epath, :nfile, :npath
               true
@@ -107,6 +112,19 @@ module ShellOpts
 
       # Note: No checks done, not sure if it is a feature or a bug
       def value?(value) value.is_a?(String) end
+
+      def convert(value)
+        if value == "-"
+          case kind
+            when :ifile; "/dev/stdin"
+            when :ofile; "/dev/stdout"
+          else
+            value
+          end
+        else
+          value
+        end
+      end
 
     protected
       def match_path(name, literal, kind, method, mode)
