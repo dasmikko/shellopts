@@ -65,7 +65,7 @@ module ShellOpts
       end
 
       def match?(name, literal)
-        case kind
+        case kind # TODO: node, enode, npath - special files: character, block, socket, etc.
           when :file; match_path(name, literal, kind, :file?, :default)
           when :dir; match_path(name, literal, kind, :directory?, :default)
           when :path; match_path(name, literal, kind, :exist?, :default)
@@ -96,25 +96,37 @@ module ShellOpts
               raise ArgumentError
             end
 
-        if File.send(method, literal) # exists?
+        # Special-case handling of stdout and stderr
+        if [:file, :path, :efile, :epath, :nfile, :npath].include?(kind) && 
+            %w(/dev/stdout /dev/stderr /dev/null).include?(literal)
+          true
+
+        # file exists and is the rigth type?
+        elsif File.send(method, literal) 
           if mode == :new
             set_message "#{subject.capitalize} already exists in #{name}: #{literal}"
           elsif kind == :path || kind == :epath
             if File.file?(literal) || File.directory?(literal)
               true
             else
-              set_message "Expected regular file or directory as #{name} argument: #{literal}"
+              set_message "Expected file or directory as #{name} argument: #{literal}"
             end
           else
             true
           end
-        elsif File.exist?(literal) # exists but not the right type
+
+        # file exists but not the right type?
+        elsif File.exist?(literal) 
+          if [:nfile, :npath].include?(kind) && %w(/dev/stdout /dev/stderr).include?(literal)
+            true
+          end
           if mode == :new
             set_message "#{subject.capitalize} already exists - #{literal}"
           else
             set_message "Expected #{subject} as #{name} argument: #{literal}"
           end
-        else # does not exist
+        # file does not exist
+        else 
           if [:default, :new].include? mode
             if File.exist?(File.dirname(literal))
               true

@@ -46,6 +46,12 @@ describe "ShellOpts" do
         it "accepts a missing file" do
           expect(match(:file, nfile)).to eq true
         end
+        it "accepts /dev/stdout, /dev/stderr, and /dev/null" do
+          arg = FileArgument.new(:file)
+          expect(arg.match?("opt", "/dev/stdout")).to eq true
+          expect(arg.match?("opt", "/dev/stderr")).to eq true
+          expect(arg.match?("opt", "/dev/null")).to eq true
+        end
         it "fails if not a regular file" do
           expect(match(:file, dir)).to eq false
         end
@@ -79,6 +85,12 @@ describe "ShellOpts" do
         it "accepts a missing node" do
           expect(match(:path, ndir)).to eq true
         end
+        it "accepts /dev/stdout, /dev/stderr, and /dev/null" do
+          arg = FileArgument.new(:path)
+          expect(arg.match?("opt", "/dev/stdout")).to eq true
+          expect(arg.match?("opt", "/dev/stderr")).to eq true
+          expect(arg.match?("opt", "/dev/null")).to eq true
+        end
         it "fails if not a regular file or directory" do
           expect(match(:path, tty)).to eq false
         end
@@ -90,6 +102,12 @@ describe "ShellOpts" do
       context "when kind is :efile" do
         it "accepts an existing file" do
           expect(match(:efile, file)).to eq true
+        end
+        it "accepts /dev/stdout, /dev/stderr, and /dev/null" do
+          arg = FileArgument.new(:efile)
+          expect(arg.match?("opt", "/dev/stdout")).to eq true
+          expect(arg.match?("opt", "/dev/stderr")).to eq true
+          expect(arg.match?("opt", "/dev/null")).to eq true
         end
         it "fails if file is not a regular  file" do
           expect(match(:efile, nfile)).to eq false
@@ -118,6 +136,12 @@ describe "ShellOpts" do
         it "accepts an existing dir" do
           expect(match(:epath, dir)).to eq true
         end
+        it "accepts /dev/stdout, /dev/stderr, and /dev/null" do
+          arg = FileArgument.new(:epath)
+          expect(arg.match?("opt", "/dev/stdout")).to eq true
+          expect(arg.match?("opt", "/dev/stderr")).to eq true
+          expect(arg.match?("opt", "/dev/null")).to eq true
+        end
         it "fails if node is missing" do
           expect(match(:epath, ndir)).to eq false
         end
@@ -132,6 +156,12 @@ describe "ShellOpts" do
         end
         it "accepts a missing file" do
           expect(match(:nfile, nfile)).to eq true
+        end
+        it "accepts /dev/stdout, /dev/stderr, and /dev/null" do
+          arg = FileArgument.new(:nfile)
+          expect(arg.match?("opt", "/dev/stdout")).to eq true
+          expect(arg.match?("opt", "/dev/stderr")).to eq true
+          expect(arg.match?("opt", "/dev/null")).to eq true
         end
         it "fails if enclosing directory doesn't exists" do
           expect(match(:nfile, null)).to eq false
@@ -160,6 +190,12 @@ describe "ShellOpts" do
         end
         it "fails if enclosing directory doesn't exists" do
           expect(match(:npath, null)).to eq false
+        end
+        it "accepts /dev/stdout, /dev/stderr, and /dev/null" do
+          arg = FileArgument.new(:npath)
+          expect(arg.match?("opt", "/dev/stdout")).to eq true
+          expect(arg.match?("opt", "/dev/stderr")).to eq true
+          expect(arg.match?("opt", "/dev/null")).to eq true
         end
       end
     end
