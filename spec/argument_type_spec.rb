@@ -11,6 +11,11 @@ describe "ShellOpts" do
         matcher.match?("opt", node) || false
       end
 
+      def convert(kind, value)
+        matcher = FileArgument.new(kind)
+        matcher.convert(value)
+      end
+
       def root() Dir.getwd + "/spec/tmpdir" end
 
       def file() root + "/file" end
@@ -210,6 +215,9 @@ describe "ShellOpts" do
         it "accepts a readable existing file" do
           expect(match(:ifile, readonly)).to eq true
         end
+        it "apply special meaning to a '-' argument" do
+          expect(match(:ifile, "-")).to eq true
+        end
         it "rejects an unreadable existing file" do
           expect(match(:ifile, writeonly)).to eq false
         end
@@ -230,6 +238,9 @@ describe "ShellOpts" do
           expect(match(:ifile, "/dev/stdout")).to eq false
           expect(match(:ifile, "/dev/stderr")).to eq false
         end
+        it "converts '-' to /dev/stdin" do
+          expect(convert(:ifile, "-")).to eq "/dev/stdin"
+        end
       end
 
       context "when kind is :ofile" do
@@ -238,6 +249,9 @@ describe "ShellOpts" do
         end
         it "accepts a new file" do
           expect(match(:ofile, null)).to eq true
+        end
+        it "apply special meaning to a '-' argument" do
+          expect(match(:ofile, "-")).to eq true
         end
         it "rejects an unwritable existing file" do
           expect(match(:ofile, readonly)).to eq false
@@ -252,6 +266,9 @@ describe "ShellOpts" do
           expect(match(:ofile, "/dev/stdout")).to eq true
           expect(match(:ofile, "/dev/stderr")).to eq true
           expect(match(:ofile, "/dev/null")).to eq true
+        end
+        it "converts '-' to /dev/stdout" do
+          expect(convert(:ofile, "-")).to eq "/dev/stdout"
         end
       end
     end
