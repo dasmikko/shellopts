@@ -355,6 +355,9 @@ describe "Option#parse" do
         expect(opt "-s=:FILE", :argument_type).to be_a Grammar::FileArgument
         expect(opt "-s=FILE", :argument_type).to be_a Grammar::FileArgument
       end
+      it "initialize FileArgument with a kind" do
+        expect(opt("-s=OFILE").argument_type.kind).to eq :ofile
+      end
       it "defaults file or file path argument_name to 'FILE'" do
         expect(opt "-s=VAL:FILE", :argument_name).to eq "VAL"
         expect(opt "-s=:FILE", :argument_name).to eq "FILE"
@@ -363,6 +366,10 @@ describe "Option#parse" do
         expect(opt "-s=EFILE", :argument_name).to eq "FILE"
         expect(opt "-s=:NFILE", :argument_name).to eq "FILE"
         expect(opt "-s=NFILE", :argument_name).to eq "FILE"
+        expect(opt "-s=:IFILE", :argument_name).to eq "FILE"
+        expect(opt "-s=IFILE", :argument_name).to eq "FILE"
+        expect(opt "-s=:OFILE", :argument_name).to eq "FILE"
+        expect(opt "-s=OFILE", :argument_name).to eq "FILE"
       end
       it "defaults directory or directory path argument_name to 'DIR'" do
         expect(opt "-s=VAL:DIR", :argument_name).to eq "VAL"

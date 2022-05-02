@@ -24,12 +24,19 @@ describe "ShellOpts" do
       def tty() root + "/cdev" end
       def null() root + "/not_here/node" end
 
+      def readonly() root + "/readonly" end
+      def writeonly() root + "/writeonly" end
+
       before(:all) {
         FileUtils.rm_rf root
         FileUtils.mkdir_p root
         FileUtils.mkdir dir
         FileUtils.touch file
         FileUtils.ln_s "/dev/tty", tty
+        FileUtils.touch readonly
+        FileUtils.chmod "ugo=r", readonly
+        FileUtils.touch writeonly
+        FileUtils.chmod "ugo=w", writeonly
       }
 
       # Only remove temporary directory if all tests succeeded
@@ -196,6 +203,55 @@ describe "ShellOpts" do
           expect(arg.match?("opt", "/dev/stdout")).to eq true
           expect(arg.match?("opt", "/dev/stderr")).to eq true
           expect(arg.match?("opt", "/dev/null")).to eq true
+        end
+      end
+
+      context "when kind is :ifile" do
+        it "accepts a readable existing file" do
+          expect(match(:ifile, readonly)).to eq true
+        end
+        it "rejects an unreadable existing file" do
+          expect(match(:ifile, writeonly)).to eq false
+        end
+        it "rejects directories" do
+          expect(match(:ifile, dir)).to eq false
+        end
+        it "fails if the file doesn't exists" do
+          expect(match(:ifile, null)).to eq false
+        end
+        it "fails if the file isn't readable" do
+          expect(match(:ifile, writeonly)).to eq false
+        end
+        it "accepts /dev/stdin and /dev/null" do
+          expect(match(:ifile, "/dev/stdin")).to eq true 
+          expect(match(:ifile, "/dev/null")).to eq true
+        end
+        it "rejects /dev/stdout and /dev/stderr" do
+          expect(match(:ifile, "/dev/stdout")).to eq false
+          expect(match(:ifile, "/dev/stderr")).to eq false
+        end
+      end
+
+      context "when kind is :ofile" do
+        it "accepts a writable existing file" do
+          expect(match(:ofile, writeonly)).to eq true
+        end
+        it "accepts a new file" do
+          expect(match(:ofile, null)).to eq true
+        end
+        it "rejects an unwritable existing file" do
+          expect(match(:ofile, readonly)).to eq false
+        end
+        it "rejects directories" do
+          expect(match(:ofile, dir)).to eq false
+        end
+        it "rejects /dev/stdin" do
+          expect(match(:ofile, "/dev/stdin")).to eq false
+        end
+        it "accepts /dev/stdout, /dev/stderr, and /dev/null" do
+          expect(match(:ofile, "/dev/stdout")).to eq true
+          expect(match(:ofile, "/dev/stderr")).to eq true
+          expect(match(:ofile, "/dev/null")).to eq true
         end
       end
     end

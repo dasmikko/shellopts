@@ -60,25 +60,48 @@ module ShellOpts
       attr_reader :kind
 
       def initialize(kind)
-        constrain kind, :file, :dir, :path, :efile, :edir, :epath, :nfile, :ndir, :npath
+        constrain kind, :file, :dir, :path, :efile, :edir, :epath, :nfile, :ndir, :npath, :ifile, :ofile
         @kind = kind 
       end
 
       def match?(name, literal)
-        case kind # TODO: node, enode, npath - special files: character, block, socket, etc.
-          when :file; match_path(name, literal, kind, :file?, :default)
-          when :dir; match_path(name, literal, kind, :directory?, :default)
-          when :path; match_path(name, literal, kind, :exist?, :default)
+        # Special-case standard I/O files
+        if %w(/dev/stdin /dev/stdout /dev/stderr /dev/null).include?(literal)
+          case kind
+            when :file, :path, :efile, :epath, :nfile, :npath
+              true
+            when :ifile
+              %w(/dev/stdin /dev/null).include? literal or 
+                  set_message "Can't read #{literal}"
+            when :ofile
+              %w(/dev/stdout /dev/stderr /dev/null).include?(literal) or 
+                  set_message "Can't write to #{literal}"
+            when :dir, :edir, :ndir
+              set_message "Expected file, got directory #{literal}"
+          else
+            raise ArgumentError, "Unhandled kind: #{kind.inspect}"
+          end
 
-          when :efile; match_path(name, literal, kind, :file?, :exist)
-          when :edir; match_path(name, literal, kind, :directory?, :exist)
-          when :epath; match_path(name, literal, kind, :exist?, :exist)
-
-          when :nfile; match_path(name, literal, kind, :file?, :new)
-          when :ndir; match_path(name, literal, kind, :directory?, :new)
-          when :npath; match_path(name, literal, kind, :exist?, :new)
+        # All other files or directories
         else
-          raise InternalError, "Illegal kind: #{kind.inspect}"
+          case kind # TODO: node, enode, npath - special files: character, block, socket, etc.
+            when :file; match_path(name, literal, kind, :file?, :default)
+            when :dir; match_path(name, literal, kind, :directory?, :default)
+            when :path; match_path(name, literal, kind, :exist?, :default)
+
+            when :efile; match_path(name, literal, kind, :file?, :exist)
+            when :edir; match_path(name, literal, kind, :directory?, :exist)
+            when :epath; match_path(name, literal, kind, :exist?, :exist)
+
+            when :nfile; match_path(name, literal, kind, :file?, :new)
+            when :ndir; match_path(name, literal, kind, :directory?, :new)
+            when :npath; match_path(name, literal, kind, :exist?, :new)
+
+            when :ifile; match_path(name, literal, kind, :readable?, :default)
+            when :ofile; match_path(name, literal, kind, :writable?, :default)
+          else
+            raise InternalError, "Illegal kind: #{kind.inspect}"
+          end
         end
       end
 
@@ -89,20 +112,15 @@ module ShellOpts
       def match_path(name, literal, kind, method, mode)
         subject = 
             case kind
-              when :file, :efile, :nfile; "file"
+              when :file, :efile, :nfile, :ifile, :ofile; "file"
               when :dir, :edir, :ndir; "directory"
               when :path, :epath, :npath; "path"
             else
               raise ArgumentError
             end
 
-        # Special-case handling of stdout and stderr
-        if [:file, :path, :efile, :epath, :nfile, :npath].include?(kind) && 
-            %w(/dev/stdout /dev/stderr /dev/null).include?(literal)
-          true
-
         # file exists and is the rigth type?
-        elsif File.send(method, literal) 
+        if File.send(method, literal)
           if mode == :new
             set_message "#{subject.capitalize} already exists in #{name}: #{literal}"
           elsif kind == :path || kind == :epath
@@ -111,24 +129,28 @@ module ShellOpts
             else
               set_message "Expected file or directory as #{name} argument: #{literal}"
             end
+          elsif (kind == :ifile || kind == :ofile) && File.directory?(literal)
+            set_message "File expected, got directory: #{literal}"
           else
             true
           end
 
         # file exists but not the right type?
-        elsif File.exist?(literal) 
-          if [:nfile, :npath].include?(kind) && %w(/dev/stdout /dev/stderr).include?(literal)
-            true
-          end
-          if mode == :new
+        elsif File.exist?(literal)
+          if kind == :ifile
+            set_message "Can't read #{literal}"
+          elsif kind == :ofile
+            set_message "Can't write to #{literal}"
+          elsif mode == :new
             set_message "#{subject.capitalize} already exists - #{literal}"
           else
             set_message "Expected #{subject} as #{name} argument: #{literal}"
           end
+
         # file does not exist
         else 
           if [:default, :new].include? mode
-            if File.exist?(File.dirname(literal))
+            if File.exist?(File.dirname(literal)) || kind == :ofile
               true
             else
               set_message "Illegal path in #{name}: #{literal}"

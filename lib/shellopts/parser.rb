@@ -83,8 +83,8 @@ module ShellOpts
             when "$"
               @argument_name ||= "NUM"
               @argument_type = FloatArgument.new
-            when "FILE", "DIR", "PATH", "EFILE", "EDIR", "EPATH", "NFILE", "NDIR", "NPATH"
-              @argument_name ||= arg.sub(/^(?:E|N)/, "")
+            when "FILE", "DIR", "PATH", "EFILE", "EDIR", "EPATH", "NFILE", "NDIR", "NPATH", "IFILE", "OFILE"
+              @argument_name ||= arg.sub(/^(?:E|N|I|O)/, "")
               @argument_type = FileArgument.new(arg.downcase.to_sym)
             when /,/
               @argument_name ||= arg
