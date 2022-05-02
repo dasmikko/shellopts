@@ -89,7 +89,7 @@ module ShellOpts
       def match_path(name, literal, kind, method, mode)
         subject = 
             case kind
-              when :file, :efile, :nfile; "regular file"
+              when :file, :efile, :nfile; "file"
               when :dir, :edir, :ndir; "directory"
               when :path, :epath, :npath; "path"
             else
@@ -110,7 +110,7 @@ module ShellOpts
           end
         elsif File.exist?(literal) # exists but not the right type
           if mode == :new
-            set_message "#{subject.capitalize} already exists"
+            set_message "#{subject.capitalize} already exists - #{literal}"
           else
             set_message "Expected #{subject} as #{name} argument: #{literal}"
           end
