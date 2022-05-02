@@ -122,7 +122,7 @@ module ShellOpts
               set_message "Illegal path in #{name}: #{literal}"
             end
           else
-            set_message "Error in #{name} argument: Can't find #{literal}"
+            set_message "Can't find #{literal}"
           end
         end
       end
