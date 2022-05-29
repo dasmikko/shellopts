@@ -1,4 +1,5 @@
 
+o Assigner methods for options
 o Make opts[] point at the main object
     opts[].subcommand is the direct subcommand of main
 o Make opts be the aggrated set of options in a subcommand

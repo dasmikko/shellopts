@@ -27,6 +27,17 @@ require 'shellopts/renderer.rb'
 require 'shellopts/formatter.rb'
 require 'shellopts/dump.rb'
 
+# TODO: Describe exception handling
+#
+# Notes
+#   * Two kinds of exceptions: Expected & unexpected. Expected exceptions are
+#     RuntimeError or IOError. Unexpected exceptions are the rest. Both results
+#     in shellopts.failure messages if shellopts error handling is enabled 
+#   * Describe the difference between StandardError, RuntimeError, and IOError
+#   * Add an #internal error handling for the production environment that
+#     prints an intelligble error message and prettyfies stack dump. This
+#     should catch non-RuntimeError/UIError exceptions
+#   * Find a reliable way of testing environment
 
 module ShellOpts
   # Base error class
