@@ -46,8 +46,8 @@ module ShellOpts
       end
     end
 
-    # As #extract except it doesn't allow negative counts and that the array is
-    # expected to be emptied by the operation
+    # As #extract except the array is expected to be emptied by the operation.
+    # Raise a #inoa exception if count is negative
     #
     # #expect raise a ShellOpts::Error exception if the array is not emptied 
     # by the operation
@@ -57,7 +57,7 @@ module ShellOpts
         when Range
           count_or_range === self.size or inoa(message)
         when Integer
-          count_or_range >= 0 or raise ArgumentError, "Count can't be negative"
+          count_or_range >= 0 or inoa(message)
           count_or_range.abs == self.size or inoa(message)
       end
       extract(count_or_range) # Can't fail
