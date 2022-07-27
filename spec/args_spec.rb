@@ -86,8 +86,8 @@ describe "Args" do
       end
 
       context "when arg < 0" do
-        it "raises ArgumentError" do
-          expect { a.expect(-2) }.to raise_error ArgumentError
+        it "raises a ShellOpts::Error" do
+          expect { a.expect(-2) }.to raise_error ShellOpts::Error
         end
       end
     end
