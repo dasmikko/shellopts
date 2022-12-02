@@ -266,6 +266,14 @@ module ShellOpts
             end
           )
         end
+
+        if opt.argument?
+          self.instance_eval %(
+            def #{opt.attr}=(value)
+              @__option_values__[:#{opt.attr}] = value
+            end
+          )
+        end
       }
 
       @__grammar__.commands.each { |cmd|

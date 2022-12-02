@@ -56,7 +56,7 @@ describe "Command" do
     end
   end
 
-  describe "Generic #<option> and #<option>? methods" do
+  describe "Generic #<option>, #<option>=, and #<option>? methods" do
     let(:spec) { "" }
     let(:argv) { [] }
     let(:opts) { 
@@ -94,6 +94,10 @@ describe "Command" do
         it "#<option> returns nil if option not present" do
           expect(opts.c).to eq nil
         end
+        it "defines a <option>= method" do
+          opts.a = "A NEW VALUE"
+          expect(opts.a).to eq "A NEW VALUE"
+        end
       end
       context "when the option has a mandatory argument" do
         let(:spec) { "-a=VAR -b=VAR" }
@@ -107,6 +111,10 @@ describe "Command" do
         end
         it "#<option> returns nil if option is not present" do
           expect(opts.b).to eq nil
+        end
+        it "defines a <option>= method" do
+          opts.a = "A NEW VALUE"
+          expect(opts.a).to eq "A NEW VALUE"
         end
       end
     end
