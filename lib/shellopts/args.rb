@@ -26,6 +26,7 @@ module ShellOpts
     # #extract raise a ShellOpts::Error exception if there's is not enough
     # elements in the array to satisfy the request
     #
+    # TODO: Better handling of ranges. Allow: 2..-1, -2..-4, etc.
     def extract(count_or_range, message = nil)
       case count_or_range
         when Range
@@ -52,6 +53,7 @@ module ShellOpts
     # #expect raise a ShellOpts::Error exception if the array is not emptied 
     # by the operation
     #
+    # TODO: Better handling of ranges. Allow: 2..-1, -2..-4, etc.
     def expect(count_or_range, message = nil)
       case count_or_range
         when Range

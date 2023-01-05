@@ -44,6 +44,9 @@ describe "Args" do
         end
       end
     end
+#   context "when given a range" do
+#     context "when 
+#   end
   end
 
   describe "#expect" do
