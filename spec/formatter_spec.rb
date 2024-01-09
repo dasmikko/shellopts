@@ -138,7 +138,7 @@ describe "Formatter" do
         Usage: rspec cmd ARG1
                rspec cmd ARG2
       )
-      expect(str(s, :cmd!)) .to eq r
+      expect(str(s, :cmd!)).to eq r
     end
   end
 
