@@ -128,4 +128,14 @@ describe "ShellOpts::ShellOpts" do
       expect(find(text, spec)).to eq [1,10]
     end
   end
+
+  describe "#process" do
+    it "can disable standard options" do
+      spec = %(--version)
+      opts, args = ShellOpts.process(spec, [], version: false)
+      expect(opts.version).to eq false
+      opts, args = ShellOpts.process(spec, %w(--version), version: false)
+      expect(opts.version).to eq true
+    end
+  end
 end

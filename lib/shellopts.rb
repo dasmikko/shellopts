@@ -212,15 +212,15 @@ module ShellOpts
         @argv = argv.dup
         @program, @args = Interpreter.interpret(grammar, argv, float: float, exception: exception)
 
-        # Process standard options (that may have been renamed)
-        if @program.__send__(:"#{@help_option.ident}?")
+        # Process standard options that may have been renamed or be deactivated
+        if @help && @program.__send__(:"#{@help_option.ident}?")
           if @program[:help].name =~ /^--/
             ShellOpts.help
           else
             ShellOpts.brief
           end
           exit
-        elsif @program.__send__(:"#{@version_option.ident}?")
+        elsif @version && @program.__send__(:"#{@version_option.ident}?")
           puts version_number
           exit
         else
