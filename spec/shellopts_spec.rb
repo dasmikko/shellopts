@@ -129,13 +129,36 @@ describe "ShellOpts::ShellOpts" do
     end
   end
 
+  # TODO: Generally usable method. Move to a common library
+  def failure?(&block)
+    hold = $stderr
+    begin
+      $stderr = File.open("/dev/null", "w")
+      yield
+    rescue SystemExit
+      return true;
+    ensure 
+      $stderr = hold
+    end
+    return false
+  end
+
   describe "#process" do
-    it "can disable standard options" do
+    it "can disable --version option" do
       spec = %(--version)
       opts, args = ShellOpts.process(spec, [], version: false)
       expect(opts.version).to eq false
       opts, args = ShellOpts.process(spec, %w(--version), version: false)
       expect(opts.version).to eq true
     end
+    it "can enable --quiet option" do
+      spec = %(-a)
+      expect(failure? { ShellOpts.process(spec, %w(--quiet), quiet: false) }).to eq true
+      opts, args = ShellOpts.process(spec, %w(), quiet: true)
+      expect(opts.quiet).to eq false
+      opts, args = ShellOpts.process(spec, %w(--quiet), quiet: true)
+      expect(opts.quiet).to eq true
+    end
   end
 end
+
