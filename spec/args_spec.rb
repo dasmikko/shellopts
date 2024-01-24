@@ -44,9 +44,17 @@ describe "Args" do
         end
       end
     end
-#   context "when given a range" do
-#     context "when 
-#   end
+
+    context "when given a range" do
+      context "when given an endless range" do
+        it "returns the rest of the arguments" do
+          expect(a.extract(1..)).to eq %w(a b c d)
+        end
+        it "fails if the minimum number of elements is not present" do
+          expect { a.extract(5..) }.to raise_error ShellOpts::Error
+        end
+      end
+    end
   end
 
   describe "#expect" do
@@ -94,5 +102,25 @@ describe "Args" do
         end
       end
     end
+
+    context "when given a range" do
+      context "when given an endless range" do
+        it "returns the rest of the arguments" do
+          expect(a.expect(1..)).to eq %w(a b)
+        end
+        it "fails if the minimum number of elements is not present" do
+          expect { a.expect(3..) }.to raise_error ShellOpts::Error
+        end
+      end
+    end
   end
 end
+
+
+
+
+
+
+
+
+

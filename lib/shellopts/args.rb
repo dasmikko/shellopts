@@ -32,6 +32,7 @@ module ShellOpts
         when Range
           range = count_or_range
           range.min <= self.size or inoa(message)
+          return self.to_a if range.end.nil?
           n_extract = [self.size, range.max].min
           n_extend = range.max > self.size ? range.max - self.size : 0
           r = self.shift(n_extract) + Array.new(n_extend)
@@ -58,6 +59,7 @@ module ShellOpts
       case count_or_range
         when Range
           count_or_range === self.size or inoa(message)
+          return self.to_a if count_or_range.end.nil?
         when Integer
           count_or_range >= 0 or inoa(message)
           count_or_range.abs == self.size or inoa(message)
