@@ -1,6 +1,4 @@
 
-require 'ext/follow.rb'
-
 describe "Algorithm" do
   describe "::follow" do
     context "when given a method" do
