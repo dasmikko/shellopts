@@ -419,20 +419,24 @@ module ShellOpts
     exit 1
   end
 
-  def self.notice(message)
-    $stderr.puts message if !instance.quiet || !instance.program.quiet?
+  def self.notice(message, newline: true)
+    method = newline ? :puts : :print
+    $stderr.send(method, message) if !instance.quiet || !instance.program.quiet? # FIXME quiet? vs __quiet__ below
   end
 
-  def self.mesg(message)
-    $stdout.puts message if !instance.quiet || !instance.program.__quiet__
+  def self.mesg(message, newline: true)
+    method = newline ? :puts : :print
+    $stdout.send(method,  message) if !instance.quiet || !instance.program.__quiet__
   end
 
-  def self.verb(level = 1, message)
-    $stdout.puts message if instance.verbose && level <= instance.program.__verbose__
+  def self.verb(level = 1, message, newline: true)
+    method = newline ? :puts : :print
+    $stdout.send(method,  message) if instance.verbose && level <= instance.program.__verbose__
   end
 
-  def self.debug(message)
-    $stdout.puts message if instance.debug && instance.program.__debug__
+  def self.debug(message, newline: true)
+    method = newline ? :puts : :print
+    $stdout.send(method,  message) if instance.debug && instance.program.__debug__
   end
 
   def self.quiet_flag
