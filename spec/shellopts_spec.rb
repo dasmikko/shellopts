@@ -129,6 +129,40 @@ describe "ShellOpts::ShellOpts" do
     end
   end
 
+  describe ".quiet?" do
+    it "returns the status of the quiet option in the current instance" do
+      ShellOpts.process("-a", [], quiet: true)
+      expect(ShellOpts.quiet?).to eq false
+      ShellOpts.process("-a", %w(--quiet), quiet: true)
+      expect(ShellOpts.quiet?).to eq true
+    end
+  end
+
+  describe ".verbose?" do
+    it "returns the status of the verbose option in the current instance" do
+      ShellOpts.process("-a", [], verbose: true)
+      expect(ShellOpts.verbose?).to eq false
+
+      ShellOpts.process("-a", %w(--verbose), verbose: true)
+      expect(ShellOpts.verbose?).to eq true
+      expect(ShellOpts.verbose?(2)).to eq false
+
+      ShellOpts.process("-a", %w(--verbose --verbose), verbose: true)
+      expect(ShellOpts.verbose?).to eq true
+      expect(ShellOpts.verbose?(2)).to eq true
+      expect(ShellOpts.verbose?(3)).to eq false
+    end
+  end
+
+  describe ".debug?" do
+    it "returns the status of the debug option in the current instance" do
+      ShellOpts.process("-a", [], debug: true)
+      expect(ShellOpts.debug?).to eq false
+      ShellOpts.process("-a", %w(--debug), debug: true)
+      expect(ShellOpts.debug?).to eq true
+    end
+  end
+
   # TODO: Generally usable method. Move to a common library
   def failure?(&block)
     hold = $stderr
@@ -159,6 +193,7 @@ describe "ShellOpts::ShellOpts" do
       opts, args = ShellOpts.process(spec, %w(--quiet), quiet: true)
       expect(opts.quiet).to eq true
     end
+
   end
 end
 

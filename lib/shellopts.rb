@@ -439,14 +439,9 @@ module ShellOpts
     $stdout.send(method,  message) if instance.debug && instance.program.__debug__
   end
 
-  def self.quiet_flag
-  end
-
-  def self.verbose_flag
-  end
-
-  def self.debug_flag
-  end
+  def self.quiet?() instance.program.quiet? end
+  def self.verbose?(level = 1) level <= instance.program.verbose end
+  def self.debug?() instance.program.debug? end
 
   module Message
     @is_included = false
