@@ -129,6 +129,15 @@ describe "ShellOpts::ShellOpts" do
     end
   end
 
+  describe ".silent?" do
+    it "returns the status of the silent option in the current instance" do
+      ShellOpts.process("-a", [], silent: true)
+      expect(ShellOpts.silent?).to eq false
+      ShellOpts.process("-a", %w(--silent), silent: true)
+      expect(ShellOpts.silent?).to eq true
+    end
+  end
+
   describe ".quiet?" do
     it "returns the status of the quiet option in the current instance" do
       ShellOpts.process("-a", [], quiet: true)
@@ -185,6 +194,14 @@ describe "ShellOpts::ShellOpts" do
       opts, args = ShellOpts.process(spec, %w(--version), version: false)
       expect(opts.version).to eq true
     end
+    it "can enable --silent option" do
+      spec = %(-a)
+      expect(failure? { ShellOpts.process(spec, %w(--silent), silent: false) }).to eq true
+      opts, args = ShellOpts.process(spec, %w(), silent: true)
+      expect(opts.silent).to eq false
+      opts, args = ShellOpts.process(spec, %w(--silent), silent: true)
+      expect(opts.silent).to eq true
+    end
     it "can enable --quiet option" do
       spec = %(-a)
       expect(failure? { ShellOpts.process(spec, %w(--quiet), quiet: false) }).to eq true
@@ -193,7 +210,6 @@ describe "ShellOpts::ShellOpts" do
       opts, args = ShellOpts.process(spec, %w(--quiet), quiet: true)
       expect(opts.quiet).to eq true
     end
-
   end
 end
 

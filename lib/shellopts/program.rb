@@ -315,12 +315,14 @@ module ShellOpts
   class Program < Command
     # Accessors for standard options values that are not affected if the option
     # is renamed
+    attr_accessor :__silent__
     attr_accessor :__quiet__
     attr_accessor :__verbose__
     attr_accessor :__debug__
 
     def initialize
       super
+      @__silent__ = false
       @__quiet__ = false
       @__verbose__ = 0
       @__debug__ = false

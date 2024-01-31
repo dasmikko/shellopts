@@ -110,6 +110,9 @@ module ShellOpts
     # Version of client program. If not nil, a --version option is added to the program
     attr_reader :version
 
+    # Automatically add a -s and a --silent option if true
+    attr_reader :silent
+
     # Automatically add a -q and a --quiet option if true
     attr_reader :quiet
 
@@ -140,6 +143,7 @@ module ShellOpts
         # Options
         help: true, 
         version: true, 
+        silent: nil,
         quiet: nil,
         verbose: nil,
         debug: nil,
@@ -157,6 +161,7 @@ module ShellOpts
       @name = name || File.basename($PROGRAM_NAME)
       @help = help
       @version = version || (version.nil? && !version_number.nil?)
+      @silent = silent
       @quiet = quiet
       @verbose = verbose
       @debug = debug
@@ -177,10 +182,13 @@ module ShellOpts
 
         help_spec = (@help == true ? "-h,help" : @help)
         version_spec = (@version == true ? "--version" : @version)
+        silent_spec = (@silent == true ? "-q,silent" : @silent)
         quiet_spec = (@quiet == true ? "-q,quiet" : @quiet)
         verbose_spec = (@verbose == true ? "+v,verbose" : @verbose)
         debug_spec = (@debug == true ? "--debug" : @debug)
 
+        @silent_option = 
+            ast.inject_option(silent_spec, "Quiet", "Do not write anything to standard output") if @silent
         @quiet_option = 
             ast.inject_option(quiet_spec, "Quiet", "Do not write anything to standard output") if @quiet
         @verbose_option = 
@@ -224,6 +232,8 @@ module ShellOpts
           puts version_number
           exit
         else
+          # Assign standard options. The targets doesn't change if the option is renamed
+          @program.__silent__ = @program.__send__(:"#{@silent_option.ident}?") if @silent
           @program.__quiet__ = @program.__send__(:"#{@quiet_option.ident}?") if @quiet
           @program.__verbose__ = @program.__send__(:"#{@verbose_option.ident}") if @verbose
           @program.__debug__ = @program.__send__(:"#{@debug_option.ident}?") if @debug
@@ -393,19 +403,35 @@ module ShellOpts
     end
   end
 
-  def self.process(spec, argv, quiet: nil, verbose: nil, debug: nil, **opts)
+  def self.process(spec, argv, silent: nil, quiet: nil, verbose: nil, debug: nil, **opts)
+    constrain silent, String, true, false, nil
     constrain quiet, String, true, false, nil
+    silent = silent.nil? ? Message.is_included? || Verbose.is_included? : silent
     quiet = quiet.nil? ? Message.is_included? || Verbose.is_included? : quiet
     verbose = verbose.nil? ? ::ShellOpts::Verbose.is_included? : verbose
     debug = debug.nil? ? Debug.is_included? : debug
-    ShellOpts.process(spec, argv, quiet: quiet, verbose: verbose, debug: debug, **opts)
+    ShellOpts.process(spec, argv, silent: silent, quiet: quiet, verbose: verbose, debug: debug, **opts)
   end
 
+  # The instance is a ShellOpts object. 'instance.program' and 'instance.argv'
+  # is the same as the values returned from ShellOpts.process
   @instance = nil
   def self.instance?() !@instance.nil? end
   def self.instance() @instance or raise Error, "ShellOpts is not initialized" end
   def self.instance=(instance) @instance = instance end
-  def self.shellopts() instance end
+  def self.shellopts() instance end # TODO: Yt
+
+  # Returns the corresponding option status on the program object. Note that
+  # the "bare" ShellOpts standard option methods (eg. ShellOpts.silent)
+  # determines if an option can be used while the query methods (eg.
+  # ShellOpts.silent?) reports if the option was present on the command line
+  #
+  # The methods below are implemented using the name-independent members of
+  # Program: __silent__ etc.
+  def self.silent?() instance.program.__silent__ end
+  def self.quiet?() silent? || instance.program.__quiet__ end
+  def self.verbose?(level = 1) level <= instance.program.__verbose__ end
+  def self.debug?() instance.program.__debug__ end
 
   def self.error(subject = nil, message)
     instance.error(subject, message) if instance? # Never returns
@@ -419,29 +445,28 @@ module ShellOpts
     exit 1
   end
 
+  # Emit a message on standard error. The --silent option suppresses these messages
   def self.notice(message, newline: true)
     method = newline ? :puts : :print
-    $stderr.send(method, message) if !instance.quiet || !instance.program.quiet? # FIXME quiet? vs __quiet__ below
+    $stderr.send(method, message) if !silent?
   end
 
+  # Emit a message on standard output. The --quiet option suppresses these messages
   def self.mesg(message, newline: true)
     method = newline ? :puts : :print
-    $stdout.send(method,  message) if !instance.quiet || !instance.program.__quiet__
+    $stdout.send(method, message) if !quiet?
   end
 
+  # Emit a message on standard output. The --verbose option controls these messages
   def self.verb(level = 1, message, newline: true)
     method = newline ? :puts : :print
-    $stdout.send(method,  message) if instance.verbose && level <= instance.program.__verbose__
+    $stdout.send(method, message) if verbose?(level)
   end
 
   def self.debug(message, newline: true)
     method = newline ? :puts : :print
-    $stdout.send(method,  message) if instance.debug && instance.program.__debug__
+    $stdout.send(method, message) if debug?
   end
-
-  def self.quiet?() instance.program.quiet? end
-  def self.verbose?(level = 1) level <= instance.program.verbose end
-  def self.debug?() instance.program.debug? end
 
   module Message
     @is_included = false
