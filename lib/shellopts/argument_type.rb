@@ -60,6 +60,17 @@ module ShellOpts
     class FileArgument < ArgumentType
       attr_reader :kind
 
+      def subject # Used in error messages
+        @subject ||= 
+            case kind
+              when :file, :efile, :nfile, :ifile, :ofile; "file"
+              when :dir, :edir, :ndir; "directory"
+              when :path, :epath, :npath; "path"
+            else
+              raise ArgumentError
+            end
+      end
+
       def initialize(kind)
         constrain kind, :file, :dir, :path, :efile, :edir, :epath, :nfile, :ndir, :npath, :ifile, :ofile
         @kind = kind 
@@ -128,15 +139,6 @@ module ShellOpts
 
     protected
       def match_path(name, literal, kind, method, mode)
-        subject = 
-            case kind
-              when :file, :efile, :nfile, :ifile, :ofile; "file"
-              when :dir, :edir, :ndir; "directory"
-              when :path, :epath, :npath; "path"
-            else
-              raise ArgumentError
-            end
-
         # file exists and is the rigth type?
         if File.send(method, literal)
           if mode == :new
@@ -174,7 +176,7 @@ module ShellOpts
               set_message "Illegal path in #{name}: #{literal}"
             end
           else
-            set_message "Can't find #{literal}"
+            set_message "Can't find #{subject} #{literal}"
           end
         end
       end
