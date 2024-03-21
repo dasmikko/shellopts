@@ -193,7 +193,6 @@ indicate that the option can be repeated
   --gamma=ARG?  @ --gamma, takes an optional argument
 ```
 
-
 An option argument has a name and a type. The type can be specified as '#'
 (integer), '$' (float), or as a comma-separated list of allowed values. It can
 also be defined by a keyword that expects a file or directory argument:
@@ -202,15 +201,17 @@ also be defined by a keyword that expects a file or directory argument:
   | --------- | ---- |
   | FILE      | A file if present or in an existing directory if not |
   | DIR       | A directory if present or in an existing directory if not |
-  | PATH      | Either a FILE or DIR |
+  | PATH      | FILE or DIR |
   | EFILE     | An existing file |
   | EDIR      | An existing directory |
-  | EPATH     | Either an EFILE or EDIR |
+  | EPATH     | EFILE or EDIR |
   | NFILE     | A new file |
   | NDIR      | A new directory |
-  | NPATH     | A new file or  directory |
+  | NPATH     | NFILE or NDIR |
 
-By default the option name is inferred from the type but it can be specified explicitly by separating it from the type with a ':'. Examples:
+
+By default the option name is inferred from the type but it can be specified
+explicitly by separating it from the type with a ':'. Examples:
 
 ```
   -a=#                  @ -a takes an integer argument
@@ -244,7 +245,7 @@ In single-line format, subcommands are specified by prefixing the supercommand's
 
 ## Example
 
-The rm(1) command could be specified like this:
+The standard rm(1) command could be specified like this:
 
 ```ruby
 

@@ -1,4 +1,14 @@
 
+o Remove IFILE and OFILE. Alternatively document them
+o Document special-case file argument '-'
+o Accept both strings and symbols for commands (maybe... ruins the global namespace in #[])
+o ShellOpts#command -> Full path. Eg. ':command.subcommand!'
+  ShellOpts#commands -> Array of commands. Eg. [:command!, :subcommand!]
+o Exclude -h, -v, and -q from short description and only include them in the
+  detailed option description
+o Output handling: mesg, verb, ... should record eols. error and failure should
+  use that to end the current line with a newline if necessary
+o Strings from ShellOpts are frozen. Is that what we want?
 o Assigner methods for options
 o Make opts[] point at the main object
     opts[].subcommand is the direct subcommand of main

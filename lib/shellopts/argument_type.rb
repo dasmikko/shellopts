@@ -26,7 +26,7 @@ module ShellOpts
       def to_s() name end
 
     protected
-      # it is important that #set_message return false
+      # Note that it is important that #set_message return false
       def set_message(msg)
         @message = msg
         false
@@ -63,7 +63,8 @@ module ShellOpts
       def subject # Used in error messages
         @subject ||= 
             case kind
-              when :file, :efile, :nfile, :ifile, :ofile; "file"
+              when :file, :efile; "regular file"
+              when :nfile, :ifile, :ofile; "file"
               when :dir, :edir, :ndir; "directory"
               when :path, :epath, :npath; "path"
             else
@@ -81,19 +82,18 @@ module ShellOpts
         if literal == '-' && [:ifile, :ofile].include?(kind)
           true
 
-        # Special-case standard I/O files
+        # Special-case standard I/O files. These files have read-write (rw)
+        # filesystem permissions so they need to be handled individually
         elsif %w(/dev/stdin /dev/stdout /dev/stderr /dev/null).include?(literal)
           case kind
             when :file, :path, :efile, :epath, :nfile, :npath
               true
             when :ifile
-              %w(/dev/stdin /dev/null).include? literal or 
-                  set_message "Can't read #{literal}"
+              %w(/dev/stdin /dev/null).include? literal or set_message "Can't read #{literal}"
             when :ofile
-              %w(/dev/stdout /dev/stderr /dev/null).include?(literal) or 
-                  set_message "Can't write to #{literal}"
+              %w(/dev/stdout /dev/stderr /dev/null).include?(literal) or set_message "Can't write to #{literal}"
             when :dir, :edir, :ndir
-              set_message "Expected file, got directory #{literal}"
+              set_message "#{literal} is not a directory"
           else
             raise ArgumentError, "Unhandled kind: #{kind.inspect}"
           end
@@ -139,44 +139,47 @@ module ShellOpts
 
     protected
       def match_path(name, literal, kind, method, mode)
-        # file exists and is the rigth type?
+        # file exists and the method returned true
         if File.send(method, literal)
           if mode == :new
-            set_message "#{subject.capitalize} already exists in #{name}: #{literal}"
+            set_message "Won't overwrite #{literal}"
           elsif kind == :path || kind == :epath
             if File.file?(literal) || File.directory?(literal)
               true
             else
-              set_message "Expected file or directory as #{name} argument: #{literal}"
+              set_message "#{literal} is not a file or a directory"
             end
           elsif (kind == :ifile || kind == :ofile) && File.directory?(literal)
-            set_message "File expected, got directory: #{literal}"
+            set_message "#{literal} is not a device file"
           else
             true
           end
 
-        # file exists but not the right type?
+        # file exists but the method returned false
         elsif File.exist?(literal)
           if kind == :ifile
             set_message "Can't read #{literal}"
           elsif kind == :ofile
             set_message "Can't write to #{literal}"
           elsif mode == :new
-            set_message "#{subject.capitalize} already exists - #{literal}"
+            set_message "Won't overwrite #{literal}"
           else
-            set_message "Expected #{subject} as #{name} argument: #{literal}"
+            set_message "#{literal} is not a #{subject}"
           end
 
         # file does not exist
         else 
           if [:default, :new].include? mode
-            if File.exist?(File.dirname(literal)) || kind == :ofile
-              true
+            dir = File.dirname(literal)
+            if !File.directory?(dir)
+              set_message "Illegal path - #{literal}"
+            elsif !File.writable?(dir)
+              set_message "Can't create #{subject} #{literal}"
             else
-              set_message "Illegal path in #{name}: #{literal}"
+              true
             end
           else
-            set_message "Can't find #{subject} #{literal}"
+            set_message "Can't find #{literal}"
           end
         end
       end
@@ -185,7 +188,7 @@ module ShellOpts
     class EnumArgument < ArgumentType
       attr_reader :values
       def initialize(values) @values = values.dup end
-      def match?(name, literal) value?(literal) or set_message "Illegal value in #{name}: '#{literal}'" end
+      def match?(name, literal) value?(literal) or set_message "Illegal value - #{literal}" end
       def value?(value) @values.include?(value) end
     end
   end

@@ -87,7 +87,6 @@ describe "ShellOpts::ShellOpts" do
       spec = %(
         asdf
       )
-
       text = %(
         qwerty
       )
@@ -174,8 +173,8 @@ describe "ShellOpts::ShellOpts" do
 
   # TODO: Generally usable method. Move to a common library
   def failure?(&block)
-    hold = $stderr
     begin
+      hold = $stderr
       $stderr = File.open("/dev/null", "w")
       yield
     rescue SystemExit

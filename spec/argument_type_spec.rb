@@ -16,7 +16,7 @@ describe "ShellOpts" do
         matcher.convert(value)
       end
 
-      def root() Dir.getwd + "/spec/tmpdir" end
+      def root() "spec/tmpdir" end
 
       def file() root + "/file" end
       def dir() root + "/dir" end
@@ -26,17 +26,36 @@ describe "ShellOpts" do
       def ndir() root + "/ndir" end
       def npath() root + "/npath" end
 
+      def stdin() "/dev/stdin" end
+      def stdout() "/dev/stdout" end
+
       def tty() root + "/cdev" end
+      def socket() "/dev/log" end
       def null() root + "/not_here/node" end
 
       def readonly() root + "/readonly" end
       def writeonly() root + "/writeonly" end
 
+      def readonlydir() root + "/readonlydir" end
+      def readonlydirnfile() readonlydir + "/nfile" end
+      def readonlydirndir() readonlydir + "/ndir" end
+
+      def message(type, file)
+        arg = FileArgument.new(type)
+        arg.match?("--alias", file)
+        arg.message
+      end
+
       before(:all) {
         FileUtils.rm_rf root
+
         FileUtils.mkdir_p root
-        FileUtils.mkdir dir
         FileUtils.touch file
+
+        FileUtils.mkdir_p readonlydir
+        FileUtils.chmod "ugo=r-x", readonlydir
+
+        FileUtils.mkdir dir
         FileUtils.ln_s "/dev/tty", tty
         FileUtils.touch readonly
         FileUtils.chmod "ugo=r", readonly
@@ -66,9 +85,11 @@ describe "ShellOpts" do
         end
         it "fails if not a regular file" do
           expect(match(:file, dir)).to eq false
+          expect(message :file, dir).to eq "#{dir} is not a regular file"
         end
         it "fails if enclosing directory doesn't exists" do
-          expect(match(:file, null)).to eq false
+          expect(match(:file, dir)).to eq false
+          expect(message :file, null).to eq "Illegal path - #{null}"
         end
       end
 
@@ -248,7 +269,7 @@ describe "ShellOpts" do
           expect(match(:ofile, writeonly)).to eq true
         end
         it "accepts a new file" do
-          expect(match(:ofile, null)).to eq true
+          expect(match(:ofile, file)).to eq true
         end
         it "apply special meaning to a '-' argument" do
           expect(match(:ofile, "-")).to eq true
@@ -271,10 +292,37 @@ describe "ShellOpts" do
           expect(convert(:ofile, "-")).to eq "/dev/stdout"
         end
       end
+
+      describe "#message" do
+        it "creates an error message if #match? failed" do
+          # From #match?
+          expect(message :ifile, stdout).to eq "Can't read #{stdout}"
+          expect(message :ofile, stdin).to eq "Can't write to #{stdin}"
+          expect(message :dir, stdout).to eq "#{stdout} is not a directory"
+
+          # From #match_path
+          expect(message :nfile, readonly).to eq "Won't overwrite spec/tmpdir/readonly"
+          expect(message :path, socket).to eq "#{socket} is not a file or a directory"
+          expect(message :ifile, dir).to eq "#{dir} is not a device file"
+
+          expect(message :ifile, writeonly).to eq "Can't read #{writeonly}"
+          expect(message :ofile, readonly).to eq "Can't write to #{readonly}"
+          expect(message :nfile, file).to eq "Won't overwrite #{file}"
+          expect(message :file, dir).to eq "#{dir} is not a regular file"
+          expect(message :dir, file).to eq "#{file} is not a directory"
+
+          expect(message :file, null).to eq "Illegal path - #{null}"
+          expect(message :nfile, readonlydirnfile).to eq "Can't create file #{readonlydirnfile}"
+          expect(message :ndir, readonlydirndir).to eq "Can't create directory #{readonlydirndir}"
+          expect(message :efile, nfile).to eq "Can't find #{nfile}"
+          expect(message :edir, ndir).to eq "Can't find #{ndir}"
+        end
+      end
     end
-  
+
     describe "EnumArgument" do
       let(:e) { EnumArgument.new %w(alpha beta) }
+
       describe "#values" do
         it "returns a list of allowed values" do
           expect(e.values).to eq %w(alpha beta) 
@@ -288,16 +336,18 @@ describe "ShellOpts" do
           it "returns false" do
             expect(e.match?("name", "futhark")).to eq false
           end
-          it "sets the message of the ArgumentType" do
-            e.match?("name", "futhark")
-            expect(e.message).to eq "Illegal value in name: 'futhark'"
-          end
         end
       end
       describe "#value?" do
         it "returns true if the given value is an enum and false otherwise" do
           expect(e.value?("alpha")).to eq true
           expect(e.value?("futhark")).to eq false
+        end
+      end
+      describe "#message" do
+        it "creates an error message if #match? failed" do
+          e.match?("name", "futhark")
+          expect(e.message).to eq "Illegal value - futhark"
         end
       end
     end
