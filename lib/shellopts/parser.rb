@@ -1,5 +1,6 @@
 
 module ShellOpts
+  # Extend Grammar classes with parse methods
   module Grammar
     class Node
       def parse() end
@@ -28,13 +29,13 @@ module ShellOpts
       NAME_RE = /(?:#{SHORT_NAME_RE}|#{LONG_NAME_RE})(?:,#{LONG_NAME_RE})*/
 
       def parse
-        token.source =~ /^(-|--|\+|\+\+)(#{NAME_RE})(?:=(.+?)(\?)?)?$/ or 
+        token.source =~ /^(-|--|\+|\+\+)(#{NAME_RE})(?:=(.+?)(,\??|\?,?)?)?$/ or
             parser_error token, "Illegal option: #{token.source.inspect}"
         initial = $1
         name_list = $2
         arg = $3
-        optional = $4
-
+        @optional = $4&.include?(??) || false
+        @list = $4&.include?(?,) || false
         @repeatable = %w(+ ++).include?(initial)
 
         @short_idents = []
@@ -48,8 +49,8 @@ module ShellOpts
           end
         end
 
-        names.each { |name| 
-          name.size > 1 or 
+        names.each { |name|
+          name.size > 1 or
               parser_error token, "Long names should be at least two characters long: '#{name}'"
         }
 
@@ -94,7 +95,6 @@ module ShellOpts
               @argument_name = arg
               @argument_type = StringType.new
           end
-          @optional = !optional.nil?
         else
           @argument_type = StringType.new
         end
@@ -182,7 +182,7 @@ module ShellOpts
           when :option
             # Collect options into option groups if on the same line and not in
             # oneline mode
-            options = [token] + @tokens.shift_while { |follow| 
+            options = [token] + @tokens.shift_while { |follow|
               !oneline && follow.kind == :option && follow.lineno == token.lineno
             }
             group = Grammar::OptionGroup.new(cmds.top, token)
@@ -266,7 +266,7 @@ module ShellOpts
             else
               if nodes.top.is_a?(Grammar::Command) || nodes.top.is_a?(Grammar::OptionGroup)
                 Grammar::Brief.new(nodes.top, token, token.source.sub(/\..*/, "")) if !nodes.top.brief
-                parent = nodes.top 
+                parent = nodes.top
               else
                 parent = nodes.top.parent
               end

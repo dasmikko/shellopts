@@ -60,6 +60,15 @@ describe "Lexer" do
       expect(make src, fields: :kind).to eq [:command, :command]
       expect(make src, fields: :source).to eq %w(cmd! cmd.cmd2!)
     end
+    it "allows ! to be escaped" do
+      src = %(
+        \\cmd1!
+        \\cmd2!
+        cmd3!
+      )
+      expect(make src, fields: :kind).to eq [:text, :text, :command]
+      expect(make src, fields: :source).to eq %w(cmd1! cmd2! cmd3!)
+    end
 
     it "creates spec and argument tokens" do
       src = %(
@@ -139,7 +148,7 @@ describe "Lexer" do
 
     it "ignores initial blank and commented lines" do
       src = %(
-        
+
         -a
 # Meta-comment
         Text

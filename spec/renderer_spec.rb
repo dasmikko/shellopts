@@ -2,7 +2,7 @@
 include ShellOpts
 
 describe ShellOpts do
-  def compile(source) 
+  def compile(source)
     shellopts = ShellOpts::ShellOpts.new(name: "rspec", help: false, version: false)
     shellopts.compile(source)
     shellopts.grammar
@@ -13,12 +13,99 @@ describe ShellOpts do
       compile(source).options.first
     end
 
+    def opts(source)
+      compile(source).options
+    end
+
     describe "#render" do
-      it "puts optional arguments in brackets" do
-        s = "-a,all=FILE?"
-        expect(opt(s).render(:enum)).to eq "-a, --all[=FILE]"
-        expect(opt(s).render(:long)).to eq "--all[=FILE]"
-        expect(opt(s).render(:short)).to eq "-a[=FILE]"
+      def str(src) opts(src).map { |opt| opt.render(:enum) }.join(' ') end
+
+      it "renders short mandatory values" do
+        s = %(
+          -a=ARG
+          -b=#
+          -c=$
+          -d=red,blue
+        )
+        r = "-a ARG -b INT -c NUM -d red,blue"
+        expect(str(s)).to eq r
+      end
+
+      it "renders long mandatory values" do
+        s = %(
+          --aa=ARG
+          --bb=#
+          --cc=$
+          --dd=red,blue
+        )
+        r = "--aa=ARG --bb=INT --cc=NUM --dd=red,blue"
+        expect(str(s)).to eq r
+      end
+
+      it "renders short optional values" do
+        s = %(
+          -a=ARG?
+          -b=#?
+          -c=$?
+          -d=red,blue?
+        )
+        r = "-a [ARG] -b [INT] -c [NUM] -d [red,blue]"
+        expect(str(s)).to eq r
+      end
+
+      it "renders long optional values" do
+        s = %(
+          -aa=ARG?
+          -bb=#?
+          -cc=$?
+          -dd=red,blue?
+        )
+        r = "--aa[=ARG] --bb[=INT] --cc[=NUM] --dd[=red,blue]"
+        expect(str(s)).to eq r
+      end
+
+      it "renders short mandatory array values" do
+        s = %(
+          -a=ARG,
+          -b=#,
+          -c=$,
+          -d=red,blue,
+        )
+        r = "-a ARG... -b INT... -c NUM... -d red,blue..."
+        expect(str(s)).to eq r
+      end
+
+      it "renders long mandatory array values" do
+        s = %(
+          --aa=ARG,
+          --bb=#,
+          --cc=$,
+          --dd=red,blue,
+        )
+        r = "--aa=ARG... --bb=INT... --cc=NUM... --dd=red,blue..."
+        expect(str(s)).to eq r
+      end
+
+
+      it "renders short optional array values" do
+        s = %(
+          -a=ARG,?
+          -b=#?,
+          -c=$,?
+          -d=red,blue?,
+        )
+        r = "-a [ARG...] -b [INT...] -c [NUM...] -d [red,blue...]"
+        expect(str(s)).to eq r
+      end
+      it "renders long optional array values" do
+        s = %(
+          -aa=ARG?,
+          -bb=#,?
+          -cc=$?,
+          -dd=red,blue,?
+        )
+        r = "--aa[=ARG...] --bb[=INT...] --cc[=NUM...] --dd[=red,blue...]"
+        expect(str(s)).to eq r
       end
     end
   end
@@ -86,7 +173,7 @@ describe ShellOpts do
 
       it "renders each argument description on a line" do
         s = %(
-          -- ARG1 
+          -- ARG1
           -- ARG2
         )
         r = undent %(

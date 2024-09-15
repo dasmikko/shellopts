@@ -9,7 +9,7 @@ describe "Parser" do
 
 #   puts "Tokens"
 #   indent { tokens.each(&:dump) }
-#   puts 
+#   puts
 #   puts "Ast"
 #   indent { ast.dump_ast }
 #   puts
@@ -46,7 +46,7 @@ describe "Parser" do
           cmd!
       )
     end
-   
+
     it "parses -a cmd!" do
       s = "-a cmd!"
       expect(struct s).to eq undent %(
@@ -317,6 +317,10 @@ describe "Option#parse" do
     it "sets optional?" do
       expect(opt "-s=SOME", :optional?).to eq false
       expect(opt "-s=SOME?", :optional?).to eq true
+    end
+    it "sets list?" do
+      expect(opt "-s=LIST", :list?).to eq false
+      expect(opt "-s=LIST,", :list?).to eq true
     end
     context "without a type specification" do
       it "sets argument_name" do

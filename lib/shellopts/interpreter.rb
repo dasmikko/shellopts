@@ -80,15 +80,23 @@ module ShellOpts
       elsif !value.nil?
         error "No argument allowed for option '#{opt_name}'"
       end
-      
+
       Command.add_option(option_command, Option.new(option, name, value))
     end
 
     def interpret_option_value(option, name, value)
+      if option.list?
+        value.split(",").map { |elem| interpret_option_value_element(option, name, elem) }
+      else
+        interpret_option_value_element(option, name, value)
+      end
+    end
+
+    def interpret_option_value_element(option, name, elem)
       type = option.argument_type
-      if type.match?(name, value)
-        type.convert(value)
-      elsif value == ""
+      if type.match?(name, elem)
+        type.convert(elem)
+      elsif elem == ""
         nil
       else
         error type.message
